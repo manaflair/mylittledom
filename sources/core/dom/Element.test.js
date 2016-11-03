@@ -1,11 +1,107 @@
-import { expect }                              from 'chai';
+import { expect }        from 'chai';
 
-import { StyleDisplay }                        from '../style/types/StyleDisplay';
-import { StylePosition }                       from '../style/types/StylePosition';
+import { StyleDisplay }  from '../style/types/StyleDisplay';
+import { StylePosition } from '../style/types/StylePosition';
 
-import { Element }                             from './Element';
+import { Element }       from './Element';
 
 describe(`Element`, () => {
+
+    describe(`#elementClipRect`, () => {
+
+        it(`should be computed relative to the element's parent content clip if the element is not absolutely positioned`, () => {
+
+            let root = new Element();
+            root.style.padding = 1;
+            root.style.width = 100;
+            root.style.height = 100;
+
+            let element = new Element();
+            root.appendChild(element);
+            element.style.height = 200;
+
+            root.triggerUpdates();
+
+            expect(element.elementRect).to.deep.equal({ x: 1, y: 1, width: 98, height: 200 });
+            expect(element.elementClipRect).to.deep.equal({ x: 1, y: 1, width: 98, height: 98 });
+
+        });
+
+    });
+
+    describe(`#generateRenderList`, () => {
+
+        it(`should correctly resolve a set of mixed elements (small test)`, () => {
+
+            let elementA = new Element({ name: `A` });
+
+            let elementB = new Element({ name: `B` });
+            elementA.appendChild(elementB);
+            elementB.style.zIndex = 2;
+
+            let elementC = new Element({ name: `C` });
+            elementB.appendChild(elementC);
+
+            let elementD = new Element({ name: `D` });
+            elementA.appendChild(elementD);
+            elementD.style.zIndex = 1;
+
+            let renderList = elementA.generateRenderList();
+
+            expect(renderList).to.have.length(4);
+
+            expect(renderList).to.have.property(0, elementC);
+            expect(renderList).to.have.property(1, elementB);
+            expect(renderList).to.have.property(2, elementD);
+            expect(renderList).to.have.property(3, elementA);
+
+        });
+
+        it(`should correctly resolve a set of mixed elements (complex case)`, () => {
+
+            let elementA = new Element({ name: `A` });
+
+            let elementB = new Element({ name: `B` });
+            elementA.appendChild(elementB);
+
+            let elementC = new Element({ name: `C` });
+            elementB.appendChild(elementC);
+            elementC.style.zIndex = 1;
+
+            let elementD = new Element({ name: `D` });
+            elementB.appendChild(elementD);
+
+            let elementE = new Element({ name: `E` });
+            elementD.appendChild(elementE);
+            elementE.style.zIndex = 3;
+
+            let elementF = new Element({ name: `F` });
+            elementB.appendChild(elementF);
+            elementF.style.zIndex = 2;
+
+            let elementG = new Element({ name: `G` });
+            elementF.appendChild(elementG);
+
+            let elementH = new Element({ name: `H` });
+            elementA.appendChild(elementH);
+            elementH.style.zIndex = 2;
+
+            let renderList = elementA.generateRenderList();
+
+            expect(renderList).to.have.length(8);
+
+            expect(renderList).to.have.property(0, elementE);
+            expect(renderList).to.have.property(1, elementH);
+            expect(renderList).to.have.property(2, elementG);
+            expect(renderList).to.have.property(3, elementF);
+            expect(renderList).to.have.property(4, elementC);
+            expect(renderList).to.have.property(5, elementD);
+            expect(renderList).to.have.property(6, elementB);
+            expect(renderList).to.have.property(7, elementA);
+
+        });
+
+    });
 
     describe(`#style`, () => {
 

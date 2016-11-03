@@ -197,7 +197,7 @@ export class Node {
 
     inspect() {
 
-        return `<${this.nodeName}#${this.nodeId}>`;
+        return `<${this.nodeName}#${this.props.name ? this.props.name : this.nodeId}>`;
 
     }
 

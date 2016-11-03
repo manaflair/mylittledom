@@ -96,7 +96,7 @@ export class TermElement extends Element {
             } else {
 
                 let contentX = x;
-                let contentY = y - 1;
+                let contentY = y;
                 let contentL = l;
 
                 if (this.style.$.borderLeftCharacter) {
@@ -160,7 +160,32 @@ export class TermElement extends Element {
 
         let processContent = (x, y, l) => {
 
-            return this.renderContent(x, y + this.scrollRect.y, l);
+            if (y < this.contentRect.y || y >= this.contentRect.y + this.contentRect.height) {
+                return this.renderBackground(l);
+            } else {
+                y -= this.contentRect.y;
+            }
+
+            let prepend = ``;
+            let append = ``;
+
+            if (x < this.contentRect.x) {
+                let size = Math.min(l, this.contentRect.x - x);
+                prepend = this.renderBackground(size);
+                x = 0, l -= size;
+            } else {
+                x -= this.contentRect.x;
+            }
+
+            if (x + l > this.contentRect.width) {
+                let size = x + l - this.contentRect.width;
+                append = this.renderBackground(size);
+                l -= size;
+            }
+
+            let content = this.renderContent(x, y, l);
+
+            return prepend + content + append;
 
         };
 

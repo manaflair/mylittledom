@@ -204,8 +204,8 @@ export class StyleDeclaration {
 
                 let [ paddingY, paddingX ] = paddings;
 
-                this.paddingTop = this.paddingBottom = paddingX;
-                this.paddingLeft = this.paddingRight = paddingY;
+                this.paddingLeft = this.paddingRight = paddingX;
+                this.paddingTop = this.paddingBottom = paddingY;
 
             } break;
 

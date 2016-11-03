@@ -1,19 +1,20 @@
-import { flatten, isEmpty, isNull } from 'lodash';
+import { flatten, groupBy, isEmpty, isNull } from 'lodash';
 
-import { AbsoluteLayout }           from '../layout/AbsoluteLayout';
-import { RootLayout }               from '../layout/RootLayout';
-import { LayoutContext }            from '../layout/tools/LayoutContext';
+import { AbsoluteLayout }                    from '../layout/AbsoluteLayout';
+import { RootLayout }                        from '../layout/RootLayout';
+import { ClippingContext }                   from '../layout/tools/ClippingContext';
+import { LayoutContext }                     from '../layout/tools/LayoutContext';
 
-import { EventSource }              from '../misc/EventSource';
-import { Event }                    from '../misc/Event';
-import { Rect }                     from '../misc/RectXY';
+import { EventSource }                       from '../misc/EventSource';
+import { Event }                             from '../misc/Event';
+import { Rect }                              from '../misc/RectXY';
 
-import { StyleDeclaration }         from '../style/StyleDeclaration';
-import { StyleLength }              from '../style/types/StyleLength';
-import { StyleOverflow }            from '../style/types/StyleOverflow';
+import { StyleDeclaration }                  from '../style/StyleDeclaration';
+import { StyleLength }                       from '../style/types/StyleLength';
+import { StyleOverflow }                     from '../style/types/StyleOverflow';
 
-import { Node }                     from './Node';
-import { flags }                    from './flags';
+import { Node }                              from './Node';
+import { flags }                             from './flags';
 
 export class Element extends Node {
 
@@ -38,12 +39,16 @@ export class Element extends Node {
         this.contentRect = new Rect(); // Position & size of the content box inside the element
         this.scrollRect = new Rect(); // Position & size of the element children box | note: both `x` and `y` are "wrong", in that they are not the actual box offset (which would always be 0;0), but rather the scroll offset (ie = scrollLeft / scrollTop)
 
-        this.clipRect = new Rect(); // Position & size of the actual visible box inside the element (ie. taking scrollLeft + scrollTop into account)
-        this.worldRect = new Rect(); // Position & size of the element inside the viewport
+        this.elementWorldRect = new Rect(); // Position & size of the element inside the viewport
+        this.contentWorldRect = new Rect(); // Position & size of the element content inside the viewport
+
+        this.elementClipRect = new Rect(); // Position & size of the actual visible box inside the element
+        this.contentClipRect = new Rect(); // Position & size of the actual visible box inside the element
 
         this.declareEvent(`dirty`);
+        this.declareEvent(`relayout`);
+
         this.declareEvent(`scroll`);
-        this.declareEvent(`resize`);
 
     }
 
@@ -357,7 +362,7 @@ export class Element extends Node {
 
     }
 
-    triggerUpdates() {
+    triggerUpdates({ maxDepth = 5 } = {}) {
 
         if (this.rootNode !== this)
             return this.rootNode.triggerUpdates();
@@ -377,12 +382,24 @@ export class Element extends Node {
             this.clearDirtyRenderListFlag();
         }
 
+        let dirtyLayoutNodes = this.findDirtyLayoutNodes();
+
         this.cascadeLayout();
         this.cascadeClipping();
         this.cascadeRendering();
 
-        if (needFullRerender && this.clipRect) {
-            this.rootNode.queueDirtyRect(this.clipRect);
+        if (needFullRerender && this.elementClipRect)
+            this.rootNode.queueDirtyRect(this.elementClipRect);
+
+        for (let dirtyLayoutNode of dirtyLayoutNodes)
+            dirtyLayoutNode.dispatchEvent(new Event(`relayout`));
+
+        if (this.flags & flags.ELEMENT_IS_DIRTY) {
+            if (maxDepth < 1) {
+                throw new Error(`Aborted 'triggerUpdates' execution: Too much recursion.`);
+            } else {
+                this.triggerUpdates({ maxDepth: maxDepth - 1 });
+            }
         }
 
     }
@@ -407,64 +424,37 @@ export class Element extends Node {
 
     generateRenderList() {
 
-        let makeTreeNode = () => ({ layers: new Map(), elements: [] });
-
         let renderList = [];
+        let stackingContexts = [ this ];
 
-        let renderTree = makeTreeNode();
-        let currentTreeNode = renderTree;
+        while (stackingContexts.length > 0) {
 
-        let getLayer = zIndex => {
+            let stackingContext = stackingContexts.shift();
+            renderList.push(stackingContext);
 
-            if (!currentTreeNode.layers.has(zIndex))
-                currentTreeNode.layers.set(zIndex, makeTreeNode());
+            let childNodes = stackingContext.childNodes.slice();
+            let subContexts = [];
 
-            return currentTreeNode.layers.get(zIndex);
+            while (childNodes.length > 0) {
 
-        };
+                let child = childNodes.shift();
 
-        let layeringVisitor = element => {
-
-            if (!element.style.$.display)
-                return;
-
-            let zIndex = element.style.$.zIndex;
-
-            if (zIndex !== null) {
-
-                let previousTreeNode = currentTreeNode;
-                currentTreeNode = getLayer(zIndex);
-
-                currentTreeNode.elements.unshift(element);
-                element.childNodes.forEach(child => { layeringVisitor(child) });
-
-                currentTreeNode = previousTreeNode;
-
-            } else {
-
-                currentTreeNode.elements.unshift(element);
-                element.childNodes.forEach(child => { layeringVisitor(child) });
+                if (!isNull(child.style.$.zIndex)) {
+                    subContexts.push(child);
+                } else {
+                    renderList.push(child);
+                    childNodes.splice(0, 0, ... child.childNodes);
+                }
 
             }
 
-        };
+            stackingContexts.splice(0, 0, ... subContexts.sort((a, b) => {
+                return a.style.$.zIndex - b.style.$.zIndex;
+            }));
 
-        layeringVisitor(this);
+        }
 
-        let flatteningVisitor = treeNode => {
-
-            for (let zIndex of Array.from(treeNode.layers.keys()).sort((a, b) => a - b))
-                flatteningVisitor(treeNode.layers.get(zIndex));
-
-            for (let element of treeNode.elements) {
-                renderList.push(element);
-            }
-
-        };
-
-        flatteningVisitor(renderTree);
-
-        return renderList;
+        return renderList.reverse();
 
     }
 
@@ -488,17 +478,19 @@ export class Element extends Node {
 
     }
 
-    cascadeClipping() {
+    cascadeClipping({ context = new ClippingContext() } = {}) {
 
         if (this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING) {
 
             this.setDirtyRenderingFlag();
-            this.forceClipping();
+            this.forceClipping({ context });
 
         } else if (this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN) {
 
+            let subContext = context.pushNode(this);
+
             for (let child of this.childNodes)
-                child.cascadeClipping();
+                child.cascadeClipping({ context: subContext });
 
             this.clearDirtyClippingChildrenFlag();
 
@@ -604,12 +596,12 @@ export class Element extends Node {
 
     }
 
-    forceClipping() {
+    forceClipping({ context = new ClippingContext() } = {}) {
 
         // -- We queue the current clip rect so that if it moves or shrinks, we will still redraw the area beneath it
 
-        if (this.clipRect)
-            this.rootNode.queueDirtyRect(this.clipRect);
+        if (this.elementClipRect)
+            this.rootNode.queueDirtyRect(this.elementClipRect);
 
         // -- We first need to update our scroll rect
 
@@ -626,41 +618,48 @@ export class Element extends Node {
         this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
         this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
 
-        // -- We can now compute the world and clip rects
+        // -- We can now compute the world rects ...
 
         if (!this.parentNode) {
 
-            this.worldRect.x = this.clipRect.x = 0;
-            this.worldRect.y = this.clipRect.y = 0;
+            this.elementWorldRect.x = 0;
+            this.elementWorldRect.y = 0;
 
-            this.worldRect.width = this.clipRect.width = this.elementRect.width;
-            this.worldRect.height = this.clipRect.height = this.elementRect.height;
+            this.elementWorldRect.width = this.elementRect.width;
+            this.elementWorldRect.height = this.elementRect.height;
 
         } else {
 
-            this.worldRect.x = this.parentNode.worldRect.x + this.elementRect.x;
-            this.worldRect.y = this.parentNode.worldRect.y + this.elementRect.y - this.scrollRect.y;
+            this.elementWorldRect.x = this.parentNode.elementWorldRect.x + this.elementRect.x - this.parentNode.scrollRect.x;
+            this.elementWorldRect.y = this.parentNode.elementWorldRect.y + this.elementRect.y - this.parentNode.scrollRect.y;
 
-            this.worldRect.width = this.elementRect.width;
-            this.worldRect.height = this.elementRect.height;
-
-            if (this.style.$.overflow !== StyleOverflow.visible) {
-                this.clipRect = this.worldRect.clone();
-            } else {
-                this.clipRect = this.parentNode.clipRect ? this.worldRect.intersect(this.parentNode.clipRect) : null;
-            }
+            this.elementWorldRect.width = this.elementRect.width;
+            this.elementWorldRect.height = this.elementRect.height;
 
         }
 
+        this.contentWorldRect.x = this.elementWorldRect.x + this.contentRect.x;
+        this.contentWorldRect.y = this.elementWorldRect.y + this.contentRect.y;
+
+        this.contentWorldRect.width = this.contentRect.width;
+        this.contentWorldRect.height = this.contentRect.height;
+
+        // -- ... and derive the clip rects from them
+
+        this.elementClipRect = context.getElementClipRect(this);
+        this.contentClipRect = context.getContentClipRect(this);
+
         // -- Now that the clip rect has been updated, we can now request to render it
 
-        if (this.clipRect)
-            this.rootNode.queueDirtyRect(this.clipRect);
+        if (this.elementClipRect)
+            this.rootNode.queueDirtyRect(this.elementClipRect);
 
         // -- Iterate over our childrens to update their own clip rects
 
+        let subContext = context.pushNode(this);
+
         for (let child of this.childNodes)
-            child.forceClipping();
+            child.forceClipping({ context: subContext });
 
         // -- Clear the clipping flags so that we don't perform those tasks again
 
@@ -671,14 +670,54 @@ export class Element extends Node {
 
     forceRendering() {
 
-        if (this.clipRect)
-            this.rootNode.queueDirtyRect(this.clipRect);
+        if (this.elementClipRect)
+            this.rootNode.queueDirtyRect(this.elementClipRect);
 
         for (let child of this.childNodes)
             child.forceRendering();
 
         this.clearDirtyRenderingFlag();
         this.clearDirtyRenderingChildrenFlag();
+
+    }
+
+    findDirtyLayoutNodes() {
+
+        let dirtyNodes = [];
+        let pendingQueue = [ this ];
+
+        while (pendingQueue.length > 0) {
+
+            let node = pendingQueue.shift();
+
+            if (node.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN))
+                pendingQueue = pendingQueue.concat(node.childNodes);
+
+            if (node.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT)) {
+                node.traverse(traversedNode => dirtyNodes.push(traversedNode));
+            }
+
+        }
+
+        return dirtyNodes;
+
+    }
+
+    computeContentWidth() {
+
+        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children
+        // You cannot use any rect here, since they have not yet been updated and still hold out-of-date values
+
+        return 0;
+
+    }
+
+    computeContentHeight() {
+
+        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children
+        // You can access this element's rects' width properties, since they have already been computed when this function is called
+
+        return 0;
 
     }
 

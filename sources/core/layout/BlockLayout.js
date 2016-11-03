@@ -32,17 +32,38 @@ export let BlockLayout = new class BlockLayout {
 
     isBlockHeightFixed(node, context) {
 
-        return (
+        if (node.style.$.position.isAbsolutelyPositioned) {
 
-            node.style.$.height !== StyleLength.auto
+            return (
 
-        );
+                node.style.$.height !== StyleLength.auto ||
+
+                (node.style.$.top !== StyleLength.auto &&
+                 node.style.$.bottom !== StyleLength.auto)
+
+            );
+
+        } else {
+
+            return (
+
+                node.style.$.height !== StyleLength.auto
+
+            );
+
+        }
 
     }
 
     computeNodeWidth(node, context) {
 
         let containerWidth = context.getContainerWidth(node);
+
+        let borderLeft = node.style.$.borderLeftCharacter ? 1 : 0;
+        let borderRight = node.style.$.borderRightCharacter ? 1 : 0;
+
+        let paddingLeft = Math.max(0, node.style.$.paddingLeft.resolve(containerWidth));
+        let paddingRight = Math.max(0, node.style.$.paddingRight.resolve(containerWidth));
 
         if (node.style.$.width !== StyleLength.auto) {
 
@@ -52,7 +73,12 @@ export let BlockLayout = new class BlockLayout {
 
             if (node.style.$.left === StyleLength.auto || node.style.$.right === StyleLength.auto) {
 
-                node.elementRect.width = Math.max(0, ... node.childNodes.filter(child => {
+                let baseWidth = node.computeContentWidth();
+
+                baseWidth += borderLeft + paddingLeft;
+                baseWidth += borderRight + paddingRight;
+
+                node.elementRect.width = Math.max(baseWidth, ... node.childNodes.filter(child => {
                     return !child.style.$.position.isAbsolutelyPositioned;
                 }).map(child => {
                     return child.elementRect.width;
@@ -75,12 +101,6 @@ export let BlockLayout = new class BlockLayout {
             node.elementRect.width = Math.max(0, containerWidth - marginLeft - marginRight);
 
         }
-
-        let borderLeft = node.style.$.borderLeftCharacter ? 1 : 0;
-        let borderRight = node.style.$.borderRightCharacter ? 1 : 0;
-
-        let paddingLeft = Math.max(0, node.style.$.paddingLeft.resolve(containerWidth));
-        let paddingRight = Math.max(0, node.style.$.paddingRight.resolve(containerWidth));
 
         node.contentRect.width = Math.max(0, node.elementRect.width - borderLeft - paddingLeft - borderRight - paddingRight);
 
@@ -106,11 +126,16 @@ export let BlockLayout = new class BlockLayout {
 
         } else if (node.style.$.height === StyleLength.auto) {
 
-            node.elementRect.height = Math.max(borderTop + paddingTop, ... node.childNodes.filter(child => {
+            let baseHeight = node.computeContentHeight();
+
+            baseHeight += borderTop + paddingTop;
+            baseHeight += borderBottom + paddingBottom;
+
+            node.elementRect.height = Math.max(baseHeight, ... node.childNodes.filter(child => {
                 return !child.style.$.position.isAbsolutelyPositioned;
             }).map(child => {
-                return child.elementRect.y + child.elementRect.height;
-            })) + borderBottom + paddingBottom;
+                return child.elementRect.y + child.elementRect.height + borderBottom + paddingBottom;;
+            }));
 
         } else {
 

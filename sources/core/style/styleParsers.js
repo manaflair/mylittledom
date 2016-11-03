@@ -1,12 +1,12 @@
-import { castArray, isString, isUndefined } from 'lodash';
+import { castArray, isFinite, isString, isUndefined, isNumber } from 'lodash';
 
-import { colorNames }                       from './colorNames';
-import { parseRawValue }                    from './tools/parseRawValue';
-import { StyleColor }                       from './types/StyleColor';
-import { StyleDisplay }                     from './types/StyleDisplay';
-import { StyleLength }                      from './types/StyleLength';
-import { StyleOverflow }                    from './types/StyleOverflow';
-import { StylePosition }                    from './types/StylePosition';
+import { colorNames }                                           from './colorNames';
+import { parseRawValue }                                        from './tools/parseRawValue';
+import { StyleColor }                                           from './types/StyleColor';
+import { StyleDisplay }                                         from './types/StyleDisplay';
+import { StyleLength }                                          from './types/StyleLength';
+import { StyleOverflow }                                        from './types/StyleOverflow';
+import { StylePosition }                                        from './types/StylePosition';
 
 export function repeat(n, parsers) {
 
@@ -59,9 +59,12 @@ export function overflow(rawValue) {
 
 export function number(rawValue) {
 
+    if (!isNumber(rawValue) && !isString(rawValue))
+        return undefined;
+
     let value = Number(rawValue);
 
-    if (isNaN(value))
+    if (!isFinite(value))
         return undefined;
 
     return value;
@@ -70,9 +73,12 @@ export function number(rawValue) {
 
 export function length(rawValue) {
 
+    if (!isNumber(rawValue) && !isString(rawValue))
+        return undefined;
+
     let value = Number(rawValue);
 
-    if (isNaN(value))
+    if (!isFinite(value))
         return undefined;
 
     return new StyleLength(value);
@@ -86,7 +92,7 @@ length.rel = function (rawValue) {
 
     let value = Number(rawValue.slice(0, -1));
 
-    if (isNaN(value))
+    if (!isFinite(value))
         return undefined;
 
     return new StyleLength(value, true);

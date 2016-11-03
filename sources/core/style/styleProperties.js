@@ -17,7 +17,7 @@ export let styleProperties = {
     top                        : { parsers: [ length, length.rel, length.auto ], triggers: [ dirtyLayout ],                                initial:    `auto` },
     bottom                     : { parsers: [ length, length.rel, length.auto ], triggers: [ dirtyLayout ],                                initial:    `auto` },
 
-    zIndex                     : { parsers: [ number ],                          triggers: [ dirtyRenderList ],                            initial:        0  },
+    zIndex                     : { parsers: [ number, null ],                    triggers: [ dirtyRenderList ],                            initial:     null  },
 
     margin                     : { parsers: [ repeat([ 1, 2, 4 ], [ length, length.rel, length.auto ]) ],                                  initial:        0  },
     marginLeft                 : { parsers: [ length, length.rel, length.auto ], triggers: [ dirtyLayout ],                                initial:        0  },
