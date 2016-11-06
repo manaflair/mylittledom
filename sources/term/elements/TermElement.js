@@ -1,8 +1,25 @@
-import { style }   from '@manaflair/term-strings';
+import { style }       from '@manaflair/term-strings';
 
-import { Element } from '../../core';
+import { Element }     from '../../core';
+import { KeySequence } from '../misc/KeySequence';
 
 export class TermElement extends Element {
+
+    constructor(props) {
+
+        super(props);
+
+        this.declareEvent(`keypress`);
+
+        this.declareEvent(`mousedown`);
+        this.declareEvent(`mouseup`);
+
+        this.declareEvent(`mouseenter`);
+        this.declareEvent(`mouseleave`);
+
+        this.declareEvent(`data`);
+
+    }
 
     appendChild(node) {
 
@@ -29,6 +46,23 @@ export class TermElement extends Element {
             throw new Error(`Failed to execute 'appendChild': Parameter 1 is not of type 'TermElement'.`);
 
         return super.removeChild(node);
+
+    }
+
+    addShortcutListener(descriptor, callback) {
+
+        let sequence = new KeySequence(descriptor);
+
+        this.addEventListener(`keypress`, e => {
+
+            if (!e.key)
+                return;
+
+            if (sequence.add(e.key)) {
+                callback.call(this, e);
+            }
+
+        });
 
     }
 

@@ -4,21 +4,21 @@ import { styleProperties } from '../styleProperties';
 
 import { parseRawValue }   from './parseRawValue';
 
-export function parsePropertyValue(name, rawValue) {
+export function parsePropertyValue(propertyName, rawValue) {
 
-    if (!Object.prototype.hasOwnProperty.call(styleProperties, name))
-        throw new Error(`Failed to parse a style property: '${name}' is not a valid style property name.`);
+    if (!Object.prototype.hasOwnProperty.call(styleProperties, propertyName))
+        throw new Error(`Failed to parse a style property: '${propertyName}' is not a valid style property propertyName.`);
 
-    let property = styleProperties[name];
+    let property = styleProperties[propertyName];
 
     if (isUndefined(property.parsers))
-        throw new Error(`Failed to parse a style property: '${name}' has no declared parser.`);
+        throw new Error(`Failed to parse a style property: '${propertyName}' has no declared parser.`);
 
-    let value = parseRawValue(rawValue, property.parsers);
+    let styleValue = parseRawValue(rawValue, property.parsers);
 
-    if (isUndefined(value))
-        throw new Error(`Failed to parse a style property: '${rawValue}' is not a valid value for property '${name}'.`);
+    if (isUndefined(styleValue))
+        throw new Error(`Failed to parse a style property: '${rawValue}' is not a valid value for property '${propertyName}'.`);
 
-    return value;
+    return styleValue;
 
 }

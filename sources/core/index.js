@@ -1,4 +1,5 @@
 export { Element } from './dom/Element';
 export { Node }    from './dom/Node';
 
-export { Rect }    from './misc/RectXY';
+export { Event }   from './misc/Event';
+export { Rect }    from './misc/Rect';

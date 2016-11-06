@@ -18,6 +18,12 @@ export function dirtyRendering(node) {
 
 }
 
+export function dirtyFocusList(node) {
+
+    node.rootNode.setDirtyFocusListFlag();
+
+}
+
 export function dirtyRenderList(node) {
 
     node.rootNode.setDirtyRenderListFlag();

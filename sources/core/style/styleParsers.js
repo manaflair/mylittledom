@@ -32,6 +32,9 @@ export function repeat(n, parsers) {
 
 export function display(rawValue) {
 
+    if (rawValue instanceof StyleDisplay)
+        return rawValue;
+
     if (!Object.prototype.hasOwnProperty.call(StyleDisplay.values, rawValue))
         return undefined;
 
@@ -41,6 +44,9 @@ export function display(rawValue) {
 
 export function position(rawValue) {
 
+    if (rawValue instanceof StylePosition)
+        return rawValue;
+
     if (!Object.prototype.hasOwnProperty.call(StylePosition.values, rawValue))
         return undefined;
 
@@ -49,6 +55,9 @@ export function position(rawValue) {
 }
 
 export function overflow(rawValue) {
+
+    if (rawValue instanceof StyleOverflow)
+        return rawValue;
 
     if (!Object.prototype.hasOwnProperty.call(StyleOverflow.values, rawValue))
         return undefined;
@@ -73,6 +82,9 @@ export function number(rawValue) {
 
 export function length(rawValue) {
 
+    if (rawValue instanceof StyleLength && !rawValue.isRelative)
+        return rawValue;
+
     if (!isNumber(rawValue) && !isString(rawValue))
         return undefined;
 
@@ -86,6 +98,9 @@ export function length(rawValue) {
 }
 
 length.rel = function (rawValue) {
+
+    if (rawValue instanceof StyleLength && rawValue.isRelative)
+        return rawValue;
 
     if (!isString(rawValue) || !rawValue.endsWith(`%`))
         return undefined;
@@ -101,7 +116,7 @@ length.rel = function (rawValue) {
 
 length.auto = function (rawValue) {
 
-    if (rawValue !== `auto`)
+    if (rawValue !== `auto` && rawValue !== StyleLength.auto)
         return undefined;
 
     return StyleLength.auto;
@@ -118,6 +133,9 @@ export function character(rawValue) {
 }
 
 export function color(rawValue) {
+
+    if (rawValue instanceof StyleColor)
+        return rawValue;
 
     if (!isString(rawValue))
         return undefined;

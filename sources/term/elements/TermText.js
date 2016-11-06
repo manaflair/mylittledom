@@ -28,8 +28,8 @@ export class TermText extends TermElement {
 
     set textContent(textContent) {
 
-        this.textContentString = String(textContent);
-        this.textContentLines = this.textContentString.split(/\r\n|\r|\n/g);
+        this.textContentString = String(textContent).replace(/\r\n?/g, `\n`);
+        this.textContentLines = this.textContentString.split(/\n/g);
         this.textContentColumns = Math.max(0, ... this.textContentLines.map(line => line.length));
         this.textContentRows = this.textContentLines.length;
 
@@ -76,7 +76,25 @@ export class TermText extends TermElement {
 
     @autobind handleRelayout() {
 
-        this.textContentLayout = this.textContentString.match(new RegExp(`(?:(?!\r\n|\r|\n).){1,${this.contentRect.width}}`, `g`));
+        this.textContentLayout = [ `` ];
+
+        for (let c of this.textContentString) {
+
+            if (c === `\n`) {
+
+                this.textContentLayout.push(``);
+
+            } else {
+
+                this.textContentLayout[this.textContentLayout.length - 1] += c;
+
+                if (this.textContentLayout[this.textContentLayout.length - 1].length >= this.contentRect.width) {
+                    this.textContentLayout.push(``);
+                }
+
+            }
+
+        }
 
     }
 

@@ -1,4 +1,4 @@
-import { isArray, isFunction, isNull, isPlainObject, isUndefined } from 'lodash';
+import { isArray, isFunction, isPlainObject, isUndefined } from 'lodash';
 
 export function parseRawValue(rawValue, parser) {
 
@@ -29,12 +29,8 @@ export function parseRawValue(rawValue, parser) {
 
     }
 
-    if (isNull(parser)) {
-
-        if (rawValue === null) {
-            return null;
-        }
-
+    if (parser === rawValue) {
+        return rawValue;
     }
 
 }

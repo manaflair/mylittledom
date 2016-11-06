@@ -1,6 +1,7 @@
 import { expect }        from 'chai';
 
 import { StyleDisplay }  from '../style/types/StyleDisplay';
+import { StyleLength }   from '../style/types/StyleLength';
 import { StylePosition } from '../style/types/StylePosition';
 
 import { Element }       from './Element';
@@ -109,7 +110,7 @@ describe(`Element`, () => {
 
             let element = new Element();
 
-            expect(element.style.display).to.equal(`block`);
+            expect(element.style.$.display).to.equal(StyleDisplay.block);
 
         });
 
@@ -154,16 +155,16 @@ describe(`Element`, () => {
             let element = new Element();
 
             expect(() => { element.style.display = `lolno` }).to.throw(Error);
-            expect(element.style.display).to.equal(`block`);
+            expect(element.style.$.display).to.equal(StyleDisplay.block);
 
             expect(() => { element.style.color = 42 }).to.throw(Error);
-            expect(element.style.color).to.equal(null);
+            expect(element.style.$.color).to.equal(null);
 
             expect(() => { element.style.backgroundCharacter = `Super` }).to.throw(Error);
-            expect(element.style.backgroundCharacter).to.equal(` `);
+            expect(element.style.$.backgroundCharacter).to.equal(` `);
 
             expect(() => { element.style.backgroundCharacter = `` }).to.throw(Error);
-            expect(element.style.backgroundCharacter).to.equal(` `);
+            expect(element.style.$.backgroundCharacter).to.equal(` `);
 
         });
 
@@ -179,6 +180,30 @@ describe(`Element`, () => {
 
             element.style.position = `fixed`;
             expect(element.style.$.position).to.equal(StylePosition.fixed);
+
+        });
+
+        it(`should support shorthand properties`, () => {
+
+            let element = new Element();
+
+            element.style.padding = 1;
+            expect(element.style.$.paddingLeft).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+            expect(element.style.$.paddingRight).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+            expect(element.style.$.paddingTop).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+            expect(element.style.$.paddingBottom).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+
+            element.style.padding = [ 1, 2 ];
+            expect(element.style.$.paddingLeft).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(2));
+            expect(element.style.$.paddingRight).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(2));
+            expect(element.style.$.paddingTop).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+            expect(element.style.$.paddingBottom).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+
+            element.style.padding = [ 1, 2, 3, 4 ];
+            expect(element.style.$.paddingLeft).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(4));
+            expect(element.style.$.paddingRight).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(2));
+            expect(element.style.$.paddingTop).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
+            expect(element.style.$.paddingBottom).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(3));
 
         });
 

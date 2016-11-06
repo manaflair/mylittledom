@@ -1,12 +1,14 @@
-import { merge }   from 'lodash';
-
 import { Element } from '../dom/Element';
 
 export class Screen extends Element {
 
-    constructor({ ... props } = {}) {
+    constructor(props) {
 
-        super(merge({ style: { position: `relative` } }, props));
+        super(props);
+
+        Object.assign(this.style.element, {
+            position: `relative`
+        });
 
         Reflect.defineProperty(this, `parentNode`, {
             value: null,

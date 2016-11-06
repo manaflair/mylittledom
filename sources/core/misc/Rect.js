@@ -1,101 +1,61 @@
-import { isNil } from 'lodash';
-
 export class Rect {
 
-    static fromJS({ top, bottom, left, right, width, height } = {}) {
+    constructor({ x = 0, y = 0, width = 0, height = 0 } = {}) {
 
-        let rect = new this();
+        this.x = x;
+        this.y = y;
 
-        if (!isNil(left))
-            rect.left = left;
-
-        if (!isNil(right))
-            rect.right = right;
-
-        if (!isNil(top))
-            rect.top = top;
-
-        if (!isNil(bottom))
-            rect.bottom = bottom;
-
-        if (!isNil(width))
-            rect.width = width;
-
-        if (!isNil(height))
-            rect.height = height;
-
-        return rect;
+        this.width = width;
+        this.height = height;
 
     }
 
-    constructor(other) {
+    clone() {
 
-        if (other instanceof Rect) {
-
-            this.copySelf(other);
-
-        } else {
-
-            this.top = this.bottom = 0;
-            this.left = this.right = 0;
-
-            this.width = this.height = null;
-
-        }
+        return new Rect(this);
 
     }
 
-    copySelf(other) {
+    setFrom(other) {
 
-        this.left = other.left;
-        this.right = other.right;
-
-        this.top = other.top;
-        this.bottom = other.bottom;
+        this.x = other.x;
+        this.y = other.y;
 
         this.width = other.width;
         this.height = other.height;
 
-    }
-
-    contractSelf(top, right, bottom, left) {
-
-        this.top += top;
-        this.bottom += bottom;
-
-        this.left += left;
-        this.right += right;
-
-        this.width -= left + right;
-        this.height -= top + bottom;
-
-        this.width = Math.max(0, this.width);
-        this.height = Math.max(0, this.height);
+        return this;
 
     }
 
-    setOriginSelf(top, right, bottom, left) {
+    doesContain(other) {
 
-        this.top += top;
-        this.bottom += bottom;
+        return (
 
-        this.left += left;
-        this.right += right;
+            other.x >= this.x &&
+            other.y >= this.y &&
 
-    }
+            other.x + other.width <= this.x + this.width &&
+            other.y + other.height <= this.y + this.height
 
-    isValid() {
-
-        return !isNaN(this.width) && !isNaN(this.height);
+        );
 
     }
 
-    contains(other) {
+    doesIntersect(other) {
 
-        return other.left >= this.left
-            && other.top >= this.top
-            && other.left + other.width <= this.left + this.width
-            && other.top + other.height <= this.top + this.height;
+        return (
+
+            other.x < this.x + this.width &&
+            other.x + other.width > this.x &&
+
+            other.y < this.y + this.height &&
+            other.y + other.height > this.y &&
+
+            this.width > 0 && this.height > 0 &&
+            other.width > 0 && other.height > 0
+
+        );
 
     }
 
@@ -104,71 +64,62 @@ export class Rect {
         if (!this.width || !this.height)
             return [];
 
-        let intersection = this.intersection(other);
+        let intersection = this.intersect(other);
 
         if (!intersection)
-            return [ new Rect(this) ];
+            return [ this.clone() ];
 
-        let workingRect = new Rect(this);
-        let results = [], tmp;
+        let results = [];
 
-        if (intersection.left > this.left) {
+        if (intersection.x > this.x) {
 
-            results.push(tmp = new Rect());
+            let slice = new Rect();
+            results.push(slice);
 
-            tmp.left = this.left;
-            tmp.right = intersection.right + intersection.width;
+            slice.x = this.x;
+            slice.y = intersection.y;
 
-            tmp.top = intersection.top;
-            tmp.bottom = intersection.bottom;
-
-            tmp.width = intersection.left - this.left;
-            tmp.height = intersection.height;
+            slice.width = intersection.x - this.x;
+            slice.height = intersection.height;
 
         }
 
-        if (intersection.left + intersection.width < this.left + this.width) {
+        if (intersection.x + intersection.width < this.x + this.width) {
 
-            results.push(tmp = new Rect());
+            let slice = new Rect();
+            results.push(slice);
 
-            tmp.left = intersection.left + intersection.width;
-            tmp.right = this.right;
+            slice.x = intersection.x + intersection.width;
+            slice.y = intersection.y;
 
-            tmp.top = intersection.top;
-            tmp.bottom = intersection.bottom;
-
-            tmp.width = this.left + this.width - intersection.left - intersection.width;
-            tmp.height = intersection.height;
+            slice.width = this.x + this.width - intersection.x - intersection.width;
+            slice.height = intersection.height;
 
         }
 
-        if (intersection.top > this.top) {
+        if (intersection.y > this.y) {
 
-            results.push(tmp = new Rect());
+            let slice = new Rect();
+            results.push(slice);
 
-            tmp.left = this.left;
-            tmp.right = this.right;
+            slice.x = this.x;
+            slice.y = this.y;
 
-            tmp.top = this.top;
-            tmp.bottom = intersection.bottom + intersection.height;
-
-            tmp.width = this.width;
-            tmp.height = intersection.top - this.top;
+            slice.width = this.width;
+            slice.height = intersection.y - this.y;
 
         }
 
-        if (intersection.top + intersection.height < this.top + this.height) {
+        if (intersection.y + intersection.height < this.y + this.height) {
 
-            results.push(tmp = new Rect());
+            let slice = new Rect();
+            results.push(slice);
 
-            tmp.left = this.left;
-            tmp.right = this.right;
+            slice.x = this.x;
+            slice.y = intersection.y + intersection.height;
 
-            tmp.top = intersection.top + intersection.height;
-            tmp.bottom = this.bottom;
-
-            tmp.width = this.width;
-            tmp.height = this.top + this.height - intersection.top - intersection.height;
+            slice.width = this.width;
+            slice.height = this.y + this.height - intersection.y - intersection.height;
 
         }
 
@@ -176,32 +127,32 @@ export class Rect {
 
     }
 
-    intersection(other) {
+    intersect(other) {
 
-        let doesIntersect =
-
-            other.left < this.left + this.width &&
-            other.left + other.width > this.left &&
-
-            other.top < this.top + this.height &&
-            other.top + other.height > this.top &&
-
-            this.width > 0 && this.height > 0 &&
-            other.width > 0 && other.height > 0;
-
-        if (!doesIntersect)
-            return false;
+        if (!this.doesIntersect(other))
+            return null;
 
         let rect = new Rect();
 
-        rect.left = Math.max(this.left, other.left);
-        rect.top = Math.max(this.top, other.top);
+        rect.x = Math.max(this.x, other.x);
+        rect.y = Math.max(this.y, other.y);
 
-        rect.width = Math.min(this.left + this.width, other.left + other.width) - rect.left;
-        rect.height = Math.min(this.top + this.height, other.top + other.height) - rect.top;
+        rect.width = Math.min(this.x + this.width, other.x + other.width) - rect.x;
+        rect.height = Math.min(this.y + this.height, other.y + other.height) - rect.y;
 
-        rect.right = Math.min(this.right + this.width, other.right + other.width) - rect.width;
-        rect.bottom = Math.min(this.bottom + this.height, other.bottom + other.height) - rect.height;
+        return rect;
+
+    }
+
+    union(other) {
+
+        let rect = new Rect();
+
+        rect.x = Math.min(this.x, other.x);
+        rect.y = Math.min(this.y, other.y);
+
+        rect.width = Math.max(this.x + this.width, other.x + other.width) - rect.x;
+        rect.height = Math.max(this.y + this.height, other.y + other.height) - rect.y;
 
         return rect;
 
@@ -209,7 +160,7 @@ export class Rect {
 
     toString() {
 
-        return `<Rect#l: ${this.left} r: ${this.right} | t: ${this.top} b: ${this.bottom} | w: ${this.width} h: ${this.height}>`;
+        return `<Rect#x: ${this.x} y: ${this.y} | w: ${this.width} h: ${this.height}>`;
 
     }
 

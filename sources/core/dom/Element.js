@@ -7,9 +7,11 @@ import { LayoutContext }                     from '../layout/tools/LayoutContext
 
 import { EventSource }                       from '../misc/EventSource';
 import { Event }                             from '../misc/Event';
-import { Rect }                              from '../misc/RectXY';
+import { Rect }                              from '../misc/Rect';
 
-import { StyleDeclaration }                  from '../style/StyleDeclaration';
+import { StyleDeclaration }                  from '../style/StyleDeclaration2';
+import { StyleSet }                          from '../style/StyleSet';
+import { initialStyleSet }                   from '../style/initialStyleSet';
 import { StyleLength }                       from '../style/types/StyleLength';
 import { StyleOverflow }                     from '../style/types/StyleOverflow';
 
@@ -24,16 +26,24 @@ export class Element extends Node {
 
         EventSource.setup(this, { dispatchToParent: event => this.parentNode && this.parentNode.dispatchEvent(event) });
 
-        this.flags = flags.ELEMENT_HAS_DIRTY_CLIP | flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_RENDER_LIST;
+        this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        this.style = StyleDeclaration.makeNew(this);
+        this.styleDeclaration = new StyleDeclaration(this);
+        this.styleDeclaration.add(`initial`, initialStyleSet);
+        this.styleDeclaration.add(`element`, new StyleSet());
+        this.styleDeclaration.add(`local`, new StyleSet());
+        this.styleDeclaration.add(`focused`, new StyleSet(), false);
+        this.style = this.styleDeclaration.makeProxy();
         Object.assign(this.style, style);
 
         this.dirtyRects = [];
         this.pendingEvents = [];
 
         this.nodeList = [];
+        this.focusList = [];
         this.renderList = [];
+
+        this.activeElement = null;
 
         this.elementRect = new Rect(); // Position & size of the whole element inside its parent
         this.contentRect = new Rect(); // Position & size of the content box inside the element
@@ -47,6 +57,9 @@ export class Element extends Node {
 
         this.declareEvent(`dirty`);
         this.declareEvent(`relayout`);
+
+        this.declareEvent(`focus`);
+        this.declareEvent(`blur`);
 
         this.declareEvent(`scroll`);
 
@@ -132,6 +145,100 @@ export class Element extends Node {
 
     }
 
+    focus() {
+
+        if (this.rootNode.activeElement === this)
+            return;
+
+        if (!this.style.$.focusEvents)
+            return;
+
+        if (this.rootNode.activeElement)
+            this.rootNode.activeElement.blur();
+
+        this.rootNode.activeElement = this;
+        this.styleDeclaration.enable(`focused`);
+
+        this.dispatchEvent(new Event(`focus`));
+
+    }
+
+    blur() {
+
+        if (this.rootNode.activeElement !== this)
+            return;
+
+        this.rootNode.activeElement = null;
+        this.styleDeclaration.disable(`focused`);
+
+        this.dispatchEvent(new Event(`blur`));
+
+    }
+
+    focusRelativeElement(offset) {
+
+        if (this.rootNode !== this)
+            return this.focusRelativeElement(offset);
+
+        if (!(offset < 0 || offset > 0))
+            return;
+
+        this.triggerUpdates();
+
+        if (!this.focusList.length)
+            return;
+
+        let getNextIndex = offset > 0 ? currentIndex => {
+            return currentIndex === this.focusList.length - 1 ? 0 : currentIndex + 1;
+        } : currentIndex => {
+            return currentIndex === 0 ? this.focusList.length - 1 : currentIndex - 1;
+        };
+
+        if (!this.activeElement) {
+
+            if (offset > 0) {
+                this.focusList[0].focus();
+            } else {
+                this.focusList[this.focusList.length - 1].focus();
+            }
+
+        } else {
+
+            let activeIndex = this.focusList.indexOf(this.activeElement);
+
+            for (let t = 0; t < offset; ++t) {
+
+                let nextIndex = getNextIndex(activeIndex);
+
+                while (nextIndex !== activeIndex && !this.focusList[nextIndex].style.$.focusEvents)
+                    nextIndex = getNextIndex(nextIndex);
+
+                if (nextIndex !== activeIndex) {
+                    activeIndex = nextIndex;
+                } else {
+                    break;
+                }
+
+            }
+
+            this.focusList[activeIndex].focus();
+
+        }
+
+    }
+
+    focusPreviousElement() {
+
+        this.focusRelativeElement(-1);
+
+    }
+
+    focusNextElement() {
+
+        this.focusRelativeElement(+1);
+
+    }
+
     appendChild(node) {
 
         if (!(node instanceof Element))
@@ -207,6 +314,23 @@ export class Element extends Node {
     clearDirtyNodeListFlag() {
 
         this.flags &= ~flags.ELEMENT_HAS_DIRTY_NODE_LIST;
+
+    }
+
+    setDirtyFocusListFlag() {
+
+        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
+        this.flags |= flags.ELEMENT_HAS_DIRTY_FOCUS_LIST;
+
+        if (!wasDirty) {
+            this.dispatchEvent(new Event(`dirty`));
+        }
+
+    }
+
+    clearDirtyFocusListFlag() {
+
+        this.flags &= ~flags.ELEMENT_HAS_DIRTY_FOCUS_LIST;
 
     }
 
@@ -375,6 +499,13 @@ export class Element extends Node {
         if (this.flags & flags.ELEMENT_HAS_DIRTY_NODE_LIST) {
             this.nodeList = this.generateNodeList();
             this.clearDirtyNodeListFlag();
+            this.setDirtyFocusListFlag()
+            this.setDirtyRenderListFlag();
+        }
+
+        if (this.flags & flags.ELEMENT_HAS_DIRTY_FOCUS_LIST) {
+            this.focusList = this.generateFocusList();
+            this.clearDirtyFocusListFlag();
         }
 
         if (this.flags & flags.ELEMENT_HAS_DIRTY_RENDER_LIST) {
@@ -419,6 +550,18 @@ export class Element extends Node {
         }
 
         return nodeList;
+
+    }
+
+    generateFocusList() {
+
+        let focusList = [];
+
+        for (let node of this.nodeList)
+            if (node.style.$.focusEvents)
+                focusList.push(node);
+
+        return focusList;
 
     }
 

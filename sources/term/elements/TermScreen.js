@@ -4,6 +4,8 @@ import { autobind }                        from 'core-decorators';
 import { isEmpty, isUndefined, merge }     from 'lodash';
 import { Readable, Writable }              from 'stream';
 
+import { Event }                           from '../../core';
+
 import { TermElement }                     from './TermElement';
 
 // We will iterate through those colors when rendering if the debugPaintRects option is set
@@ -11,9 +13,14 @@ let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta` ], currentDebugColorIndex
 
 export class TermScreen extends TermElement {
 
-    constructor({ ... props } = {}) {
+    constructor(props) {
 
-        super(merge({ style: { position: `relative` } }, props));
+        super(props);
+
+        // We set the default style properties of every TermScreen instance
+        Object.assign(this.style.element, {
+            position: `relative`
+        });
 
         // We prevent this element from being set as child of another node
         Reflect.defineProperty(this, `parentNode`, {
@@ -36,6 +43,13 @@ export class TermScreen extends TermElement {
 
         // Bind the listener that will notify us when the node becomes dirty
         this.addEventListener(`dirty`, this.handleDirty);
+
+        // Bind the listeners that enable navigating between focused elements
+        this.addShortcutListener(`S-tab`, e => e.setDefault(() => this.focusPreviousElement()));
+        this.addShortcutListener(`tab`, e => e.setDefault(() => this.focusNextElement()));
+
+        // Bind the listener that exit the application on C-c
+        this.addShortcutListener(`C-c`, e => e.setDefault(() => process.exit(0)));
 
     }
 
@@ -63,8 +77,8 @@ export class TermScreen extends TermElement {
 
         process.on(`exit`, this.handleExit);
 
-        this.style.width = this.stdout.columns;
-        this.style.height = this.stdout.rows;
+        this.style.element.width = this.stdout.columns;
+        this.style.element.height = this.stdout.rows;
 
         this.stdin.setRawMode(true);
 
@@ -82,8 +96,8 @@ export class TermScreen extends TermElement {
 
         this.stdout.write(screen.reset);
 
-        this.style.width = 0;
-        this.style.height = 0;
+        this.style.element.width = 0;
+        this.style.element.height = 0;
 
         process.removeListener(`exit`, this.handleExit);
 
@@ -187,8 +201,53 @@ export class TermScreen extends TermElement {
 
         if (input instanceof Key) {
 
-            if (input.name === `c` && input.ctrl) {
-                process.exit();
+            let event = new Event(`keypress`, { bubbles: true });
+            event.key = input;
+
+            if (this.activeElement) {
+                this.activeElement.dispatchEvent(event);
+            } else {
+                this.dispatchEvent(event);
+            }
+
+        } else if (input instanceof Mouse) {
+
+            let targetElement;
+
+            if (input.start) {
+
+                let event = new Event(`mousedown`, { bubbles: true });
+                event.mouse = mouse;
+
+                this.dispatchEvent(event);
+
+            }
+
+            if (input.end) {
+
+                let event = new Event(`mouseup`, { bubbles: true });
+                event.mouse = mouse;
+
+                this.dispatchEvent(event);
+
+            }
+
+            if (!input.start && !input.end) {
+
+                let event = new Event(`mousemove`, { bubbles: true });
+                event.mouse = mouse;
+
+                this.dispatchEvent(event);
+
+            }
+
+        } else if (input instanceof Buffer) {
+
+            let event = new Event(`data`);
+            event.buffer = input;
+
+            if (this.activeElement) {
+                this.activeElement.dispatchEvent(event);
             }
 
         }
@@ -197,8 +256,8 @@ export class TermScreen extends TermElement {
 
     @autobind handleStdoutResize() {
 
-        this.style.width = this.stdout.columns;
-        this.style.height = this.stdout.rows;
+        this.style.element.width = this.stdout.columns;
+        this.style.element.height = this.stdout.rows;
 
     }
 
