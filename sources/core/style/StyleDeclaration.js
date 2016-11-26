@@ -1,275 +1,189 @@
-import { camelCase, isArray, isEqual, isFunction, isNull, isString, isUndefined, kebabCase } from 'lodash';
+import { isEqual, isUndefined }    from 'lodash';
+import { inspect }                 from 'util';
 
-import { styleProperties }                                                                   from './styleProperties';
-import { getDefaultPropertyValue }                                                           from './tools/getDefaultPropertyValue';
-import { parsePropertyValue }                                                                from './tools/parsePropertyValue';
-import { runPropertyTriggers }                                                               from './tools/runPropertyTriggers';
-import { serializePropertyValue }                                                            from './tools/serializePropertyValue';
+import { styleProperties }         from './styleProperties';
+import { parsePropertyValue }      from './tools/parsePropertyValue';
+import { runPropertyTriggers }     from './tools/runPropertyTriggers';
+import { serializePropertyValue }  from './tools/serializePropertyValue';
 
 export class StyleDeclaration {
 
-    static makeNew(node) {
+    constructor(element) {
 
-        return new Proxy(new StyleDeclaration(), {
+        this.element = element;
 
-            has(target, name) {
+        this.styleSets = new Map();
+        this.enabledSets = new WeakSet();
 
-                return Object.prototype.hasOwnProperty.call(styleProperties, name);
+        this.computed = {};
 
-            },
+    }
 
-            ownKeys(target) {
+    add(name, styleSet, enabled = true) {
 
-                return Object.keys(target).filter(name => target[name] !== getDefaultPropertyValue(name));
+        this.styleSets.set(name, styleSet);
 
-            },
+        if (enabled) {
+            this.enable(name);
+        }
 
-            get(target, name) {
+    }
 
-                if (name === `$`)
-                    return target;
+    enable(name) {
 
-                if (!this.has(target, name))
-                    throw new Error(`Invalid property access: '${name}' is not a valid style property name.`);
+        let styleSet = this.styleSets.get(name);
 
-                let property = styleProperties[name];
-                let value = target[name];
+        if (!styleSet)
+            return;
 
-                return serializePropertyValue(target[name]);
+        this.enabledSets.add(styleSet);
+        this.refresh(styleSet.keys());
 
-            },
+    }
 
-            set(target, name, rawValue) {
+    disable(name) {
 
-                if (!this.has(target, name))
-                    throw new Error(`Invalid property access: '${name}' is not a valid style property name.`);
+        let styleSet = this.styleSets.get(name);
 
-                let property = styleProperties[name];
+        if (!styleSet)
+            return;
 
-                let oldValue = target[name];
-                let newValue = isUndefined(rawValue) ? getDefaultPropertyValue(name) : parsePropertyValue(name, rawValue);
+        this.enabledSets.delete(styleSet);
+        this.refresh(styleSet.keys());
 
-                if (oldValue === newValue || isEqual(serializePropertyValue(newValue), serializePropertyValue(oldValue)))
-                    return true; // Early return if the value doesn't actually change (we have to check after converting, because we might be comparing "#000" with "#000000" or "black")
+    }
 
-                target[name] = newValue;
-                runPropertyTriggers(name, node, newValue, oldValue);
+    refresh(propertyNames) {
 
-                return true;
+        for (let propertyName of propertyNames) {
 
-            },
+            let oldValue = this.computed[propertyName];
+            let newValue = undefined;
 
-            deleteProperty(target, name) {
+            for (let styleSet of this.styleSets.values()) {
 
-                return this.set(target, name, undefined);
+                if (!this.enabledSets.has(styleSet))
+                    continue;
+
+                let setValue = styleSet.get(propertyName);
+
+                if (isUndefined(setValue))
+                    continue;
+
+                newValue = setValue;
 
             }
 
-        });
+            if (newValue === oldValue || isEqual(serializePropertyValue(newValue), serializePropertyValue(oldValue)))
+                continue;
 
-    }
-
-    constructor() {
-
-        for (let name of Object.keys(styleProperties)) {
-            this[name] = getDefaultPropertyValue(name);
-        }
-
-    }
-
-    get border() {
-
-        return this.borderCharacter;
-
-    }
-
-    set border(characters) {
-
-        this.borderCharacter = characters;
-
-    }
-
-    get borderCharacter() {
-
-        return [
-
-            this.borderTopRightCharacter,
-            this.borderBottomRightCharacter,
-            this.borderBottomLeftCharacter,
-            this.borderTopLeftCharacter,
-
-            this.borderTopCharacter,
-            this.borderRightCharacter,
-            this.borderBottomCharacter,
-            this.borderLeftCharacter
-
-        ];
-
-    }
-
-    set borderCharacter(characters) {
-
-        switch (characters.length) {
-
-            case 1: {
-
-                let [ borderCharacter ] = characters;
-
-                this.borderTopLeftCharacter = this.borderTopRightCharacter = this.borderBottomLeftCharacter = this.borderBottomRightCharacter = this.borderLeftCharacter = this.borderRightCharacter = this.borderTopCharacter = this.borderBottomCharacter = borderCharacter;
-
-            } break;
-
-            case 2: {
-
-                let [ borderCornerCharacter, borderBorderCharacter ] = characters;
-
-                this.borderTopLeftCharacter = this.borderTopRightCharacter = this.borderBottomLeftCharacter = this.borderBottomRightCharacter = borderCornerCharacter;
-                this.borderLeftCharacter = this.borderRightCharacter = this.borderTopCharacter = this.borderBottomCharacter = borderBorderCharacter;
-
-            } break;
-
-            case 3: {
-
-                let [ borderCornerCharacter, borderHorizontalCharacter, borderVerticalCharacter ] = characters;
-
-                this.borderTopLeftCharacter = this.borderTopRightCharacter = this.borderBottomLeftCharacter = this.borderBottomRightCharacter = borderCornerCharacter;
-
-                this.borderTopCharacter = this.borderBottomCharacter = borderHorizontalCharacter;
-                this.borderLeftCharacter = this.borderRightCharacter = borderVerticalCharacter;
-
-            } break;
-
-            case 5: {
-
-                let [ borderCornerCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter ] = characters;
-
-                this.borderTopLeftCharacter = this.borderTopRightCharacter = this.borderBottomLeftCharacter = this.borderBottomRightCharacter = borderCornerCharacter;
-
-                this.borderLeftCharacter = borderLeftCharacter;
-                this.borderRightCharacter = borderRightCharacter;
-
-                this.borderTopCharacter = borderTopCharacter;
-                this.borderBottomCharacter = borderBottomCharacter;
-
-            } break;
-
-            case 8: {
-
-                let [ borderTopRightCharacter, borderBottomRightCharacter, borderBottomLeftCharacter, borderTopLeftCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter ] = characters;
-
-                this.borderTopLeftCharacter = borderTopLeftCharacter;
-                this.borderTopRightCharacter = borderTopRightCharacter;
-
-                this.borderBottomLeftCharacter = borderBottomLeftCharacter;
-                this.borderBottomRightCharacter = borderBottomRightCharacter;
-
-                this.borderLeftCharacter = borderLeftCharacter;
-                this.borderRightCharacter = borderRightCharacter;
-
-                this.borderTopCharacter = borderTopCharacter;
-                this.borderBottomCharacter = borderBottomCharacter;
-
-            } break;
+            this.computed[propertyName] = newValue;
+            runPropertyTriggers(propertyName, this.element, newValue, oldValue);
 
         }
 
     }
 
-    get padding() {
+    makeProxy() {
 
-        return [
+        let proxies = { $: this.computed };
 
-            this.paddingTop,
-            this.paddingRight,
-            this.paddingBottom,
-            this.paddingLeft
+        for (let [ name, styleSet ] of this.styleSets) {
 
-        ];
+            let proxy = proxies[name] = new Proxy({
 
-    }
+                [inspect.custom](depth, opts) {
 
-    set padding(paddings) {
+                    let serialized = {};
 
-        switch (paddings.length) {
+                    for (let propertyName of Reflect.ownKeys(styleProperties))
+                        serialized[propertyName] = serializePropertyValue(styleSet.get(propertyName));
 
-            case 1: {
+                    return serialized;
 
-                let [ padding ] = paddings;
+                }
 
-                this.paddingTop = this.paddingRight = this.paddingBottom = this.paddingLeft = padding;
+            }, {
 
-            } break;
+                ownKeys: (target) => {
 
-            case 2: {
+                    return Reflect.ownKeys(styleProperties);
 
-                let [ paddingY, paddingX ] = paddings;
+                },
 
-                this.paddingLeft = this.paddingRight = paddingX;
-                this.paddingTop = this.paddingBottom = paddingY;
+                get: (target, key) => {
 
-            } break;
+                    if (key in target)
+                        return target[key];
 
-            case 4: {
+                    if (Object.prototype.hasOwnProperty.call(proxies, key))
+                        return proxies[key];
 
-                let [ paddingTop, paddingRight, paddingBottom, paddingLeft ] = paddings;
+                    if (!Object.prototype.hasOwnProperty.call(styleProperties, key))
+                        throw new Error(`Invalid property access: '${key}' is not a valid style property name.`);
 
-                this.paddingTop = paddingTop;
-                this.paddingRight = paddingRight;
-                this.paddingBottom = paddingBottom;
-                this.paddingLeft = paddingLeft;
+                    let property = styleProperties[key];
 
-            } break;
+                    if (property.getter) {
+
+                        return property.getter(proxy);
+
+                    } else {
+
+                        return serializePropertyValue(styleSet.get(key));
+
+                    }
+
+                },
+
+                set: (target, key, value) => {
+
+                    if (!Object.prototype.hasOwnProperty.call(styleProperties, key))
+                        throw new Error(`Invalid property access: '${key}' is not a valid style property name.`);
+
+                    let property = styleProperties[key];
+
+                    if (property.setter) {
+
+                        property.setter(proxy, parsePropertyValue(key, value));
+
+                        return true;
+
+                    } else {
+
+                        if (!isUndefined(value))
+                            styleSet.set(key, parsePropertyValue(key, value));
+                        else
+                            styleSet.delete(key);
+
+                        if (this.enabledSets.has(styleSet))
+                            this.refresh([ key ]);
+
+                        return true;
+
+                    }
+
+                },
+
+                deleteProperty: (target, key) => {
+
+                    if (!Object.prototype.hasOwnProperty.call(styleProperties, key))
+                        throw new Error(`Invalid property access: '${key}' is not a valid style property name.`);
+
+                    styleSet.delete(key);
+
+                    if (this.enabledSets.has(styleSet))
+                        this.refresh([ key ]);
+
+                    return true;
+
+                }
+
+            });
 
         }
 
-    }
-
-    get margin() {
-
-        return [
-
-            this.marginTop,
-            this.marginRight,
-            this.marginBottom,
-            this.marginLeft
-
-        ];
-
-    }
-
-    set margin(margins) {
-
-        switch (margins.length) {
-
-            case 1: {
-
-                let [ margin ] = margins;
-
-                this.marginTop = this.marginRight = this.marginBottom = this.marginLeft = margin;
-
-            } break;
-
-            case 2: {
-
-                let [ marginY, marginX ] = margins;
-
-                this.marginTop = this.marginBottom = marginX;
-                this.marginLeft = this.marginRight = marginY;
-
-            } break;
-
-            case 4: {
-
-                let [ marginTop, marginRight, marginBottom, marginLeft ] = margins;
-
-                this.marginTop = marginTop;
-                this.marginRight = marginRight;
-                this.marginBottom = marginBottom;
-                this.marginLeft = marginLeft;
-
-            } break;
-
-        }
+        return proxies.local;
 
     }
 

@@ -1,4 +1,4 @@
-import { isArray, isFunction, isPlainObject, isUndefined } from 'lodash';
+import { camelCase, isArray, isFunction, isPlainObject, isString, isUndefined } from 'lodash';
 
 export function parseRawValue(rawValue, parser) {
 
@@ -15,7 +15,12 @@ export function parseRawValue(rawValue, parser) {
 
     if (isPlainObject(parser)) {
 
-        if (Object.prototype.hasOwnProperty.call(parser, rawValue)) {
+        if (!isString(rawValue))
+            return undefined;
+
+        let camelized = camelCase(rawValue);
+
+        if (Object.prototype.hasOwnProperty.call(parser, camelized)) {
             return parser[rawValue];
         } else {
             return undefined;

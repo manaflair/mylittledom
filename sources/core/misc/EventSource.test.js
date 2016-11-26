@@ -90,7 +90,7 @@ describe(`EventSource`, () => {
         parent.declareEvent(`test`);
 
         let source = {};
-        EventSource.setup(source, { dispatchToParent: event => { parent.dispatchEvent(event) } });
+        EventSource.setup(source, { getParentInstance: () => parent });
         source.declareEvent(`test`);
 
         let fn = spy(() => {});
@@ -110,7 +110,7 @@ describe(`EventSource`, () => {
         parent.declareEvent(`test`);
 
         let source = {};
-        EventSource.setup(source, { dispatchToParent: event => { parent.dispatchEvent(event) } });
+        EventSource.setup(source, { getParentInstance: () => parent });
         source.declareEvent(`test`);
 
         let event = new Event(`test`, { bubbles: true });
@@ -134,7 +134,7 @@ describe(`EventSource`, () => {
         parent.declareEvent(`test`);
 
         let source = {};
-        EventSource.setup(source, { dispatchToParent: event => { parent.dispatchEvent(event) } });
+        EventSource.setup(source, { getParentInstance: () => parent });
         source.declareEvent(`test`);
 
         let event = new Event(`test`, { bubbles: true });

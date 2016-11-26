@@ -10,7 +10,7 @@ export class Event {
         this.cancelable = cancelable;
 
         this.immediatlyCanceled = false;
-        this.bubblingCanceled = false;
+        this.propagationStopped = false;
 
         this.defaultPrevented = false;
         this.default = null;
@@ -38,13 +38,13 @@ export class Event {
     stopImmediatePropagation() {
 
         this.immediatlyCanceled = true;
-        this.bubblingCanceled = true;
+        this.propagationStopped = true;
 
     }
 
     stopPropagation() {
 
-        this.bubblingCanceled = true;
+        this.propagationStopped = true;
 
     }
 

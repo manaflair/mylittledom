@@ -14,8 +14,10 @@ export let AbsoluteLayout = new class AbsoluteLayout {
 
         if (child.style.$.left !== StyleLength.auto) {
             child.elementRect.x = left + marginLeft;
-        } else {
+        } else if (child.style.$.right !== StyleLength.auto) {
             child.elementRect.x = containerWidth - right - marginRight - child.elementRect.width;
+        } else {
+            child.elementRect.x = marginLeft;
         }
 
     }
@@ -32,8 +34,10 @@ export let AbsoluteLayout = new class AbsoluteLayout {
 
         if (child.style.$.top !== StyleLength.auto) {
             child.elementRect.y = top + marginTop;
-        } else {
+        } else if (child.style.$.bottom !== StyleLength.auto) {
             child.elementRect.y = containerHeight - bottom - marginBottom - child.elementRect.height;
+        } else {
+            child.elementRect.y = marginTop;
         }
 
     }

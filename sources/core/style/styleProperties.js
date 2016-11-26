@@ -1,6 +1,14 @@
+import { pick }                                                                        from 'lodash';
+
 import { display, position, overflow, repeat, length, character, color, number }       from './styleParsers';
 import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList } from './styleTriggers';
 import { onNullSwitch }                                                                from './styleTriggers';
+import { StyleAlignment }                                                              from './types/StyleAlignment';
+import { StyleDisplay }                                                                from './types/StyleDisplay';
+import { StyleOverflowWrap }                                                           from './types/StyleOverflowWrap';
+import { StyleOverflow }                                                               from './types/StyleOverflow';
+import { StylePosition }                                                               from './types/StylePosition';
+import { StyleWhiteSpace }                                                             from './types/StyleWhiteSpace';
 
 let simple = [ `+`, `+`, `+`, `+`, `-`, `|` ];
 let modern = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
@@ -9,13 +17,13 @@ let strong = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
 export let styleProperties = {
 
     display: {
-        parsers: [ display, null ],
+        parsers: [ pick(StyleDisplay, `block`), null ],
         triggers: [ dirtyLayout, onNullSwitch(dirtyRenderList) ],
         initial: `block`
     },
 
     position: {
-        parsers: [ position ],
+        parsers: [ pick(StylePosition, `static`, `relative`, `absolute`, `fixed`) ],
         triggers: [ dirtyLayout ],
         initial: `static`
     },
@@ -93,7 +101,7 @@ export let styleProperties = {
     },
 
     overflow: {
-        parsers: [ overflow ],
+        parsers: [ pick(StyleOverflow, `visible`, `hidden`) ],
         triggers: [ dirtyClipping ],
         initial: `visible`
     },
@@ -186,6 +194,30 @@ export let styleProperties = {
         parsers: [ length, length.rel ],
         triggers: [ dirtyLayout ],
         initial: 0
+    },
+
+    textAlign: {
+        parsers: [ pick(StyleAlignment, `left`, `center`, `right`, `justify`) ],
+        triggers: [ dirtyRendering ],
+        initial: `left`
+    },
+
+    whiteSpace: {
+        parsers: [ pick(StyleWhiteSpace, `normal`, `noWrap`, `pre`, `preWrap`, `preLine`) ],
+        triggers: [ dirtyLayout ],
+        initial: `normal`
+    },
+
+    overflowWrap: {
+        parsers: [ pick(StyleOverflowWrap, `normal`, `breakWord`) ],
+        triggers: [ dirtyLayout ],
+        initial: `normal`
+    },
+
+    wordWrap: {
+        parsers: [ rawValue => rawValue ],
+        getter: (style) => { throw new Error(`Please use the "overflow-wrap" property instead.`) },
+        setter: (style, wordWrap) => { throw new Error(`Please use the "overflow-wrap" property instead.`) }
     },
 
     color: {

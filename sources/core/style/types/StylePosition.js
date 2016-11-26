@@ -1,8 +1,8 @@
-import { pick } from 'lodash';
-
 export class StylePosition {
 
-    constructor({ isPositioned = false, isAbsolutelyPositioned = false } = {}) {
+    constructor(name, { isPositioned = false, isAbsolutelyPositioned = false } = {}) {
+
+        this.name = name;
 
         this.isPositioned = isPositioned;
         this.isAbsolutelyPositioned = isAbsolutelyPositioned;
@@ -11,7 +11,7 @@ export class StylePosition {
 
     serialize() {
 
-        return `unnamed`;
+        return this.name;
 
     }
 
@@ -23,16 +23,7 @@ export class StylePosition {
 
 }
 
-StylePosition.static = new StylePosition({});
-StylePosition.static.serialize = () => `static`;
-
-StylePosition.relative = new StylePosition({ isPositioned: true });
-StylePosition.relative.serialize = () => `relative`;
-
-StylePosition.absolute = new StylePosition({ isPositioned: true, isAbsolutelyPositioned: true });
-StylePosition.absolute.serialize = () => `absolute`;
-
-StylePosition.fixed = new StylePosition({ isPositioned: true, isAbsolutelyPositioned: true });
-StylePosition.fixed.serialize = () => `fixed`;
-
-StylePosition.values = pick(StylePosition, [ `static`, `relative`, `absolute`, `fixed` ]);
+StylePosition.static = new StylePosition(`static`);
+StylePosition.relative = new StylePosition(`relative`, { isPositioned: true });
+StylePosition.absolute = new StylePosition(`absolute`, { isPositioned: true, isAbsolutelyPositioned: true });
+StylePosition.fixed = new StylePosition(`fixed`, { isPositioned: true, isAbsolutelyPositioned: true });

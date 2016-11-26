@@ -42,14 +42,17 @@ export class TermScreen extends TermElement {
         this.dirtyTimer = null;
 
         // Bind the listener that will notify us when the node becomes dirty
-        this.addEventListener(`dirty`, this.handleDirty);
+        this.addEventListener(`dirty`, this.handleDirty, { capture: true });
+
+        // Bind the listener that will notify us when the caret position has changed on an element
+        this.addEventListener(`caret`, this.handleCaret, { capture: true });
 
         // Bind the listeners that enable navigating between focused elements
-        this.addShortcutListener(`S-tab`, e => e.setDefault(() => this.focusPreviousElement()));
-        this.addShortcutListener(`tab`, e => e.setDefault(() => this.focusNextElement()));
+        this.addShortcutListener(`S-tab`, e => e.setDefault(() => this.focusPreviousElement()), { capture: true });
+        this.addShortcutListener(`tab`, e => e.setDefault(() => this.focusNextElement()), { capture: true });
 
         // Bind the listener that exit the application on C-c
-        this.addShortcutListener(`C-c`, e => e.setDefault(() => process.exit(0)));
+        this.addShortcutListener(`C-c`, e => e.setDefault(() => process.exit(0)), { capture: true });
 
     }
 
@@ -111,6 +114,25 @@ export class TermScreen extends TermElement {
 
     }
 
+    scheduleRender() {
+
+        if (this.dirtyTimer)
+            return;
+
+        this.dirtyTimer = setImmediate(() => {
+
+            if (!this.ready)
+                return;
+
+            this.dirtyTimer = null;
+            this.triggerUpdates();
+
+            this.renderScreen(this.flushDirtyRects());
+
+        });
+
+    }
+
     renderScreen(dirtyRects = [ this.elementClipRect ]) {
 
         let buffer = cursor.hide;
@@ -158,13 +180,13 @@ export class TermScreen extends TermElement {
 
         if (this.activeElement && this.activeElement.caret) {
 
-            let activeElement = this.activeElement;
+            let x = this.activeElement.contentWorldRect.x + this.activeElement.caret.x;
+            let y = this.activeElement.contentWorldRect.y + this.activeElement.caret.y;
 
-            let x = activeElement.contentWorldRect.x + activeElement.caret.x;
-            let y = activeElement.contentWorldRect.y + activeElement.caret.y;
-
-            buffer += cursor.moveTo({ x, y });
-            buffer += cursor.display;
+            if (x >= this.activeElement.contentClipRect.x && x < this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width && y >= this.activeElement.contentClipRect.y && y < this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height) {
+                buffer += cursor.moveTo({ x, y });
+                buffer += cursor.display;
+            }
 
         }
 
@@ -180,20 +202,16 @@ export class TermScreen extends TermElement {
 
     @autobind handleDirty() {
 
-        if (this.dirtyTimer)
+        this.scheduleRender();
+
+    }
+
+    @autobind handleCaret(e) {
+
+        if (e.target !== this.activeElement)
             return;
 
-        this.dirtyTimer = setImmediate(() => {
-
-            if (!this.ready)
-                return;
-
-            this.dirtyTimer = null;
-            this.triggerUpdates();
-
-            this.renderScreen(this.flushDirtyRects());
-
-        });
+        this.scheduleRender();
 
     }
 

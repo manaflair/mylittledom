@@ -5,6 +5,25 @@ import { TermText }    from './TermText';
 
 describe(`TermText`, () => {
 
+    it(`should have the width of its content text when absolutely positioned`, () => {
+
+        let root = new TermElement();
+        root.style.width = 100;
+        root.style.height = 100;
+
+        let text = new TermText();
+        root.appendChild(text);
+        text.style.position = `absolute`;
+        text.style.top = 0;
+        text.style.left = 0;
+        text.textContent = `Lorem`;
+
+        root.triggerUpdates();
+
+        expect(text.contentRect).to.deep.equal({ x: 0, y: 0, width: 5, height: 1 });
+
+    });
+
     it(`should have the height of its content text`, () => {
 
         let root = new TermElement();
@@ -13,6 +32,7 @@ describe(`TermText`, () => {
 
         let text = new TermText();
         root.appendChild(text);
+        text.style.whiteSpace = `pre`;
         text.textContent = `First line\nSecond line\nThird line\nFourth line\nFifth line`;
 
         root.triggerUpdates();

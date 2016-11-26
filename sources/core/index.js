@@ -1,5 +1,8 @@
-export { Element } from './dom/Element';
-export { Node }    from './dom/Node';
+export { Element }       from './dom/Element';
+export { Node }          from './dom/Node';
 
-export { Event }   from './misc/Event';
-export { Rect }    from './misc/Rect';
+import { EventSource }   from './misc/EventSource';
+export { Event }         from './misc/Event';
+export { Point }         from './misc/Point';
+export { Rect }          from './misc/Rect';
+export { TextFormatter } from './misc/TextFormatter';

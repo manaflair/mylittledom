@@ -11,6 +11,10 @@ export class TermInput extends TermText {
 
         this.style.focused.backgroundColor = `#000088`;
 
+        this.addEventListener(`data`, e => {
+            this.write(e.data.toString());
+        });
+
     }
 
     get value() {

@@ -7,9 +7,10 @@ import { LayoutContext }                     from '../layout/tools/LayoutContext
 
 import { EventSource }                       from '../misc/EventSource';
 import { Event }                             from '../misc/Event';
+import { Point }                             from '../misc/Point';
 import { Rect }                              from '../misc/Rect';
 
-import { StyleDeclaration }                  from '../style/StyleDeclaration2';
+import { StyleDeclaration }                  from '../style/StyleDeclaration';
 import { StyleSet }                          from '../style/StyleSet';
 import { initialStyleSet }                   from '../style/initialStyleSet';
 import { StyleLength }                       from '../style/types/StyleLength';
@@ -24,7 +25,7 @@ export class Element extends Node {
 
         super(props);
 
-        EventSource.setup(this, { dispatchToParent: event => this.parentNode && this.parentNode.dispatchEvent(event) });
+        EventSource.setup(this, { getParentInstance: () => this.parentNode });
 
         this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
@@ -35,6 +36,8 @@ export class Element extends Node {
         this.styleDeclaration.add(`focused`, new StyleSet(), false);
         this.style = this.styleDeclaration.makeProxy();
         Object.assign(this.style, style);
+
+        this.caret = null;
 
         this.dirtyRects = [];
         this.pendingEvents = [];
@@ -62,6 +65,7 @@ export class Element extends Node {
         this.declareEvent(`blur`);
 
         this.declareEvent(`scroll`);
+        this.declareEvent(`caret`);
 
     }
 
@@ -522,6 +526,9 @@ export class Element extends Node {
         if (needFullRerender && this.elementClipRect)
             this.rootNode.queueDirtyRect(this.elementClipRect);
 
+        if (this.flags & flags.ELEMENT_IS_DIRTY)
+            throw new Error(`Aborted 'triggerUpdates' execution: Flags have not be correctly reset at some point.`);
+
         for (let dirtyLayoutNode of dirtyLayoutNodes)
             dirtyLayoutNode.dispatchEvent(new Event(`relayout`));
 
@@ -687,6 +694,8 @@ export class Element extends Node {
             nodeLayout.computeNodeWidth(this, context);
             parentLayout.computeChildPositionX(this, context);
 
+            this.finalizeHorizontalLayout();
+
             subContext = subContext.pushNodeWidth(this);
 
         };
@@ -696,9 +705,15 @@ export class Element extends Node {
             nodeLayout.computeNodeHeight(this, context);
             parentLayout.computeChildPositionY(this, context);
 
+            this.finalizeVerticalLayout();
+
             subContext = subContext.pushNodeHeight(this);
 
         };
+
+        // -- First we can trigger the "will update layout" hook
+
+        this.prepareForLayout();
 
         // -- If the element has a fixed width and/or height, then we can compute them here and now
 
@@ -846,21 +861,42 @@ export class Element extends Node {
 
     }
 
+    prepareForLayout() {
+
+        // This method is called right before the layout process actually start on the context element. You can use it to set internal values that will be used to compute the width and/or height in the following hooks.
+        // You obviously cannot use any rect properties yet, because they haven't yet been updated.
+
+    }
+
     computeContentWidth() {
 
-        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children
-        // You cannot use any rect here, since they have not yet been updated and still hold out-of-date values
+        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children (such as an absolute-positioned element with an "auto" width).
+        // You still cannot use any rect here, because they won't have been since they have not yet been updated and still hold out-of-date values
 
         return 0;
 
     }
 
+    finalizeHorizontalLayout() {
+
+        // This method is called once we've found out every width used by this element. You can freely use the "x" and "width" properties of both elementRect and contentRect.
+        // Note that you CANNOT use the element's "y" and "height" properties from any rect! The height might be computed before the width if the height has a fixed size, but the width a fluid size (I don't remember why :().
+
+    }
+
     computeContentHeight() {
 
-        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children
+        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children (such as any element with an "auto" height).
         // You can access this element's rects' width properties, since they have already been computed when this function is called
 
         return 0;
+
+    }
+
+    finalizeVerticalLayout() {
+
+        // This method is called once we've found out every width used by this element. You can freely use the "y" and "height" properties of both elementRect and contentRect.
+        // Note that you CANNOT use the element's "x" and "width" properties from any rect! The width will usually be computed before the height, but it's not strictly required.
 
     }
 

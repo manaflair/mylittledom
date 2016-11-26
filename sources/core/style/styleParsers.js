@@ -3,10 +3,7 @@ import { castArray, isFinite, isString, isUndefined, isNumber } from 'lodash';
 import { colorNames }                                           from './colorNames';
 import { parseRawValue }                                        from './tools/parseRawValue';
 import { StyleColor }                                           from './types/StyleColor';
-import { StyleDisplay }                                         from './types/StyleDisplay';
 import { StyleLength }                                          from './types/StyleLength';
-import { StyleOverflow }                                        from './types/StyleOverflow';
-import { StylePosition }                                        from './types/StylePosition';
 
 export function repeat(n, parsers) {
 
@@ -27,42 +24,6 @@ export function repeat(n, parsers) {
         return value;
 
     };
-
-}
-
-export function display(rawValue) {
-
-    if (rawValue instanceof StyleDisplay)
-        return rawValue;
-
-    if (!Object.prototype.hasOwnProperty.call(StyleDisplay.values, rawValue))
-        return undefined;
-
-    return StyleDisplay.values[rawValue];
-
-}
-
-export function position(rawValue) {
-
-    if (rawValue instanceof StylePosition)
-        return rawValue;
-
-    if (!Object.prototype.hasOwnProperty.call(StylePosition.values, rawValue))
-        return undefined;
-
-    return StylePosition.values[rawValue];
-
-}
-
-export function overflow(rawValue) {
-
-    if (rawValue instanceof StyleOverflow)
-        return rawValue;
-
-    if (!Object.prototype.hasOwnProperty.call(StyleOverflow.values, rawValue))
-        return undefined;
-
-    return StyleOverflow.values[rawValue];
 
 }
 

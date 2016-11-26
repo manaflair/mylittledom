@@ -1,10 +1,10 @@
-import { pick }        from 'lodash';
-
 import { BlockLayout } from '../../layout/BlockLayout';
 
 export class StyleDisplay {
 
-    constructor(layout = null) {
+    constructor(name, layout = null) {
+
+        this.name = name;
 
         this.layout = layout;
 
@@ -12,7 +12,7 @@ export class StyleDisplay {
 
     serialize() {
 
-        return `unnamed`;
+        return this.name;
 
     }
 
@@ -24,7 +24,4 @@ export class StyleDisplay {
 
 }
 
-StyleDisplay.block = new StyleDisplay(BlockLayout);
-StyleDisplay.block.serialize = () => `block`;
-
-StyleDisplay.values = pick(StyleDisplay, [ `block` ]);
+StyleDisplay.block = new StyleDisplay(`block`, BlockLayout);

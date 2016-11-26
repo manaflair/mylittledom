@@ -30,15 +30,20 @@ export class EventSource {
 
     }
 
-    constructor(instance, { dispatchToParent = () => {} } = {}) {
+    constructor(instance, { getParentInstance = () => undefined } = {}) {
 
         this.instance = instance;
         this.listeners = new Map();
 
-        Object.defineProperty(this, `dispatchToParent`, {
-            value: dispatchToParent,
-            enumerable: false
-        });
+        this.getParentInstance = getParentInstance;
+
+    }
+
+    getParentEventSource() {
+
+        let parent = this.getParentInstance();
+
+        return parent && parent[EventSource.symbol] ? parent[EventSource.symbol] : null;
 
     }
 
@@ -50,11 +55,11 @@ export class EventSource {
         if (this.listeners.has(name))
             throw new Error(`Failed to execute 'declareEvent': '${name}' already exists.`);
 
-        this.listeners.set(name, new Set());
+        this.listeners.set(name, { capture: new Map(), bubble: new Map() });
 
     }
 
-    addEventListener(name, callback) {
+    addEventListener(name, callback, { capture = false, once = false } = {}) {
 
         if (!isString(name))
             throw new Error(`Failed to execute 'addEventListener': Parameter 1 is not of type 'string'.`);
@@ -65,16 +70,18 @@ export class EventSource {
         if (!this.listeners.has(name))
             throw new Error(`Failed to execute 'addEventListener': '${name}' is not a valid event name.`);
 
-        let listeners = this.listeners.get(name);
+        let callbacks = capture
+            ? this.listeners.get(name).capture
+            : this.listeners.get(name).bubble;
 
-        if (listeners.has(callback))
+        if (callbacks.has(callback))
             throw new Error(`Failed to execute 'addEventListener': This callback is already listening on this event.`);
 
-        listeners.add(callback);
+        callbacks.set(callback, { once });
 
     }
 
-    removeEventListener(name, callback) {
+    removeEventListener(name, callback, { capture = false, once = false } = {}) {
 
         if (!isString(name))
             throw new Error(`Failed to execute 'removeEventListener': Parameter 1 is not of type 'string'.`);
@@ -85,7 +92,11 @@ export class EventSource {
         if (!this.listeners.has(name))
             throw new Error(`Failed to execute 'removeEventListener': '${name}' is not a valid event name.`);
 
-        this.listeners.get(name).remove(callback);
+        let callbacks = capture
+            ? this.listeners.get(name).capture
+            : this.listeners.get(name).bubble;
+
+        callbacks.delete(callback);
 
     }
 
@@ -97,26 +108,59 @@ export class EventSource {
         if (!this.listeners.has(event.name))
             throw new Error(`Failed to execute 'dispatchEvent': '${event.name}' is not a valid event name.`);
 
-        if (isNull(event.target))
-            event.currentTarget = event.target = this.instance;
-        else
-            event.currentTarget = this.instance;
+        let eventSources = [];
 
-        for (let listener of this.listeners.get(event.name)) {
+        for (let eventSource = this; eventSource; eventSource = eventSource.getParentEventSource())
+            eventSources.unshift(eventSource);
 
-            listener(event);
+        event.target = this.instance;
 
-            if (event.immediatlyCanceled) {
+        for (let t = 0, T = eventSources.length; t < T; ++t) {
+
+            if (event.propagationStopped)
                 break;
+
+            let eventSource = eventSources[t];
+
+            let listeners = eventSource.listeners.get(event.name);
+            let callbacks = listeners ? listeners.capture : new Map();
+
+            for (let [ callback, { once } ] of callbacks) {
+
+                if (event.immediatlyCanceled)
+                    break;
+
+                event.currentTarget = this.instance;
+                callback.call(this.instance, event);
+
             }
 
         }
 
-        if (event.default && !event.defaultPrevented)
-            event.default();
+        for (let t = 0, T = Math.max(0, event.bubbles ? eventSources.length : 1); t < T; ++t) {
 
-        if (event.bubbles && !event.bubblingCanceled) {
-            this.dispatchToParent(event);
+            if (event.propagationStopped)
+                break;
+
+            let eventSource = eventSources[eventSources.length - t - 1];
+
+            let listeners = eventSource.listeners.get(event.name);
+            let callbacks = listeners ? listeners.bubble : new Map();
+
+            for (let [ callback, { once } ] of callbacks) {
+
+                if (event.immediatlyCanceled)
+                    break;
+
+                event.currentTarget = this.instance;
+                callback.call(this.instance, event);
+
+            }
+
+        }
+
+        if (event.default && !event.defaultPrevented) {
+            event.default();
         }
 
     }
@@ -126,7 +170,7 @@ export class EventSource {
         return this.addEventListener(... args);
 
     }
-
+s
     off(... args) {
 
         return this.removeEventListener(... args);
