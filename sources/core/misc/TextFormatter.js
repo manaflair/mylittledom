@@ -39,6 +39,7 @@ exports.TextFormatter = class TextFormatter {
         this.options.demoteNewlines = demoteNewlines;
         this.options.justifyText = justifyText;
 
+        this.isDirty = true;
         this.lineInfo = [];
 
         this.columns = 0;
@@ -46,27 +47,45 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    setOptions({ columns, tabWidth, collapseWhitespaces, preserveLeadingSpaces, allowWordBreaks, demoteNewlines, justifyText }) {
+    setOptions({ columns, tabWidth, collapseWhitespaces, preserveLeadingSpaces, allowWordBreaks, demoteNewlines, justifyText, ... extra }) {
 
-        if (typeof columns !== `undefined`)
+        let extraOptions = Object.keys(extra);
+
+        if (extraOptions.length > 0)
+            throw new Error(`Failed to execute 'setOption': Invalid option(s): ${extraOptions.map(option => `"${option}"`).join(`, `)}.`);
+
+        if (typeof columns !== `undefined` && columns !== this.options.columns) {
+            this.isDirty = true;
             this.options.columns = columns;
+        }
 
-        if (typeof tabWidth !== `undefined`)
+        if (typeof tabWidth !== `undefined` && tabWidth !== this.options.tabWidth) {
+            this.isDirty = true;
             this.options.tabWidth = tabWidth;
+        }
 
-        if (typeof collapseWhitespaces !== `undefined`)
+        if (typeof collapseWhitespaces !== `undefined` && collapseWhitespaces !== this.options.collapseWhitespaces) {
+            this.isDirty = true;
             this.options.collapseWhitespaces = collapseWhitespaces;
+        }
 
-        if (typeof preserveLeadingSpaces !== `undefined`)
+        if (typeof preserveLeadingSpaces !== `undefined` && preserveLeadingSpaces !== this.options.preserveLeadingSpaces) {
+            this.isDirty = true;
             this.options.preserveLeadingSpaces = preserveLeadingSpaces;
+        }
 
-        if (typeof allowWordBreaks !== `undefined`)
+        if (typeof allowWordBreaks !== `undefined` && allowWordBreaks !== this.options.allowWordBreaks) {
+            this.isDirty = true;
             this.options.allowWordBreaks = allowWordBreaks;
+        }
 
-        if (typeof demoteNewlines !== `undefined`)
+        if (typeof demoteNewlines !== `undefined` && demoteNewlines !== this.options.demoteNewlines) {
+            this.isDirty = true;
             this.options.demoteNewlines = demoteNewlines;
+        }
 
-        if (typeof justifyText !== `undefined`) {
+        if (typeof justifyText !== `undefined` && justifyText !== this.options.justifyText) {
+            this.isDirty = true;
             this.options.justifyText = justifyText;
         }
 
@@ -143,7 +162,7 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveToLeft(position, copy) {
+    moveLeft(position, copy) {
 
         position = Point.fromObject(position, copy);
 
@@ -196,7 +215,7 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveToRight(position, copy) {
+    moveRight(position, copy) {
 
         position = Point.fromObject(position, copy);
 
@@ -249,7 +268,7 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveToTop(position, copy) {
+    moveUp(position, copy) {
 
         position = Point.fromObject(position, copy);
 
@@ -295,7 +314,7 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveToBottom(position, copy) {
+    moveDown(position, copy) {
 
         position = Point.fromObject(position, copy);
 
@@ -352,8 +371,10 @@ exports.TextFormatter = class TextFormatter {
 
         let [ row, tokenIndex, line, token ] = tokenLocator;
 
+        let tokens = line.tokens;
+
         let tokenOutputStartOffset = token.outputOffset;
-        let tokenOutputEndOffset = tokenStartOffset + token.outputLength;
+        let tokenOutputEndOffset = tokenOutputStartOffset + token.outputLength;
 
         // if the character is on the left edge of a token, everything's fine
         if (position.column === tokenOutputStartOffset) {
@@ -363,19 +384,82 @@ exports.TextFormatter = class TextFormatter {
         // same if we're on the right edge of a token
         } else if (position.column === tokenOutputEndOffset) {
 
-            return line.inputStartOffset + token.inputOffset + tokens[m].inputLength;
+            return line.inputStartOffset + token.inputOffset + token.inputLength;
 
         // if we reach this case, it means that the character is located inside a token
         } else {
 
             // we can subdivise static tokens, but we cannot do this for dynamic tokens
-            if (tokens[m].type === STATIC_TOKEN) {
-                return line.inputStartOffset + token.inputOffset + column - token.outputOffset;
+            if (token.type === STATIC_TOKEN) {
+                return line.inputStartOffset + token.inputOffset + position.column - token.outputOffset;
             } else {
                 return null;
             }
 
         }
+
+    }
+
+    getPositionForInputOffset(inputOffset) {
+
+        if (this.lineInfo.length === 0)
+            return 0;
+
+        if (this.lineInfo.length === 1)
+            return this.lineInfo[0].inputStartOffset;
+
+        let l = 0;
+        let r = this.lineInfo.length - 1;
+
+        while (l <= r) {
+
+            let m = Math.floor((l + r) / 2);
+            let line = this.lineInfo[m];
+
+            if (line.inputStartOffset + line.inputLineLength <= inputOffset) {
+                l = m + 1;
+                continue;
+            }
+
+            if (line.inputStartOffset > inputOffset) {
+                r = m - 1;
+                continue;
+            }
+
+            let l2 = 0;
+            let r2 = line.tokens.length - 1;
+
+            while (l2 <= r2) {
+
+                let m2 = Math.floor((l2 + r2) / 2);
+                let token = line.tokens[m2];
+
+                if (line.inputStartOffset + token.inputOffset + token.inputLength <= inputOffset) {
+                    l2 = m2 + 1;
+                    continue;
+                }
+
+                if (line.inputStartOffset + token.inputOffset > inputOffset) {
+                    r2 = m2 - 1;
+                    continue;
+                }
+
+                let position = new Point();
+                position.row = m;
+
+                if (token.type === STATIC_TOKEN) {
+                    position.column = token.outputOffset + inputOffset - line.inputStartOffset - token.inputOffset;
+                } else {
+                    position.column = token.outputOffset;
+                }
+
+                return position;
+
+            }
+
+        }
+
+        return null;
 
     }
 
@@ -556,7 +640,7 @@ exports.TextFormatter = class TextFormatter {
 
                     if (spaces === ` `) { // we can use a static token if we only have a single space
 
-                        spaceTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: spaces.length, outputLength: spaces.length, value: spaces, canBeJustified });
+                        spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: spaces.length, outputLength: spaces.length, value: spaces, canBeJustified });
                         spaceOutputLength += spaces.length;
 
                     } else { // but in any other case, we unfortunately need to generate a dynamic token
@@ -578,7 +662,7 @@ exports.TextFormatter = class TextFormatter {
 
                             case ` `: { // we can generate a static token for a single token, they will be merged together later anyway
 
-                                spaceTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputLength: 1, value: ` `, canBeJustified: false });
+                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputLength: 1, value: ` `, canBeJustified: false });
                                 spaceOutputLength += 1;
 
                             } break;
@@ -759,7 +843,10 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    apply(textBuffer) {
+    apply(textBuffer, force) {
+
+        if (!this.isDirty && !force)
+            return;
 
         this.lineInfo = [];
 

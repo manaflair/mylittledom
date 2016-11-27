@@ -180,8 +180,8 @@ export class TermScreen extends TermElement {
 
         if (this.activeElement && this.activeElement.caret) {
 
-            let x = this.activeElement.contentWorldRect.x + this.activeElement.caret.x;
-            let y = this.activeElement.contentWorldRect.y + this.activeElement.caret.y;
+            let x = this.activeElement.contentWorldRect.x + this.activeElement.caret.column;
+            let y = this.activeElement.contentWorldRect.y + this.activeElement.caret.row;
 
             if (x >= this.activeElement.contentClipRect.x && x < this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width && y >= this.activeElement.contentClipRect.y && y < this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height) {
                 buffer += cursor.moveTo({ x, y });

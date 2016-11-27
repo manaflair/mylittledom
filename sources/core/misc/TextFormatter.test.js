@@ -5,6 +5,23 @@ import { TextFormatter }     from './TextFormatter';
 
 describe(`TextFormatter`, () => {
 
+    describe(`Stress tests`, () => {
+
+        it(`stress test #1`, () => {
+
+            let textBuffer = new TextBuffer();
+            let textFormatter = TextFormatter.open(textBuffer);
+
+            for (let t = 0; t < 30; ++t)
+                textBuffer.append(`Foo\n`);
+
+            expect(textFormatter.lineInfo).to.have.length(31);
+            expect(textFormatter.getText()).to.equal(`Foo\n`.repeat(30));
+
+        });
+
+    });
+
     describe(`Formatting`, () => {
 
         it(`should correctly parse a single line`, () => {
@@ -24,6 +41,16 @@ describe(`TextFormatter`, () => {
 
             expect(textFormatter.lineInfo).to.have.length(2);
             expect(textFormatter.getText()).to.equal(`Hello\nWorld`);
+
+        });
+
+        it(`should support ending a text with a newline character`, () => {
+
+            let textBuffer = new TextBuffer(`Hello World\n`);
+            let textFormatter = TextFormatter.open(textBuffer);
+
+            expect(textFormatter.lineInfo).to.have.length(2);
+            expect(textFormatter.getText()).to.equal(`Hello World\n`);
 
         });
 
@@ -124,14 +151,14 @@ describe(`TextFormatter`, () => {
 
     describe(`Methods`, () => {
 
-        describe(`#moveToLeft()`, () => {
+        describe(`#moveLeft()`, () => {
 
             it(`should be able to move a cursor inside static tokens`, () => {
 
                 let textBuffer = new TextBuffer(`Hello`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToLeft([ 0, 3 ])).to.deep.equal(Point.fromObject([ 0, 2 ]));
+                expect(textFormatter.moveLeft([ 0, 3 ])).to.deep.equal(Point.fromObject([ 0, 2 ]));
 
             });
 
@@ -140,7 +167,7 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello\tWorld`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToLeft([ 0, 9 ])).to.deep.equal(Point.fromObject([ 0, 5 ]));
+                expect(textFormatter.moveLeft([ 0, 9 ])).to.deep.equal(Point.fromObject([ 0, 5 ]));
 
             });
 
@@ -149,7 +176,7 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello World\nThis is a test`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToLeft([ 1, 0 ])).to.deep.equal(Point.fromObject([ 0, 11 ]));
+                expect(textFormatter.moveLeft([ 1, 0 ])).to.deep.equal(Point.fromObject([ 0, 11 ]));
 
             });
 
@@ -158,20 +185,20 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello World\nThis is a test`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToLeft([ 0, 0 ])).to.deep.equal(Point.fromObject([ 0, 0 ]));
+                expect(textFormatter.moveLeft([ 0, 0 ])).to.deep.equal(Point.fromObject([ 0, 0 ]));
 
             });
 
         });
 
-        describe(`#moveToRight()`, () => {
+        describe(`#moveRight()`, () => {
 
             it(`should be able to move a cursor inside static tokens`, () => {
 
                 let textBuffer = new TextBuffer(`Hello`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToRight([ 0, 3 ])).to.deep.equal(Point.fromObject([ 0, 4 ]));
+                expect(textFormatter.moveRight([ 0, 3 ])).to.deep.equal(Point.fromObject([ 0, 4 ]));
 
             });
 
@@ -180,7 +207,7 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello\tWorld`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToRight([ 0, 5 ])).to.deep.equal(Point.fromObject([ 0, 9 ]));
+                expect(textFormatter.moveRight([ 0, 5 ])).to.deep.equal(Point.fromObject([ 0, 9 ]));
 
             });
 
@@ -189,7 +216,7 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello World\nThis is a test`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToRight([ 0, 11 ])).to.deep.equal(Point.fromObject([ 1, 0 ]));
+                expect(textFormatter.moveRight([ 0, 11 ])).to.deep.equal(Point.fromObject([ 1, 0 ]));
 
             });
 
@@ -198,20 +225,20 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello World\nThis is a test`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToRight([ 1, 14 ])).to.deep.equal(Point.fromObject([ 1, 14 ]));
+                expect(textFormatter.moveRight([ 1, 14 ])).to.deep.equal(Point.fromObject([ 1, 14 ]));
 
             });
 
         });
 
-        describe(`#moveToTop()`, () => {
+        describe(`#moveUp()`, () => {
 
             it(`should be able to move a cursor inside static tokens`, () => {
 
                 let textBuffer = new TextBuffer(`Hello\nWorld`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToTop([ 1, 2 ])).to.deep.equal(Point.fromObject([ 0, 2 ]));
+                expect(textFormatter.moveUp([ 1, 2 ])).to.deep.equal(Point.fromObject([ 0, 2 ]));
 
             });
 
@@ -220,8 +247,8 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello\tWorld\nThis is a test`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToTop([ 1, 6 ])).to.deep.equal(Point.fromObject([ 0, 5 ]));
-                expect(textFormatter.moveToTop([ 1, 7 ])).to.deep.equal(Point.fromObject([ 0, 9 ]));
+                expect(textFormatter.moveUp([ 1, 6 ])).to.deep.equal(Point.fromObject([ 0, 5 ]));
+                expect(textFormatter.moveUp([ 1, 7 ])).to.deep.equal(Point.fromObject([ 0, 9 ]));
 
             });
 
@@ -230,20 +257,20 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello World`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToTop([ 0, 5 ])).to.deep.equal(Point.fromObject([ 0, 0 ]));
+                expect(textFormatter.moveUp([ 0, 5 ])).to.deep.equal(Point.fromObject([ 0, 0 ]));
 
             });
 
         });
 
-        describe(`#moveToBottom()`, () => {
+        describe(`#moveDown()`, () => {
 
             it(`should be able to move a cursor inside static tokens`, () => {
 
                 let textBuffer = new TextBuffer(`Hello\nWorld`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToBottom([ 0, 2 ])).to.deep.equal(Point.fromObject([ 1, 2 ]));
+                expect(textFormatter.moveDown([ 0, 2 ])).to.deep.equal(Point.fromObject([ 1, 2 ]));
 
             });
 
@@ -252,8 +279,8 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`This is a test\nHello\tWorld`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToBottom([ 0, 6 ])).to.deep.equal(Point.fromObject([ 1, 5 ]));
-                expect(textFormatter.moveToBottom([ 0, 7 ])).to.deep.equal(Point.fromObject([ 1, 9 ]));
+                expect(textFormatter.moveDown([ 0, 6 ])).to.deep.equal(Point.fromObject([ 1, 5 ]));
+                expect(textFormatter.moveDown([ 0, 7 ])).to.deep.equal(Point.fromObject([ 1, 9 ]));
 
             });
 
@@ -262,7 +289,7 @@ describe(`TextFormatter`, () => {
                 let textBuffer = new TextBuffer(`Hello World`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
-                expect(textFormatter.moveToBottom([ 0, 5 ])).to.deep.equal(Point.fromObject([ 0, 11 ]));
+                expect(textFormatter.moveDown([ 0, 5 ])).to.deep.equal(Point.fromObject([ 0, 11 ]));
 
             });
 
