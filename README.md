@@ -4,14 +4,58 @@
 
 ## Features
 
-  - DOM-like API (`element.appendChild()`, `element.insertBefore()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
+  - DOM-like API (`element.appendChild()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
   - CSS-like API (`element.style.display`, `element.style.position`, `element.style.backgroundColor`, ...)
+
+## Example
+
+```js
+import { TermScreen, TermElement } from 'ohui';
+
+let screen = new TermScreen();
+
+let ball = new TermElement();
+ball.style.position = `absolute`;
+ball.style.left = 0;
+ball.style.top = 0;
+ball.style.width = 6;
+ball.style.height = 3;
+ball.style.borderCharacter = `modern`;
+screen.appendChild(ball);
+
+(function run() {
+
+    let left = ball.style.left + dx;
+    let top = ball.style.top + dy;
+
+    Object.assign(ball.style, { left, top });
+
+    let screenWidth = screen.scrollWidth;
+    let screenHeight = screen.scrollHeight;
+
+    let ballWidth = ball.offsetWidth;
+    let ballHeight = ball.offsetHeight;
+
+    if (left <= 0)
+        dx = +1;
+    else if (left + ballWidth >= screenWidth)
+        dx = -1;
+
+    if (top <= 0)
+        dy = +1;
+    else if (top + ballHeight >= screenHeight)
+        dx = -1;
+
+    setTimeout(() => run(dx, dy), 1000 / 60);
+
+})(+1, +1)
+```
 
 ## HTML compatibility
 
 ### Un-features
 
-OhUI does not aim to be a perfect HTML renderer and, as such, will not attempt to implement DOM or CSS features that wouldn't make sense in a terminal environment, or would be to hard to implement for dubious results. Some of these unimplemented features are:
+OhUI does not aim to be a perfect HTML renderer and, as such, will not attempt to implement DOM or CSS features that wouldn't make sense in a terminal environment, or would simply be too complex to implement for too little interest. Some of these unimplemented features are:
 
   - HTML compatibility
   - Floating positioning
@@ -20,7 +64,7 @@ OhUI does not aim to be a perfect HTML renderer and, as such, will not attempt t
 
 ### Major changes
 
-For the same reasons than those highlighted above, some features work a bit differently than what you could expect from a regular browser environment. Some key differences:
+For the same reasons than those highlighted above, some features work a bit differently than what you could expect from a regular browser environment. Some key differences are:
 
 #### Layouting
 
@@ -30,12 +74,13 @@ For the same reasons than those highlighted above, some features work a bit diff
 
 #### Styling
 
-  - Multiple CSS-like properties are correctly typed, and use a literal `null` instead of `none`
+  - Unlike actual CSS properties, OhUI properties are correctly typed, and expect a literal `null` instead of `"none"`
   - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings
+  - To prevent mistakes and facilitate onboarding, setting an invalid value will throw instead of being silently ignored
 
 ### Supported CSS properties
 
-An up-to-date list of supported CSS properties can be found in the [repository](sources/core/style/styleProperties.js).
+An up-to-date list of supported CSS properties can be found in the actual [source code](sources/core/style/styleProperties.js) of the repository.
 
 ```
 display
