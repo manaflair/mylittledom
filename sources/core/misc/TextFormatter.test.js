@@ -20,6 +20,53 @@ describe(`TextFormatter`, () => {
 
         });
 
+        it(`stress test #2`, () => {
+
+            let textBuffer = new TextBuffer();
+            let textFormatter = TextFormatter.open(textBuffer);
+
+            for (let t = 0; t < 30; ++t) {
+                textBuffer.append(`a`);
+                textBuffer.append(` `);
+            }
+
+            expect(textFormatter.lineInfo).to.have.length(1);
+            expect(textFormatter.getText()).to.equal(`a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a`);
+
+        });
+
+        it(`stress test #3`, () => {
+
+            let textBuffer = new TextBuffer();
+            let textFormatter = TextFormatter.open(textBuffer, { columns: 10, collapseWhitespaces: true, justifyText: true });
+
+            for (let t = 0; t < 30; ++t) {
+                textBuffer.append(`a`);
+                textBuffer.append(` `);
+            }
+
+            expect(textFormatter.lineInfo).to.have.length(6);
+            expect(textFormatter.getText()).to.equal(`a  a a a a\na  a a a a\na  a a a a\na  a a a a\na  a a a a\na a a a a`);
+
+        });
+
+        it(`stress test #4`, () => {
+
+            let textBuffer = new TextBuffer();
+            let textFormatter = TextFormatter.open(textBuffer, { columns: 10, collapseWhitespaces: true, justifyText: true });
+
+            let caretOffset = 0;
+
+            for (let c of `a b c d e f g h i j k l m n o p q r s t u v w x y z\nA B C D E F G H I J K L M N O P Q R S T U V W X Y Z`) {
+                textBuffer.insert(textBuffer.positionForCharacterIndex(caretOffset), c);
+                caretOffset += 1;
+            }
+
+            //expect(textFormatter.lineInfo).to.have.length(12);
+            expect(textFormatter.getText()).to.equal(`a  b c d e\nf  g h i j\nk  l m n o\np  q r s t\nu  v w x y\nz\nA  B C D E\nF  G H I J\nK  L M N O\nP  Q R S T\nU  V W X Y\nZ`);
+
+        });
+
     });
 
     describe(`Formatting`, () => {
@@ -150,6 +197,29 @@ describe(`TextFormatter`, () => {
     });
 
     describe(`Methods`, () => {
+
+        describe(`#positionForCharacterIndex()`, () => {
+
+            it(`should correctly return the formatter position for a given character index`, () => {
+
+                let textBuffer = new TextBuffer(`Hello World\nFoo Bar!`);
+                let textFormatter = TextFormatter.open(textBuffer);
+
+                expect(textFormatter.positionForCharacterIndex(4)).to.deep.equal(new Point(0, 4));
+                expect(textFormatter.positionForCharacterIndex(15)).to.deep.equal(new Point(1, 3));
+
+            });
+
+            it(`should work even when the first characters are skipped`, () => {
+
+                let textBuffer = new TextBuffer(`    Hello world!`);
+                let textFormatter = TextFormatter.open(textBuffer);
+
+                expect(textFormatter.positionForCharacterIndex(0)).to.deep.equal(new Point(0, 0));
+
+            });
+
+        });
 
         describe(`#moveLeft()`, () => {
 

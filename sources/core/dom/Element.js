@@ -452,6 +452,9 @@ export class Element extends Node {
 
     queueDirtyRect(dirtyRect, checkIntersectionFrom = 0) {
 
+        if (!dirtyRect)
+            return;
+
         if (this.rootNode !== this)
             this.rootNode.queueDirtyRect(dirtyRect, checkIntersectionFrom);
 

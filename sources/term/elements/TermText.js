@@ -27,6 +27,8 @@ export class TermText extends TermElement {
 
         this.textBuffer.setText(textContent);
 
+        this.setDirtyLayoutFlag();
+
     }
 
     appendChild(node) {
@@ -85,7 +87,7 @@ export class TermText extends TermElement {
         if (this.textFormatter.rows <= y)
             return this.renderBackground(l);
 
-        let fullLine = this.textFormatter.getLine(y);
+        let fullLine = this.textFormatter.lineForRow(y);
         let fullLineStart = 0;
 
         if (this.style.$.textAlign.isCentered)

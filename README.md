@@ -1,17 +1,17 @@
-# dom-like
+# OhUI
 
-> Simple DOM-like implentation
+> DOM-like terminal application framework
 
 ## Features
 
-  - DOM-like API (`appendChild`, `insertBefore`, `removeChild`, `parentNode`, `childNodes`, ...)
-  - CSS-like API (`element.style.<property>`)
+  - DOM-like API (`element.appendChild()`, `element.insertBefore()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
+  - CSS-like API (`element.style.display`, `element.style.position`, `element.style.backgroundColor`, ...)
 
 ## HTML compatibility
 
 ### Un-features
 
-OhUI does not aim to be a perfect HTML renderer and, as such, multiple HTML features will not be considered for inclusion. Some of them are:
+OhUI does not aim to be a perfect HTML renderer and, as such, will not attempt to implement DOM or CSS features that wouldn't make sense in a terminal environment, or would be to hard to implement for dubious results. Some of these unimplemented features are:
 
   - HTML compatibility
   - Floating positioning
@@ -20,20 +20,22 @@ OhUI does not aim to be a perfect HTML renderer and, as such, multiple HTML feat
 
 ### Major changes
 
-  - **Layouting:**
+For the same reasons than those highlighted above, some features work a bit differently than what you could expect from a regular browser environment. Some key differences:
 
-    - Margins do not collapse, except between siblings
-    - Elements size have the same effect as if they had been declared with `box-sizing: content-box`
-    - Fixed positioning will be applied relative to the nearest positioned element instead of the window
+#### Layouting
 
-  - **Styling:**
+  - Margins do not collapse, except between siblings
+  - Elements size have the same effect as if they had been declared with `box-sizing: content-box`
+  - Fixed positioning will be applied relative to the nearest positioned element instead of the window
 
-    - Multiple CSS-like properties are correctly typed, and use a literal `null` instead of `none`
-    - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings
+#### Styling
 
-  - Probably many more :)
+  - Multiple CSS-like properties are correctly typed, and use a literal `null` instead of `none`
+  - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings
 
-### [Supported CSS properties](https://github.com/arcanis/ohui-v2/blob/master/sources/core/style/styleProperties.js)
+### Supported CSS properties
+
+An up-to-date list of supported CSS properties can be found in the [repository](sources/core/style/styleProperties.js).
 
 ```
 display
@@ -71,6 +73,10 @@ paddingLeft
 paddingRight
 paddingTop
 paddingBottom
+
+textAlign
+textOverflow
+whiteSpace
 
 color
 backgroundColor

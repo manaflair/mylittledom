@@ -12,6 +12,7 @@ export class TermInput extends TermElement {
 
         super(props);
 
+        this.caretIndex = 0;
         this.caret = new Point(0, 0);
         this.caretMaxColumn = 0;
 
@@ -23,9 +24,26 @@ export class TermInput extends TermElement {
         this.textBuffer = new TextBuffer();
         this.textFormatter = TextFormatter.open(this.textBuffer);
 
+        this.textFormatter.onDidChange(({ oldRange, newRange }) => {
+
+            if (!this.contentClipRect)
+                return;
+
+            let firstRow = Math.min(oldRange.start.row, newRange.start.row);
+            let lastRow = Math.max(oldRange.end.row, newRange.end.row);
+
+            let dirtyRect = this.contentWorldRect.clone();
+            dirtyRect.y += firstRow;
+            dirtyRect.height = lastRow - firstRow + 1;
+
+            this.queueDirtyRect(dirtyRect.intersect(this.contentClipRect));
+
+        });
+
         this.addShortcutListener(`left`, () => {
 
-            this.caret = this.textFormatter.moveLeft(this.caret);
+            this.caretIndex = Math.max(0, this.caretIndex - 1);
+            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
 
             this.dispatchEvent(new Event(`caret`));
@@ -34,7 +52,8 @@ export class TermInput extends TermElement {
 
         this.addShortcutListener(`right`, () => {
 
-            this.caret = this.textFormatter.moveRight(this.caret);
+            this.caretIndex = Math.min(this.caretIndex + 1, this.textBuffer.getMaxCharacterIndex());
+            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
 
             this.dispatchEvent(new Event(`caret`));
@@ -45,6 +64,7 @@ export class TermInput extends TermElement {
 
             this.caret.column = this.caretMaxColumn;
             this.caret = this.textFormatter.moveUp(this.caret);
+            this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -54,6 +74,7 @@ export class TermInput extends TermElement {
 
             this.caret.column = this.caretMaxColumn;
             this.caret = this.textFormatter.moveDown(this.caret);
+            this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -63,21 +84,13 @@ export class TermInput extends TermElement {
 
             let string = buffer.toString();
 
-            let inputOffset = this.textFormatter.getInputOffsetForPosition(this.caret);
-            let inputPosition = this.textBuffer.positionForCharacterIndex(inputOffset);
+            this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), string);
 
-            this.textBuffer.insert(inputPosition, string);
-
-            this.caret = this.textFormatter.getPositionForInputOffset(inputOffset + string.length);
+            this.caretIndex += string.length;
+            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
 
             this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.textBuffer.onDidChange(() => {
-
-            this.setDirtyLayoutFlag();
 
         });
 
@@ -151,7 +164,7 @@ export class TermInput extends TermElement {
         if (this.textFormatter.rows <= y)
             return this.renderBackground(l);
 
-        let fullLine = this.textFormatter.getLine(y);
+        let fullLine = this.textFormatter.lineForRow(y);
         let fullLineStart = 0;
 
         if (this.style.$.textAlign.isCentered)

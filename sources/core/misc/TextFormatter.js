@@ -1,4 +1,4 @@
-import { Point } from 'text-buffer';
+import { Point, Range } from 'text-buffer';
 
 let STATIC_TOKEN = `STATIC`;
 let DYNAMIC_TOKEN = `DYNAMIC`;
@@ -28,6 +28,10 @@ exports.TextFormatter = class TextFormatter {
 
     constructor({ columns = Infinity, tabWidth = 4, collapseWhitespaces = false, preserveLeadingSpaces = false, allowWordBreaks = false, demoteNewlines = false, justifyText = false } = {}) {
 
+        this.callbacks = {};
+
+        this.callbacks.didChange = () => {};
+
         this.options = {};
 
         this.options.columns = columns;
@@ -44,6 +48,12 @@ exports.TextFormatter = class TextFormatter {
 
         this.columns = 0;
         this.rows = 0;
+
+    }
+
+    onDidChange(fn) {
+
+        this.callbacks.didChange = fn;
 
     }
 
@@ -91,18 +101,18 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    getLineForInputOffset(offset) {
+    rowForCharacterIndex(characterIndex) {
 
-        let line = 0;
+        let row = 0;
 
-        while (line + 1 < this.lineInfo.length && offset >= this.lineInfo[line + 1].inputStartOffset)
-            line += 1;
+        while (row + 1 < this.lineInfo.length && characterIndex >= this.lineInfo[row + 1].inputStartOffset)
+            row += 1;
 
-        return line;
+        return row;
 
     }
 
-    getInputOffsetForLine(line) {
+    characterIndexForRow(line) {
 
         let offset = 0;
 
@@ -116,7 +126,7 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    getTokenLocatorForPosition(position) {
+    tokenLocatorForPosition(position) {
 
         position = Point.fromObject(position);
 
@@ -166,7 +176,7 @@ exports.TextFormatter = class TextFormatter {
 
         position = Point.fromObject(position, copy);
 
-        let tokenLocator = this.getTokenLocatorForPosition(position);
+        let tokenLocator = this.tokenLocatorForPosition(position);
 
         if (!tokenLocator)
             return null;
@@ -219,7 +229,7 @@ exports.TextFormatter = class TextFormatter {
 
         position = Point.fromObject(position, copy);
 
-        let tokenLocator = this.getTokenLocatorForPosition(position);
+        let tokenLocator = this.tokenLocatorForPosition(position);
 
         if (!tokenLocator)
             return null;
@@ -291,7 +301,7 @@ exports.TextFormatter = class TextFormatter {
             // otherwise, we have to check on which token we land, to stay outside of dynamic tokens
             } else {
 
-                let [ row, tokenIndex, line, token ] = this.getTokenLocatorForPosition(position);
+                let [ row, tokenIndex, line, token ] = this.tokenLocatorForPosition(position);
 
                 if (token.type === DYNAMIC_TOKEN) {
 
@@ -337,7 +347,7 @@ exports.TextFormatter = class TextFormatter {
             // otherwise, we have to check on which token we land, to stay outside of dynamic tokens
             } else {
 
-                let [ row, tokenIndex, line, token ] = this.getTokenLocatorForPosition(position);
+                let [ row, tokenIndex, line, token ] = this.tokenLocatorForPosition(position);
 
                 if (token.type === DYNAMIC_TOKEN) {
 
@@ -360,11 +370,14 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    getInputOffsetForPosition(position) {
+    characterIndexForPosition(position) {
 
         position = Point.fromObject(position);
 
-        let tokenLocator = this.getTokenLocatorForPosition(position);
+        if (position.column <= 0 && position.row <= 0)
+            return 0;
+
+        let tokenLocator = this.tokenLocatorForPosition(position);
 
         if (!tokenLocator)
             return null;
@@ -400,28 +413,31 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    getPositionForInputOffset(inputOffset) {
+    positionForCharacterIndex(characterIndex) {
 
         if (this.lineInfo.length === 0)
-            return 0;
-
-        if (this.lineInfo.length === 1)
-            return this.lineInfo[0].inputStartOffset;
+            return [ 0, 0 ];
 
         let l = 0;
         let r = this.lineInfo.length - 1;
 
+        // The first loop needs to find the line
         while (l <= r) {
 
             let m = Math.floor((l + r) / 2);
             let line = this.lineInfo[m];
 
-            if (line.inputStartOffset + line.inputLineLength <= inputOffset) {
+            if (line.inputStartOffset + line.inputLineLength < characterIndex) {
                 l = m + 1;
                 continue;
             }
 
-            if (line.inputStartOffset > inputOffset) {
+            if (line.inputStartOffset + line.inputLineLength === characterIndex && m < this.lineInfo.length - 1) {
+                l = m + 1;
+                continue;
+            }
+
+            if (line.inputStartOffset > characterIndex) {
                 r = m - 1;
                 continue;
             }
@@ -429,17 +445,23 @@ exports.TextFormatter = class TextFormatter {
             let l2 = 0;
             let r2 = line.tokens.length - 1;
 
+            // The second loop needs to find the token in the line
             while (l2 <= r2) {
 
                 let m2 = Math.floor((l2 + r2) / 2);
                 let token = line.tokens[m2];
 
-                if (line.inputStartOffset + token.inputOffset + token.inputLength <= inputOffset) {
+                if (line.inputStartOffset + token.inputOffset + token.inputLength < characterIndex) {
                     l2 = m2 + 1;
                     continue;
                 }
 
-                if (line.inputStartOffset + token.inputOffset > inputOffset) {
+                if (line.inputStartOffset + token.inputOffset + token.inputLength === characterIndex && m < line.tokens.length - 1) {
+                    l2 = m2 + 1;
+                    continue;
+                }
+
+                if (line.inputStartOffset + token.inputOffset > characterIndex) {
                     r2 = m2 - 1;
                     continue;
                 }
@@ -448,7 +470,9 @@ exports.TextFormatter = class TextFormatter {
                 position.row = m;
 
                 if (token.type === STATIC_TOKEN) {
-                    position.column = token.outputOffset + inputOffset - line.inputStartOffset - token.inputOffset;
+                    position.column = token.outputOffset + characterIndex - line.inputStartOffset - token.inputOffset;
+                } else if (token.inputOffset + token.inputLength === characterIndex - line.inputStartOffset) {
+                    position.column = token.outputOffset + token.outputLength;
                 } else {
                     position.column = token.outputOffset;
                 }
@@ -456,6 +480,8 @@ exports.TextFormatter = class TextFormatter {
                 return position;
 
             }
+
+            return null;
 
         }
 
@@ -467,11 +493,11 @@ exports.TextFormatter = class TextFormatter {
 
         let generatedLineInfo = [];
 
-        let startLine = this.getLineForInputOffset(offset);
-        let nextLine = this.getLineForInputOffset(Math.max(offset + length, offset + replacement.length)) + 1;
+        let startLine = this.rowForCharacterIndex(offset);
+        let nextLine = this.rowForCharacterIndex(Math.max(offset + length, offset + replacement.length)) + 1;
 
-        let currentOffset = this.getInputOffsetForLine(startLine);
-        let nextOffset = Math.min(Math.max(this.getInputOffsetForLine(nextLine) + (replacement.length - length), offset + length, offset + replacement.length), source.getMaxCharacterIndex());
+        let currentOffset = this.characterIndexForRow(startLine);
+        let nextOffset = Math.min(Math.max(offset + length, offset + replacement.length), source.getMaxCharacterIndex());
 
         let getCharacter = () => {
 
@@ -516,7 +542,7 @@ exports.TextFormatter = class TextFormatter {
             if (isEndOfFile())
                 return false;
 
-            let c = getCharacter();
+            let c = getCharacter()
 
             if ((c === `\r` || c === `\n` || c === `\r\n`) && !this.options.demoteNewlines)
                 return true;
@@ -617,6 +643,9 @@ exports.TextFormatter = class TextFormatter {
             let inputStartOffset = currentOffset;
             let outputLineLength = 0;
 
+            if (isEndOfFile())
+                moveForward();
+
             while (!isEndOfLine() && outputLineLength < this.options.columns) {
 
                 let spaceTokens = [];
@@ -627,8 +656,12 @@ exports.TextFormatter = class TextFormatter {
 
                 if (this.options.collapseWhitespaces && tokens.length === 0 && (!this.options.preserveLeadingSpaces || (previousLine && previousLine.doesSoftWrap))) {
 
-                    // skip any leading spaces
-                    shiftWhitespaces();
+                    let tokenOffset = currentOffset;
+                    let spaces = shiftWhitespaces();
+
+                    // We craft an empty token so that we still can correctly map position from the buffer to the formatter and vice-versa
+                    spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: spaces.length, outputOffset: outputLineLength + spaceOutputLength, outputLength: 0, value: ``, canBeJustified: false });
+                    spaceOutputLength += 0;
 
                 } else if (this.options.collapseWhitespaces && tokens.length > 0) {
 
@@ -638,17 +671,8 @@ exports.TextFormatter = class TextFormatter {
                     // leading spaces cannot accept extra spaces because it wouldn't be possible otherwise to correctly align them
                     let canBeJustified = tokens.length > 0 ? true : false;
 
-                    if (spaces === ` `) { // we can use a static token if we only have a single space
-
-                        spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: spaces.length, outputLength: spaces.length, value: spaces, canBeJustified });
-                        spaceOutputLength += spaces.length;
-
-                    } else { // but in any other case, we unfortunately need to generate a dynamic token
-
-                        spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: spaces.length, outputLength: 1, value: ` `, canBeJustified });
-                        spaceOutputLength += 1;
-
-                    }
+                    spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: spaces.length, outputOffset: outputLineLength + spaceOutputLength, outputLength: 1, value: ` `, canBeJustified });
+                    spaceOutputLength += 1;
 
                 } else {
 
@@ -662,14 +686,14 @@ exports.TextFormatter = class TextFormatter {
 
                             case ` `: { // we can generate a static token for a single token, they will be merged together later anyway
 
-                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputLength: 1, value: ` `, canBeJustified: false });
+                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputOffset: outputLineLength + spaceOutputLength, outputLength: 1, value: ` `, canBeJustified: false });
                                 spaceOutputLength += 1;
 
                             } break;
 
                             case `\t`: { // convert a tab to multiple spaces
 
-                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputLength: this.options.tabWidth, value: ` `.repeat(this.options.tabWidth), canBeJustified: false });
+                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputOffset: outputLineLength + spaceOutputLength, outputLength: this.options.tabWidth, value: ` `.repeat(this.options.tabWidth), canBeJustified: false });
                                 spaceOutputLength += this.options.tabWidth;
 
                             } break;
@@ -678,7 +702,7 @@ exports.TextFormatter = class TextFormatter {
 
                                 let isRN = t + 1 < T && spaces[t + 1] === `\n`;
 
-                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: isRN ? 2 : 1, outputLength: 1, value: ` `, canBeJustified: false });
+                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: isRN ? 2 : 1, outputOffset: outputLineLength + spaceOutputLength, outputLength: 1, value: ` `, canBeJustified: false });
                                 spaceOutputLength += 1;
 
                                 if (isRN) t += 1;
@@ -687,7 +711,7 @@ exports.TextFormatter = class TextFormatter {
 
                             case `\n`: { // convert a \n to a single space
 
-                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputLength: 1, value: ` `, canBeJustified: false });
+                                spaceTokens.push({ type: DYNAMIC_TOKEN, inputOffset: tokenOffset + t - inputStartOffset, inputLength: 1, outputOffset: outputLineLength + spaceOutputLength, outputLength: 1, value: ` `, canBeJustified: false });
                                 spaceOutputLength += 1;
 
                             } break;
@@ -698,48 +722,64 @@ exports.TextFormatter = class TextFormatter {
 
                 }
 
-                // stop iterating further if we've reached the end of the line or the end of the available space, so we don't add those useless token to the string (trailing whitespaces are worthless)
-                if (isEndOfLine() || outputLineLength + spaceOutputLength >= this.options.columns)
-                    break;
+                // stop iterating further if we've reached the end of the line or the end of the available space, so that we don't add those useless trailing spaces to the final string
+                if (isEndOfLine() || outputLineLength + spaceOutputLength >= this.options.columns) {
 
-                if (this.options.allowWordBreaks) {
+                    if (spaceTokens.length > 0) {
 
-                    let tokenOffset = currentOffset;
-                    let word = shiftWord(this.options.columns - outputLineLength - spaceOutputLength);
+                        let firstToken = spaceTokens[0];
+                        let lastToken = spaceTokens[spaceTokens.length - 1];
 
-                    wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputLength: word.length, value: word, canBeJustified: false });
-                    wordOutputLength += word.length;
+                        let inputOffset = firstToken.inputOffset;
+                        let inputLength = lastToken.inputOffset + lastToken.inputLength - inputOffset;
+
+                        let outputOffset = firstToken.outputOffset;
+                        let outputLength = 0;
+
+                        spaceTokens = [ { type: DYNAMIC_TOKEN, inputOffset, inputLength, outputOffset, outputLength, value: ``, canBeJustified: false } ];
+                        spaceOutputLength = 0;
+
+                    }
 
                 } else {
 
-                    let tokenOffset = currentOffset;
-                    let word = shiftWord(this.options.columns - outputLineLength - spaceOutputLength);
+                    if (this.options.allowWordBreaks) {
 
-                    if (!isWord()) { // if the word is full (ie. if the next character is a whitespace), we've nothing special to do
+                        let tokenOffset = currentOffset;
+                        let word = shiftWord(this.options.columns - outputLineLength - spaceOutputLength);
 
-                        wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputLength: word.length, value: word, canBeJustified: false });
+                        wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputOffset: outputLineLength + spaceOutputLength + wordOutputLength, outputLength: word.length, value: word, canBeJustified: false });
                         wordOutputLength += word.length;
 
-                    } else { // howver, if our word is splitted (ie. if the next character is a word), we might have to backtrack
+                    } else {
 
-                        // prevent it from being splitted if we can try to make it fit on a single line
-                        if (outputLineLength > 0 || spaceOutputLength > 0) {
+                        let tokenOffset = currentOffset;
+                        let word = shiftWord(this.options.columns - outputLineLength - spaceOutputLength);
 
-                            currentOffset = tokenOffset;
+                        if (!isWord()) { // if the word is full (ie. if the next character is a whitespace), we've nothing special to do
 
-                        // if we can't, break it apart (we won't be able to make it fit in a single line anyway)
-                        } else {
-
-                            wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputLength: word.length, value: word, canBeJustified: false });
+                            wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputOffset: outputLineLength + spaceOutputLength + wordOutputLength, outputLength: word.length, value: word, canBeJustified: false });
                             wordOutputLength += word.length;
 
-                            outputLineLength += spaceOutputLength + wordOutputLength;
-                            tokens = tokens.concat(spaceTokens, wordTokens);
+                        } else { // howver, if our word is splitted (ie. if the next character is a word), we might have to backtrack
+
+                            // prevent it from being splitted if we can try to make it fit on a single line
+                            if (outputLineLength > 0 || spaceOutputLength > 0) {
+
+                                currentOffset = tokenOffset;
+
+                            // if we can't, break it apart (we won't be able to make it fit in a single line anyway)
+                            } else {
+
+                                wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputOffset: outputLineLength + spaceOutputLength + wordOutputLength, outputLength: word.length, value: word, canBeJustified: false });
+                                wordOutputLength += word.length;
+
+                                outputLineLength += spaceOutputLength + wordOutputLength;
+                                tokens = tokens.concat(spaceTokens, wordTokens);
+
+                            }
 
                         }
-
-                        // we break manually to get out of an infinite loop (since our currentOffset will never change)
-                        break;
 
                     }
 
@@ -748,40 +788,47 @@ exports.TextFormatter = class TextFormatter {
                 outputLineLength += spaceOutputLength + wordOutputLength;
                 tokens = tokens.concat(spaceTokens, wordTokens);
 
-            }
-
-            if (this.options.justifyText && !isEndOfLine() && outputLineLength < this.options.columns) {
-
-                // Compute the number of spaces that we need to add
-                let sizeDiff = this.options.columns - outputLineLength;
-
-                // Compute the number of slots where we can fit extra spaces
-                let slotCount = tokens.reduce((count, token) => token.canBeJustified ? count + 1 : count, 0);
-
-                // Compute the number of spaces we will have to add on each slot
-                let extraSize = Math.ceil(sizeDiff / slotCount);
-
-                for (let t = 0, T = tokens.length; sizeDiff > 0 && t < T; ++t) {
-
-                    let token = tokens[t];
-
-                    if (!token.canBeJustified)
-                        continue;
-
-                    let extraSlotSize = Math.min(extraSize, sizeDiff);
-                    sizeDiff -= extraSlotSize;
-
-                    token.outputLength += extraSlotSize;
-                    token.value += ` `.repeat(extraSlotSize);
-
+                if (wordOutputLength === 0) {
+                    break;
                 }
 
             }
 
-            for (let outputOffset = 0, t = 0, T = tokens.length; t < T; ++t) {
+            if (this.options.justifyText && !isEndOfLine() && outputLineLength < this.options.columns) {
 
-                tokens[t].outputOffset = outputOffset;
-                outputOffset += tokens[t].outputLength;
+                // Hold the number of spaces we've added
+                let extraSpaceCount = 0;
+
+                // Compute the number of spaces that we need to add
+                let missingSpaceCount = this.options.columns - outputLineLength;
+
+                // Compute the number of slots where we can fit extra spaces
+                let availableSlotCount = tokens.reduce((count, token) => token.canBeJustified ? count + 1 : count, 0);
+
+                // Compute the number of spaces we will have to add on each slot
+                let spacesPerSlot = Math.ceil(missingSpaceCount / availableSlotCount);
+
+                for (let t = 0, T = tokens.length; t < T; ++t) {
+
+                    let token = tokens[t];
+
+                    // We need to adjust the token offset to account for extra spaces added in previous tokens
+                    token.outputOffset += extraSpaceCount;
+
+                    if (missingSpaceCount > 0 && token.canBeJustified) {
+
+                        // Compute the spaces we will add to our token
+                        let spaces = ` `.repeat(Math.min(spacesPerSlot, missingSpaceCount));
+
+                        token.outputLength += spaces.length;
+                        token.value += spaces;
+
+                        extraSpaceCount += spaces.length;
+                        missingSpaceCount -= spaces.length;
+
+                    }
+
+                }
 
             }
 
@@ -805,6 +852,13 @@ exports.TextFormatter = class TextFormatter {
 
                 }
 
+                if (isEndOfFile()) {
+
+                    nextOffset = currentOffset + 1;
+                    nextLine += 1;
+
+                }
+
             } else {
 
                 doesSoftWrap = true;
@@ -819,7 +873,7 @@ exports.TextFormatter = class TextFormatter {
             let lineInfo = { inputStartOffset, inputEndOffset, inputLineLength, outputLineLength, doesSoftWrap, string, tokens };
             generatedLineInfo.push(lineInfo);
 
-            if (!isEndOfFile() && currentOffset >= nextOffset && currentOffset !== this.getInputOffsetForLine(nextLine) + (replacement.length - length)) {
+            if (!isEndOfFile() && currentOffset >= nextOffset && currentOffset !== this.characterIndexForRow(nextLine) + (replacement.length - length)) {
                 nextOffset = currentOffset + 1;
                 nextLine += 1;
             }
@@ -839,6 +893,11 @@ exports.TextFormatter = class TextFormatter {
         this.rows = this.lineInfo.length;
         this.columns = this.lineInfo.reduce((max, { outputLineLength }) => Math.max(max, outputLineLength), 0);
 
+        let oldRange = new Range([ startLine, 0 ], [ nextLine, 0 ]);
+        let newRange = new Range([ startLine, 0 ], [ startLine + generatedLineInfo.length ]);
+
+        this.callbacks.didChange({ oldRange, newRange });
+
         return generatedLineInfo.length;
 
     }
@@ -854,10 +913,10 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    getLine(line) {
+    lineForRow(row) {
 
-        if (line >= 0 || line < this.lineInfo.length) {
-            return this.lineInfo[line].string;
+        if (row >= 0 || row < this.lineInfo.length) {
+            return this.lineInfo[row].string;
         } else {
             return ``;
         }

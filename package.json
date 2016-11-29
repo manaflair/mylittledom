@@ -1,7 +1,9 @@
 {
   "scripts": {
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
-    "demo": "node -r babel-register -r core-js -- examples/static-box"
+    "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
+    "demo": "node -r babel-register -r core-js -- examples/static-box",
+    "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/static-box"
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.1.1",
