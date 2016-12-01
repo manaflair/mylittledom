@@ -53,6 +53,8 @@ ball.appendTo(screen);
 })(+1, +1)
 ```
 
+--- 
+
 ## HTML compatibility
 
 ### Un-features
@@ -90,6 +92,8 @@ For the same reasons than those highlighted above, some features work a bit diff
 
 An up-to-date list of supported CSS properties and supported values for each property can be found in the actual [source code](sources/core/style/styleProperties.js) of the repository.
 
+--- 
+
 ## User API
 
   - `new TermScreen({ debugPaintRects })`
@@ -108,6 +112,8 @@ An up-to-date list of supported CSS properties and supported values for each pro
     - The `value` property contains the actual value of the element. You can also access it directly from the `textBuffer` property.
     - When enabled, `allowNewlines` will permit the element to add newline characters to the value. When disabled, <kbd>enter</kbd> keystrokes will be ignored.
     - This element has a min-height
+
+--- 
 
 ## Developer API
 
@@ -183,7 +189,7 @@ This method will be called once the layout has been fully computed, and should r
 
 For example, a text editor would probably want to return the total amount of lines in the text buffer, soft wraps included.
 
-### Tips
+### Tips & Tricks
 
 #### Logging things
 
@@ -203,11 +209,13 @@ let screen = new TermScreen();
 screen.attachScreen({ stdout: { write: str => console.log(JSON.stringify(str)) } });
 ```
 
-#### `debugPaintRects`
+#### Debugging rendering passes
 
 The `debugPaintRects` option can be set on TermScreen elements. As long as this option is enabled, the rendering process will automatically use a random background color that wil be different for each render. It makes it super-easy to quickly find out which parts of the screen have been invalidated and when they have been invalidated, which can in turn help you find memory hogs.
 
 A small catch tho: this option has no effect on elements that have a background color (because the element background color will unfortunately override the one set by the TermScreen element).
+
+--- 
 
 ## License (MIT)
 
