@@ -212,10 +212,19 @@ describe(`TextFormatter`, () => {
 
             it(`should work even when the first characters are skipped`, () => {
 
-                let textBuffer = new TextBuffer(`    Hello world!`);
+                let textBuffer = new TextBuffer(`    Hello World!`);
                 let textFormatter = TextFormatter.open(textBuffer);
 
                 expect(textFormatter.positionForCharacterIndex(0)).to.deep.equal(new Point(0, 0));
+
+            });
+
+            it(`should work even for the last character`, () => {
+
+                let textBuffer = new TextBuffer(`Hello World`);
+                let textFormatter = TextFormatter.open(textBuffer);
+
+                expect(textFormatter.positionForCharacterIndex(11)).to.deep.equal(new Point(0, 11));
 
             });
 

@@ -16,7 +16,7 @@ function wouldContainItself(node, parentNode) {
 
 export class Node {
 
-    constructor(props = {}) {
+    constructor() {
 
         this.nodeName = this.constructor.name;
         this.nodeId = currentNodeId++;
@@ -28,8 +28,6 @@ export class Node {
         this.nextSibling = null;
 
         this.childNodes = [];
-
-        this.props = props;
 
     }
 
@@ -48,6 +46,21 @@ export class Node {
             return null;
 
         return last(this.childNodes);
+
+    }
+
+    appendTo(node) {
+
+        if (!(node instanceof Node))
+            throw new Error(`Failed to execute 'appendTo': Parameter 1 is not of type 'Node'.`);
+
+        if (!Reflect.getOwnPropertyDescriptor(this, `parentNode`).writable)
+            throw new Error(`Failed to execute 'appendTo': The new child element doesn't allow being appended to another node.`);
+
+        if (wouldContainItself(this, node))
+            throw new Error(`Failed to execute 'appendTo': The new child element contains the parent.`);
+
+        node.appendChild(this);
 
     }
 
@@ -144,36 +157,31 @@ export class Node {
 
     }
 
-    getAttribute(name) {
+    setPropertyTrigger(name, fn, { initial } = {}) {
 
-        if (!isString(name))
-            throw new Error(`Failed to execute 'getAttribute': Parameter 1 is not of type 'string'.`);
+        let value;
 
-        if (!Object.prototype.hasOwnProperty.call(this.props, name))
-            return null;
+        Reflect.defineProperty(this, name, {
 
-        return String(this.props[name]);
+            get() {
 
-    }
+                return value;
 
-    setAttribute(name, value) {
+            },
 
-        if (!isString(name))
-            throw new Error(`Failed to execute 'setAttribute': Parameter 1 is not of type 'string'.`);
+            set(newValue) {
 
-        if (!attributeNameRegex.test(name))
-            throw new Error(`Failed to execute 'setAttribute': '${name}' is not a valid attribute name.`);
+                if (newValue === value)
+                    return;
 
-        this.props[name] = String(value);
+                fn(newValue);
+                value = newValue;
 
-    }
+            }
 
-    removeAttribute(name) {
+        });
 
-        if (!Object.prototype.hasOwnProperty.call(this.props, name))
-            return;
-
-        delete this.props[name];
+        this[name] = initial;
 
     }
 

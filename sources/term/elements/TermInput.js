@@ -8,7 +8,7 @@ import { TermElement }          from './TermElement';
 
 export class TermInput extends TermElement {
 
-    constructor({ textContent = ``, ... props } = {}) {
+    constructor({ value = ``, textBuffer = new TextBuffer(value), allowNewlines = false, ... props } = {}) {
 
         super(props);
 
@@ -16,27 +16,37 @@ export class TermInput extends TermElement {
         this.caret = new Point(0, 0);
         this.caretMaxColumn = 0;
 
+        this.style.element.minHeight = 1;
+        this.style.element.whiteSpace = `pre`;
         this.style.element.backgroundCharacter = `.`;
         this.style.element.focusEvents = true;
 
         this.style.focused.backgroundColor = `#000088`;
 
-        this.textBuffer = new TextBuffer();
-        this.textFormatter = TextFormatter.open(this.textBuffer);
+        this.textBuffer = textBuffer;
+        this.textFormatter = TextFormatter.open(this.textBuffer, { demoteNewlines: !allowNewlines });
+
+        this.setPropertyTrigger(`allowNewlines`, value => {
+
+            this.textFormatter.setOptions({ demoteNewlines: !value });
+            this.style.element.height = value ? 10 : 1;
+
+        }, { initial: allowNewlines });
 
         this.textFormatter.onDidChange(({ oldRange, newRange }) => {
-
-            if (!this.contentClipRect)
-                return;
 
             let firstRow = Math.min(oldRange.start.row, newRange.start.row);
             let lastRow = Math.max(oldRange.end.row, newRange.end.row);
 
             let dirtyRect = this.contentWorldRect.clone();
             dirtyRect.y += firstRow;
-            dirtyRect.height = lastRow - firstRow + 1;
+            dirtyRect.height = lastRow - firstRow;
 
-            this.queueDirtyRect(dirtyRect.intersect(this.contentClipRect));
+            if (!this.style.$.display.layout.isBlockWidthFixed(this) || (!this.style.$.display.layout.isBlockHeightFixed(this) && (oldRange.start.row !== newRange.start.row || oldRange.end.row !== newRange.end.row))) {
+                this.setDirtyLayoutFlag();
+            } else if (this.contentClipRect) {
+                this.queueDirtyRect(dirtyRect.intersect(this.contentClipRect));
+            }
 
         });
 
@@ -45,6 +55,8 @@ export class TermInput extends TermElement {
             this.caretIndex = Math.max(0, this.caretIndex - 1);
             this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
+
+            this.scrollRowIntoView(this.caret.row);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -56,6 +68,8 @@ export class TermInput extends TermElement {
             this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
 
+            this.scrollRowIntoView(this.caret.row);
+
             this.dispatchEvent(new Event(`caret`));
 
         });
@@ -65,6 +79,8 @@ export class TermInput extends TermElement {
             this.caret.column = this.caretMaxColumn;
             this.caret = this.textFormatter.moveUp(this.caret);
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
+
+            this.scrollRowIntoView(this.caret.row);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -76,7 +92,57 @@ export class TermInput extends TermElement {
             this.caret = this.textFormatter.moveDown(this.caret);
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
+            this.scrollRowIntoView(this.caret.row);
+
             this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`enter`, () => {
+
+            if (!this.allowNewlines)
+                return;
+
+            this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), `\n`);
+
+            this.caretIndex += 1;
+            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
+            this.caretMaxColumn = this.caret.column;
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`backspace`, () => {
+
+            if (this.caretIndex === 0)
+                return;
+
+            let start = this.textBuffer.positionForCharacterIndex(this.caretIndex - 1);
+            let end = this.textBuffer.positionForCharacterIndex(this.caretIndex);
+
+            this.textBuffer.delete([ start, end ]);
+
+            this.caretIndex -= 1;
+            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
+            this.caretMaxColumn = this.caret.column;
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`delete`, () => {
+
+            let start = this.textBuffer.positionForCharacterIndex(this.caretIndex);
+            let end = this.textBuffer.positionForCharacterIndex(this.caretIndex + 1);
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.textBuffer.delete([ start, end ]);
 
         });
 
@@ -89,6 +155,10 @@ export class TermInput extends TermElement {
             this.caretIndex += string.length;
             this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
+
+            console.log(this.caret.row);
+
+            this.scrollRowIntoView(this.caret.row);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -137,7 +207,7 @@ export class TermInput extends TermElement {
 
     }
 
-    computeContentWidth() {
+    getPreferredContentWidth() {
 
         this.textFormatter.setOptions({ columns: Infinity });
         this.textFormatter.apply(this.textBuffer);
@@ -153,7 +223,19 @@ export class TermInput extends TermElement {
 
     }
 
-    computeContentHeight() {
+    getPreferredContentHeight() {
+
+        return this.textFormatter.rows;
+
+    }
+
+    getInternalContentWidth() {
+
+        return this.textFormatter.columns;
+
+    }
+
+    getInternalContentHeight() {
 
         return this.textFormatter.rows;
 

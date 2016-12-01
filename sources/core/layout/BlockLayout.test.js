@@ -149,4 +149,28 @@ describe(`BlockLayout`, () => {
 
     });
 
+    it(`should update its size when its children change their own sizes`, () => {
+
+        let screen = new Screen();
+        screen.style.width = 800;
+        screen.style.height = 600;
+
+        let element = new Element();
+        screen.appendChild(element);
+
+        let inner = new Element();
+        inner.style.height = 10;
+        element.appendChild(inner);
+
+        screen.triggerUpdates();
+
+        inner.style.height = 20;
+
+        screen.triggerUpdates();
+
+        expect(inner.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 20 });
+        expect(element.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 20 });
+
+    });
+
 });

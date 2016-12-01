@@ -217,7 +217,7 @@ export class TermElement extends Element {
                 l -= size;
             }
 
-            let content = this.renderContent(x, y, l);
+            let content = this.renderContent(x, y + this.scrollRect.y, l);
 
             return prepend + content + append;
 

@@ -2,7 +2,7 @@ import { StyleLength } from '../style/types/StyleLength';
 
 export let BlockLayout = new class BlockLayout {
 
-    isBlockWidthFixed(node, context) {
+    isBlockWidthFixed(node) {
 
         if (node.style.$.position.isAbsolutelyPositioned) {
 
@@ -30,7 +30,7 @@ export let BlockLayout = new class BlockLayout {
 
     }
 
-    isBlockHeightFixed(node, context) {
+    isBlockHeightFixed(node) {
 
         if (node.style.$.position.isAbsolutelyPositioned) {
 
@@ -73,7 +73,7 @@ export let BlockLayout = new class BlockLayout {
 
             if (node.style.$.left === StyleLength.auto || node.style.$.right === StyleLength.auto) {
 
-                let baseWidth = node.computeContentWidth();
+                let baseWidth = node.getPreferredContentWidth();
 
                 baseWidth += borderLeft + paddingLeft;
                 baseWidth += borderRight + paddingRight;
@@ -126,7 +126,7 @@ export let BlockLayout = new class BlockLayout {
 
         } else if (node.style.$.height === StyleLength.auto) {
 
-            let baseHeight = node.computeContentHeight();
+            let baseHeight = node.getPreferredContentHeight();
 
             baseHeight += borderTop + paddingTop;
             baseHeight += borderBottom + paddingBottom;

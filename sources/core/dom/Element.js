@@ -21,9 +21,9 @@ import { flags }                             from './flags';
 
 export class Element extends Node {
 
-    constructor({ style, ... props } = {}) {
+    constructor({ style } = {}) {
 
-        super(props);
+        super();
 
         EventSource.setup(this, { getParentInstance: () => this.parentNode });
 
@@ -34,8 +34,7 @@ export class Element extends Node {
         this.styleDeclaration.add(`element`, new StyleSet());
         this.styleDeclaration.add(`local`, new StyleSet());
         this.styleDeclaration.add(`focused`, new StyleSet(), false);
-        this.style = this.styleDeclaration.makeProxy();
-        Object.assign(this.style, style);
+        this.style = Object.assign(this.styleDeclaration.makeProxy(), style);
 
         this.caret = null;
 
@@ -304,6 +303,28 @@ export class Element extends Node {
 
     }
 
+    scrollRowIntoView(row, { block = `auto`, force = false } = {}) {
+
+        if (!force && row >= this.scrollTop && row < this.scrollTop + this.offsetHeight)
+            return;
+
+        if (block === `auto`)
+            block = row - this.scrollTop < this.scrollTop + this.offsetHeight - row ? `top` : `bottom`;
+
+        switch (block) {
+
+            case `top`: {
+                this.scrollTop = row;
+            } break;
+
+            case `bottom`: {
+                this.scrollTop = row - this.offsetHeight + 1;
+            } break;
+
+        }
+
+    }
+
     setDirtyNodeListFlag() {
 
         let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
@@ -530,7 +551,7 @@ export class Element extends Node {
             this.rootNode.queueDirtyRect(this.elementClipRect);
 
         if (this.flags & flags.ELEMENT_IS_DIRTY)
-            throw new Error(`Aborted 'triggerUpdates' execution: Flags have not be correctly reset at some point.`);
+            throw new Error(`Aborted 'triggerUpdates' execution: Flags have not been correctly reset at some point (${(this.flags & flags.ELEMENT_IS_DIRTY).toString(2)}).`);
 
         for (let dirtyLayoutNode of dirtyLayoutNodes)
             dirtyLayoutNode.dispatchEvent(new Event(`relayout`));
@@ -618,6 +639,11 @@ export class Element extends Node {
             this.setDirtyClippingFlag();
             this.forceLayout({ context });
 
+        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN && (this.style.$.display.layout.isBlockWidthFixed(this, context) || this.style.$.display.layout.isBlockHeightFixed(this, context))) {
+
+            this.setDirtyClippingFlag();
+            this.forceLayout({ context });
+
         } else if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN) {
 
             let subContext = context.pushNode(this);
@@ -687,8 +713,8 @@ export class Element extends Node {
 
         // -- Detect if the element has fixed width and/or height (ie does not depend on its children to compute these sizes)
 
-        let isBlockWidthFixed = nodeLayout.isBlockWidthFixed(this, context);
-        let isBlockHeightFixed = nodeLayout.isBlockHeightFixed(this, context);
+        let isBlockWidthFixed = nodeLayout.isBlockWidthFixed(this);
+        let isBlockHeightFixed = nodeLayout.isBlockHeightFixed(this);
 
         // -- Setup the procedures that will actually compute the X and Y axes
 
@@ -766,11 +792,11 @@ export class Element extends Node {
 
         // -- We first need to update our scroll rect
 
-        this.scrollRect.width = Math.max(this.contentRect.width, ... this.childNodes.map(child => {
+        this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
             return child.elementRect.x + child.elementRect.width;
         }));
 
-        this.scrollRect.height = Math.max(this.contentRect.height, ... this.childNodes.map(child => {
+        this.scrollRect.height = Math.max(this.contentRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
             return child.elementRect.y + child.elementRect.height;
         }));
 
@@ -866,15 +892,28 @@ export class Element extends Node {
 
     prepareForLayout() {
 
-        // This method is called right before the layout process actually start on the context element. You can use it to set internal values that will be used to compute the width and/or height in the following hooks.
-        // You obviously cannot use any rect properties yet, because they haven't yet been updated.
+        // This method is called right before the layout process actually start on the context element. You can use it to setup internal values that will be used to compute the preferred width and/or height in the following hooks.
+        // You obviously cannot use any rect properties yet, because they haven't yet been updated. Any access will yield out-of-date values.
 
     }
 
-    computeContentWidth() {
+    getPreferredContentWidth() {
 
-        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children (such as an absolute-positioned element with an "auto" width).
-        // You still cannot use any rect here, because they won't have been since they have not yet been updated and still hold out-of-date values
+        // This method is used to ask the element for its preferred content width. It will only be called if this value is required by the layout algorithm (so for example on a "position: absolute; left: 0; right: auto" element).
+        // You still cannot use any rect here, because they may or may not have been computed yet. Any access will result in an undefined behaviour.
+
+        // For example, a text editor widget would use this hook to return the number of columns in the editor should the text not wrap.
+
+        return 0;
+
+    }
+
+    getPreferredContentHeight() {
+
+        // This method is used to ask the element for its preferred content width. It will only be called if this value is required by the layout algorithm (which is the case for most elements without explicit height).
+        // You can access this element's rects' "width" properties, since they are guaranteed to have already been computed when this function is called.
+
+        // For example, a text editor widget would use this hook to return the number of rows in the editor given the maximal line size being set to "contentRect.width", soft wraps included.
 
         return 0;
 
@@ -882,24 +921,39 @@ export class Element extends Node {
 
     finalizeHorizontalLayout() {
 
-        // This method is called once we've found out every width used by this element. You can freely use the "x" and "width" properties of both elementRect and contentRect.
-        // Note that you CANNOT use the element's "y" and "height" properties from any rect! The height might be computed before the width if the height has a fixed size, but the width a fluid size (I don't remember why :().
+        // This method is called once we've found out every horizontal-axis-properties from this element's rects. You can freely use the "x" and "width" properties of both elementRect and contentRect.
+        // Note that you CANNOT use the element's "y" and "height" properties from any rect! The vertical axis might be computed before the horizontal one in some cases, such as if the height uses a fixed size but the width doesn't.
 
-    }
-
-    computeContentHeight() {
-
-        // This method is used to get the content size, from which is derived the element size, when the element has a size that depends on its children (such as any element with an "auto" height).
-        // You can access this element's rects' width properties, since they have already been computed when this function is called
-
-        return 0;
+        // For example, a text editor would use this hook to wrap its content according to the "contentBox.width" property. Note that it cannot do this before (such as during "getPreferredContentWidth"), because 1/ getPreferredContentWidth shouldn't have any observable side effect, and 2/ the final size might not be equal to the preferred size (for example if min-width / max-width are set).
 
     }
 
     finalizeVerticalLayout() {
 
-        // This method is called once we've found out every width used by this element. You can freely use the "y" and "height" properties of both elementRect and contentRect.
-        // Note that you CANNOT use the element's "x" and "width" properties from any rect! The width will usually be computed before the height, but it's not strictly required.
+        // This method is called once we've found out every vertical-axis-properties from this element's rects. You can freely use the "y" and "height" properties of both elementRect and contentRect.
+        // Note that you CANNOT use the element's "y" and "height" properties from any rect! The horizontal axis might be computed before the vertical one in some cases, such as if the width uses a fixed size but the height doesn't.
+
+        // A text editor wouldn't have anything special to do there, the hook mainly exists for consistency with the other ones.
+
+    }
+
+    getInternalContentWidth() {
+
+        // This method will be called once the layout has been fully computed, and should return the internal width of the element, which will then be used to compute the scroll box.
+
+        // For example, a text editor would probably want to return the number of columns after which the text would wrap.
+
+        return 0;
+
+    }
+
+    getInternalContentHeight() {
+
+        // This method will be called once the layout has been fully computed, and should return the internal height of the element, which will be used to compute the scroll box.
+
+        // For example, a text editor would probably want to return the total amount of lines in the text buffer, soft wraps included.
+
+        return 0;
 
     }
 

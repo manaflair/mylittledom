@@ -16,7 +16,7 @@ exports.TextFormatter = class TextFormatter {
             let offsetStart = textBuffer.characterIndexForPosition(oldRange.start);
             let offsetEnd = textBuffer.characterIndexForPosition(oldRange.end);
 
-            let length = offsetEnd - offsetStart + 1;
+            let length = offsetEnd - offsetStart;
 
             textFormatter.update(textBuffer, offsetStart, length, newText);
 
@@ -174,6 +174,9 @@ exports.TextFormatter = class TextFormatter {
 
     moveLeft(position, copy) {
 
+        if (this.lineInfo.length === 0)
+            return new Point();
+
         position = Point.fromObject(position, copy);
 
         let tokenLocator = this.tokenLocatorForPosition(position);
@@ -226,6 +229,9 @@ exports.TextFormatter = class TextFormatter {
     }
 
     moveRight(position, copy) {
+
+        if (this.lineInfo.length === 0)
+            return new Point();
 
         position = Point.fromObject(position, copy);
 
@@ -280,6 +286,9 @@ exports.TextFormatter = class TextFormatter {
 
     moveUp(position, copy) {
 
+        if (this.lineInfo.length === 0)
+            return new Point();
+
         position = Point.fromObject(position, copy);
 
         // if we're already on the very first row, we just go to the beginning of the line
@@ -325,6 +334,9 @@ exports.TextFormatter = class TextFormatter {
     }
 
     moveDown(position, copy) {
+
+        if (this.lineInfo.length === 0)
+            return new Point();
 
         position = Point.fromObject(position, copy);
 
@@ -374,7 +386,7 @@ exports.TextFormatter = class TextFormatter {
 
         position = Point.fromObject(position);
 
-        if (position.column <= 0 && position.row <= 0)
+        if (position.row < 0 || position.row === 0 && position.column <= 0)
             return 0;
 
         let tokenLocator = this.tokenLocatorForPosition(position);
@@ -416,7 +428,7 @@ exports.TextFormatter = class TextFormatter {
     positionForCharacterIndex(characterIndex) {
 
         if (this.lineInfo.length === 0)
-            return [ 0, 0 ];
+            return new Point();
 
         let l = 0;
         let r = this.lineInfo.length - 1;
@@ -456,7 +468,7 @@ exports.TextFormatter = class TextFormatter {
                     continue;
                 }
 
-                if (line.inputStartOffset + token.inputOffset + token.inputLength === characterIndex && m < line.tokens.length - 1) {
+                if (line.inputStartOffset + token.inputOffset + token.inputLength === characterIndex && m2 < line.tokens.length - 1) {
                     l2 = m2 + 1;
                     continue;
                 }
@@ -723,25 +735,7 @@ exports.TextFormatter = class TextFormatter {
                 }
 
                 // stop iterating further if we've reached the end of the line or the end of the available space, so that we don't add those useless trailing spaces to the final string
-                if (isEndOfLine() || outputLineLength + spaceOutputLength >= this.options.columns) {
-
-                    if (spaceTokens.length > 0) {
-
-                        let firstToken = spaceTokens[0];
-                        let lastToken = spaceTokens[spaceTokens.length - 1];
-
-                        let inputOffset = firstToken.inputOffset;
-                        let inputLength = lastToken.inputOffset + lastToken.inputLength - inputOffset;
-
-                        let outputOffset = firstToken.outputOffset;
-                        let outputLength = 0;
-
-                        spaceTokens = [ { type: DYNAMIC_TOKEN, inputOffset, inputLength, outputOffset, outputLength, value: ``, canBeJustified: false } ];
-                        spaceOutputLength = 0;
-
-                    }
-
-                } else {
+                if (!isEndOfLine() && outputLineLength + spaceOutputLength < this.options.columns) {
 
                     if (this.options.allowWordBreaks) {
 
@@ -774,14 +768,27 @@ exports.TextFormatter = class TextFormatter {
                                 wordTokens.push({ type: STATIC_TOKEN, inputOffset: tokenOffset - inputStartOffset, inputLength: word.length, outputOffset: outputLineLength + spaceOutputLength + wordOutputLength, outputLength: word.length, value: word, canBeJustified: false });
                                 wordOutputLength += word.length;
 
-                                outputLineLength += spaceOutputLength + wordOutputLength;
-                                tokens = tokens.concat(spaceTokens, wordTokens);
-
                             }
 
                         }
 
                     }
+
+                }
+
+                if (spaceOutputLength > 0 && wordOutputLength === 0) {
+
+                    let firstToken = spaceTokens[0];
+                    let lastToken = spaceTokens[spaceTokens.length - 1];
+
+                    let inputOffset = firstToken.inputOffset;
+                    let inputLength = lastToken.inputOffset + lastToken.inputLength - inputOffset;
+
+                    let outputOffset = firstToken.outputOffset;
+                    let outputLength = 0;
+
+                    spaceTokens = [ { type: DYNAMIC_TOKEN, inputOffset, inputLength, outputOffset, outputLength, value: ``, canBeJustified: false } ];
+                    spaceOutputLength = 0;
 
                 }
 
@@ -915,7 +922,7 @@ exports.TextFormatter = class TextFormatter {
 
     lineForRow(row) {
 
-        if (row >= 0 || row < this.lineInfo.length) {
+        if (row >= 0 && row < this.lineInfo.length) {
             return this.lineInfo[row].string;
         } else {
             return ``;

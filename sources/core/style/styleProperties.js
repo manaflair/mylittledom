@@ -100,6 +100,30 @@ export let styleProperties = {
         initial: `auto`
     },
 
+    minWidth: {
+        parsers: [ length, length.rel, length.auto ],
+        triggers: [ dirtyLayout ],
+        initial: `auto`
+    },
+
+    minHeight: {
+        parsers: [ length, length.rel, length.auto ],
+        triggers: [ dirtyLayout ],
+        initial: `auto`
+    },
+
+    maxWidth: {
+        parsers: [ length, length.rel, length.auto ],
+        triggers: [ dirtyLayout ],
+        initial: `auto`
+    },
+
+    maxHeight: {
+        parsers: [ length, length.rel, length.auto ],
+        triggers: [ dirtyLayout ],
+        initial: `auto`
+    },
+
     overflow: {
         parsers: [ pick(StyleOverflow, `visible`, `hidden`) ],
         triggers: [ dirtyClipping ],

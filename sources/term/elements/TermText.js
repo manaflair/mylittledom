@@ -15,6 +15,10 @@ export class TermText extends TermElement {
         this.textBuffer = new TextBuffer();
         this.textFormatter = TextFormatter.open(this.textBuffer);
 
+        if (textContent) {
+            this.textContent = textContent;
+        }
+
     }
 
     get textContent() {
@@ -60,7 +64,7 @@ export class TermText extends TermElement {
 
     }
 
-    computeContentWidth() {
+    getPreferredContentWidth() {
 
         this.textFormatter.setOptions({ columns: Infinity });
         this.textFormatter.apply(this.textBuffer);
@@ -76,7 +80,7 @@ export class TermText extends TermElement {
 
     }
 
-    computeContentHeight() {
+    getPreferredContentHeight() {
 
         return this.textFormatter.rows;
 

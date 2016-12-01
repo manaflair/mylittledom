@@ -13,9 +13,9 @@ let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta` ], currentDebugColorIndex
 
 export class TermScreen extends TermElement {
 
-    constructor(props) {
+    constructor({ debugPaintRects, ... attributes } = {}) {
 
-        super(props);
+        super(attributes);
 
         // We set the default style properties of every TermScreen instance
         Object.assign(this.style.element, {
@@ -37,6 +37,9 @@ export class TermScreen extends TermElement {
 
         // Our subscription to the input events
         this.subscription = null;
+
+        // When enabled, each repaint will use a different background color
+        this.debugPaintRects = debugPaintRects;
 
         // A setImmediate timer used to trigger a rerender after the node becomes dirty
         this.dirtyTimer = null;
@@ -164,7 +167,7 @@ export class TermScreen extends TermElement {
 
                     let line = String(element.renderElement(relativeX, relativeY, intersection.width));
 
-                    if (this.props.debugPaintRects)
+                    if (this.debugPaintRects)
                         line = style.back(debugColor) + line + style.clear;
 
                     buffer += cursor.moveTo({ x: intersection.x, y: intersection.y + y });
@@ -180,8 +183,8 @@ export class TermScreen extends TermElement {
 
         if (this.activeElement && this.activeElement.caret) {
 
-            let x = this.activeElement.contentWorldRect.x + this.activeElement.caret.column;
-            let y = this.activeElement.contentWorldRect.y + this.activeElement.caret.row;
+            let x = this.activeElement.contentWorldRect.x - this.activeElement.scrollRect.x + this.activeElement.caret.column;
+            let y = this.activeElement.contentWorldRect.y - this.activeElement.scrollRect.y + this.activeElement.caret.row;
 
             if (x >= this.activeElement.contentClipRect.x && x < this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width && y >= this.activeElement.contentClipRect.y && y < this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height) {
                 buffer += cursor.moveTo({ x, y });
