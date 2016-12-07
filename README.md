@@ -61,7 +61,7 @@ ball.appendTo(screen);
 
 OhUI does not aim to be a perfect HTML renderer and, as such, will not attempt to implement DOM or CSS features that wouldn't make sense in a terminal environment, or would simply be too complex to implement for too little interest. Some of these unimplemented features are:
 
-  - HTML compatibility
+  - Perfect HTML compatibility
   - Floating positioning
   - Inline display
   - Font size
@@ -72,8 +72,8 @@ For the same reasons than those highlighted above, some features work a bit diff
 
 #### APIs
 
-  - Unless specified otherwise, `scrollIntoView` and its variants will automatically select between aligning to the top or bottom of the scrollable ancestors depending on the current location of the target.
-  - In the same spirit, unless specified otherwise, `scrollIntoView` and its variants will have no effect if the target is already visible. Use the `force: true` option to disable this behaviour.
+  - Unless specified otherwise, `scrollIntoView` and its variants will automatically detect the best alignment, depending on the current location of the target.
+  - In the same spirit, unless specified otherwise, `scrollIntoView` and its variants will have no effect if the target is already visible.
   - The `getAttribute` and `setAttribute` functions differ from their browser counterparts in that they can store actual JavaScript objects (rather than only strings).
 
 #### Layouts
@@ -100,6 +100,12 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - You will need to call `screen.attachScreen({ stdin, stdout })` before the screen actually prints anything (with `stdin` and `stdout` being Node.js streams). Use `screen.releaseScreen()` once you are done.
     - When `debugPaintRects` is on, the renderer will use random background colors to help you detect which parts of the screen have been redrawn. Check the section below for more information.
+
+  - `new TermElement()`
+
+    - Each other term element is a subclass of `TermElement` (including `TermScreen`).
+    - You can focus an element (if it actually supports being focused!) by using `element.focus()`, and blur it by using `element.blur()`.
+    - Scrolling to a specific row in the element can be done by using `element.scrollRowIntoView(row, { force, block })`. The `force` option is a boolean to instruct the function to scroll even if the specified row is already in the viewport, and `block` is used to specify where should the row be aligned (top or bottom). The default value is `auto`, which means that the algorithm will automatically compute the best alignment given the current position of the row relative to the viewport.
 
   - `new TermText({ textContent, textBuffer })`
 

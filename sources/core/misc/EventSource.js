@@ -26,7 +26,7 @@ export class EventSource {
 
     static [Symbol.hasInstance](instance) {
 
-        return Reflect.has(instance, EventSource.symbol);
+        return instance.constructor === EventSource || Reflect.has(instance, EventSource.symbol);
 
     }
 

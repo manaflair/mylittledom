@@ -12,6 +12,7 @@ export class TermElement extends Element {
         this.declareEvent(`keypress`);
 
         this.declareEvent(`mousedown`);
+        this.declareEvent(`mousemove`);
         this.declareEvent(`mouseup`);
 
         this.declareEvent(`mouseenter`);

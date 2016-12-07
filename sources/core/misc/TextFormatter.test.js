@@ -194,6 +194,39 @@ describe(`TextFormatter`, () => {
 
         });
 
+        it(`should support removing the last newline character`, () => {
+
+            let textBuffer = new TextBuffer(`Hello World\n`);
+            let textFormatter = TextFormatter.open(textBuffer);
+
+            textBuffer.setTextInRange([ [ 0, 11 ], [ 1, 0 ] ], ``);
+
+            expect(textFormatter.getText()).to.equal(`Hello World`);
+
+        });
+
+        it(`should support removing a newline character amongst many`, () => {
+
+            let textBuffer = new TextBuffer(`Hello World\n\n\n`);
+            let textFormatter = TextFormatter.open(textBuffer);
+
+            textBuffer.setTextInRange([ [ 1, 0 ], [ 2, 0 ] ], ``);
+
+            expect(textFormatter.getText()).to.equal(`Hello World\n\n`);
+
+        });
+
+        it(`should not delete the last newline when removing the last character that immediatly follows it`, () => {
+
+            let textBuffer = new TextBuffer(`Hello World\nX`);
+            let textFormatter = TextFormatter.open(textBuffer);
+
+            textBuffer.setTextInRange([ [ 1, 0 ], [ 1, 1 ] ], ``);
+
+            expect(textFormatter.getText()).to.equal(`Hello World\n`);
+
+        });
+
     });
 
     describe(`Methods`, () => {

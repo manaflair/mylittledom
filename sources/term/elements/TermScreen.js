@@ -1,10 +1,10 @@
 import { Key, Mouse, parseTerminalInputs } from '@manaflair/term-strings/parse';
-import { cursor, screen, style }           from '@manaflair/term-strings';
+import { cursor, feature, screen, style }  from '@manaflair/term-strings';
 import { autobind }                        from 'core-decorators';
 import { isEmpty, isUndefined, merge }     from 'lodash';
 import { Readable, Writable }              from 'stream';
 
-import { Event }                           from '../../core';
+import { Event, Point }                    from '../../core';
 
 import { TermElement }                     from './TermElement';
 
@@ -41,14 +41,18 @@ export class TermScreen extends TermElement {
         // When enabled, each repaint will use a different background color
         this.debugPaintRects = debugPaintRects;
 
-        // A setImmediate timer used to trigger a rerender after the node becomes dirty
-        this.dirtyTimer = null;
+        // A timer used to trigger layout / clipping / render updates after a node becomes dirty
+        this.updateTimer = null;
 
-        // Bind the listener that will notify us when the node becomes dirty
-        this.addEventListener(`dirty`, this.handleDirty, { capture: true });
+        // Another timer, this time used to render the dirty part of the screen after they have been computed
+        this.renderTimer = null;
 
-        // Bind the listener that will notify us when the caret position has changed on an element
-        this.addEventListener(`caret`, this.handleCaret, { capture: true });
+        // Bind the listener that will notify us when a node becomes dirty
+        this.addEventListener(`dirty`, () => this.scheduleUpdate(), { capture: true });
+
+        // Bind the listeners that will notify us when the caret position changes
+        this.addEventListener(`focus`, () => this.scheduleRender(), { capture: true });
+        this.addEventListener(`caret`, () => this.scheduleRender(), { capture: true });
 
         // Bind the listeners that enable navigating between focused elements
         this.addShortcutListener(`S-tab`, e => e.setDefault(() => this.focusPreviousElement()), { capture: true });
@@ -86,12 +90,16 @@ export class TermScreen extends TermElement {
         this.style.element.width = this.stdout.columns;
         this.style.element.height = this.stdout.rows;
 
-        this.stdin.setRawMode(true);
+        if (this.stdin.setRawMode)
+            this.stdin.setRawMode(true);
 
         this.stdout.write(screen.reset);
         this.stdout.write(cursor.hide);
 
-        this.handleDirty();
+        this.stdout.write(feature.enableMouseHoldTracking.in);
+        this.stdout.write(feature.enableExtendedCoordinates.in);
+
+        this.scheduleUpdate();
 
     }
 
@@ -117,26 +125,76 @@ export class TermScreen extends TermElement {
 
     }
 
-    scheduleRender() {
+    queueDirtyRect(... args) {
 
-        if (this.dirtyTimer)
+        this.scheduleRender();
+
+        return super.queueDirtyRect(... args);
+
+    }
+
+    scheduleUpdate() {
+
+        if (this.updateTimer)
             return;
 
-        this.dirtyTimer = setImmediate(() => {
+        this.updateTimer = setImmediate(() => {
 
             if (!this.ready)
                 return;
 
-            this.dirtyTimer = null;
+            this.updateTimer = null;
             this.triggerUpdates();
 
+        });
+
+    }
+
+    scheduleRender() {
+
+        if (this.renderTimer)
+            return;
+
+        this.renderTimer = setImmediate(() => {
+
+            if (!this.ready)
+                return;
+
+            this.renderTimer = null;
             this.renderScreen(this.flushDirtyRects());
 
         });
 
     }
 
+    getElementAt(position) {
+
+        this.triggerUpdates();
+
+        let { x, y } = position;
+
+        for (let element of this.renderList) {
+
+            if (!element.elementClipRect)
+                continue;
+
+            if (x < element.elementClipRect.left || x >= element.elementClipRect.left + element.elementClipRect.width)
+                continue;
+
+            if (y < element.elementClipRect.top || y >= element.elementClipRect.top + element.elementClipRect.height)
+                continue;
+
+            return element;
+
+        }
+
+        return null;
+
+    }
+
     renderScreen(dirtyRects = [ this.elementClipRect ]) {
+
+        this.triggerUpdates();
 
         let buffer = cursor.hide;
 
@@ -181,7 +239,7 @@ export class TermScreen extends TermElement {
 
         }
 
-        if (this.activeElement && this.activeElement.caret) {
+        if (this.activeElement && this.activeElement.contentClipRect && this.activeElement.caret) {
 
             let x = this.activeElement.contentWorldRect.x - this.activeElement.scrollRect.x + this.activeElement.caret.column;
             let y = this.activeElement.contentWorldRect.y - this.activeElement.scrollRect.y + this.activeElement.caret.row;
@@ -203,21 +261,6 @@ export class TermScreen extends TermElement {
 
     }
 
-    @autobind handleDirty() {
-
-        this.scheduleRender();
-
-    }
-
-    @autobind handleCaret(e) {
-
-        if (e.target !== this.activeElement)
-            return;
-
-        this.scheduleRender();
-
-    }
-
     @autobind handleInput(input) {
 
         if (input instanceof Key) {
@@ -233,32 +276,47 @@ export class TermScreen extends TermElement {
 
         } else if (input instanceof Mouse) {
 
-            let targetElement;
+            let worldCoordinates = new Point({ x: input.x - 1, y: input.y - 1 });
+
+            let targetElement = this.getElementAt(worldCoordinates);
+
+            let contentCoordinates = worldCoordinates;
+
+            console.log(worldCoordinates, targetElement, input);
 
             if (input.start) {
 
                 let event = new Event(`mousedown`, { bubbles: true });
-                event.mouse = mouse;
+                event.mouse = input;
 
-                this.dispatchEvent(event);
+                event.worldCoordinates = worldCoordinates;
+                event.contentCoordinates = contentCoordinates;
+
+                targetElement.dispatchEvent(event);
 
             }
 
             if (input.end) {
 
                 let event = new Event(`mouseup`, { bubbles: true });
-                event.mouse = mouse;
+                event.mouse = input;
 
-                this.dispatchEvent(event);
+                event.worldCoordinates = worldCoordinates;
+                event.contentCoordinates = contentCoordinates;
+
+                targetElement.dispatchEvent(event);
 
             }
 
             if (!input.start && !input.end) {
 
                 let event = new Event(`mousemove`, { bubbles: true });
-                event.mouse = mouse;
+                event.mouse = input;
 
-                this.dispatchEvent(event);
+                event.worldCoordinates = worldCoordinates;
+                event.contentCoordinates = contentCoordinates;
+
+                targetElement.dispatchEvent(event);
 
             }
 

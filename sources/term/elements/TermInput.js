@@ -46,6 +46,7 @@ export class TermInput extends TermElement {
                 this.setDirtyLayoutFlag();
             } else if (this.contentClipRect) {
                 this.queueDirtyRect(dirtyRect.intersect(this.contentClipRect));
+                this.setDirtyRenderingFlag();
             }
 
         });
@@ -123,7 +124,7 @@ export class TermInput extends TermElement {
             let start = this.textBuffer.positionForCharacterIndex(this.caretIndex - 1);
             let end = this.textBuffer.positionForCharacterIndex(this.caretIndex);
 
-            this.textBuffer.delete([ start, end ]);
+            this.textBuffer.setTextInRange([ start, end ], ``);
 
             this.caretIndex -= 1;
             this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
@@ -140,9 +141,9 @@ export class TermInput extends TermElement {
             let start = this.textBuffer.positionForCharacterIndex(this.caretIndex);
             let end = this.textBuffer.positionForCharacterIndex(this.caretIndex + 1);
 
-            this.scrollRowIntoView(this.caret.row);
+            this.textBuffer.setTextInRange([ start, end ], ``);
 
-            this.textBuffer.delete([ start, end ]);
+            this.scrollRowIntoView(this.caret.row);
 
         });
 
@@ -155,8 +156,6 @@ export class TermInput extends TermElement {
             this.caretIndex += string.length;
             this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
             this.caretMaxColumn = this.caret.column;
-
-            console.log(this.caret.row);
 
             this.scrollRowIntoView(this.caret.row);
 

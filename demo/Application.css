@@ -1,0 +1,63 @@
+.Application {
+    display: flex;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 5px;
+}
+
+.Application-left {
+    display: flex;
+    flex-direction: column;
+
+    flex: none;
+    width: 600px;
+}
+
+.Application-right {
+    display: flex;
+    flex-direction: column;
+
+    flex: auto;
+
+}
+
+.Application-left + .Application-right {
+    margin-left: 5px;
+}
+
+.Application-editor, .Application-terminal {
+    width: 100%;
+    height: 100%;
+}
+
+.Application-editor .Editor, .Application-terminal .Terminal {
+    width: 100%;
+    height: 100%;
+}
+
+.Application-selector {
+    margin-bottom: 5px;
+
+    flex: none;
+}
+
+.Application-selector select {
+    width: 100%;
+}
+
+.Application-error {
+    margin-top: 5px;
+
+    flex: none;
+    overflow: hidden;
+
+    padding: 5px;
+
+    font-family: monospace;
+    white-space: pre;
+
+    background: #CC0000;
+    color: #FFFFFF;
+}

@@ -11,14 +11,12 @@ exports.TextFormatter = class TextFormatter {
 
         textFormatter.apply(textBuffer);
 
-        textBuffer.onDidChange(({ oldRange, newText }) => {
+        textBuffer.onDidChange(({ oldRange, oldText, newText }) => {
 
-            let offsetStart = textBuffer.characterIndexForPosition(oldRange.start);
-            let offsetEnd = textBuffer.characterIndexForPosition(oldRange.end);
+            let offset = textBuffer.characterIndexForPosition(oldRange.start);
+            let length = oldText.length;
 
-            let length = offsetEnd - offsetStart;
-
-            textFormatter.update(textBuffer, offsetStart, length, newText);
+            textFormatter.update(textBuffer, offset, length, newText);
 
         });
 
@@ -511,6 +509,9 @@ exports.TextFormatter = class TextFormatter {
         let currentOffset = this.characterIndexForRow(startLine);
         let nextOffset = Math.min(Math.max(offset + length, offset + replacement.length), source.getMaxCharacterIndex());
 
+        if (currentOffset === nextOffset)
+            nextOffset += 1;
+
         let getCharacter = () => {
 
             let start = source.positionForCharacterIndex(currentOffset);
@@ -640,7 +641,7 @@ exports.TextFormatter = class TextFormatter {
 
         };
 
-        while (currentOffset < nextOffset) {
+        if (this.options.columns > 0) while (currentOffset < nextOffset) {
 
             let previousLine = null;
 
@@ -872,6 +873,9 @@ exports.TextFormatter = class TextFormatter {
 
             }
 
+            if (tokens.length === 0)
+                tokens.push({ type: STATIC_TOKEN, inputOffset: 0, inputLength: 0, outputOffset: 0, outputLength: 0, value: ``, canBeJustified: false });
+
             let inputEndOffset = currentOffset;
             let inputLineLength = inputEndOffset - inputStartOffset;
 
@@ -901,7 +905,7 @@ exports.TextFormatter = class TextFormatter {
         this.columns = this.lineInfo.reduce((max, { outputLineLength }) => Math.max(max, outputLineLength), 0);
 
         let oldRange = new Range([ startLine, 0 ], [ nextLine, 0 ]);
-        let newRange = new Range([ startLine, 0 ], [ startLine + generatedLineInfo.length ]);
+        let newRange = new Range([ startLine, 0 ], [ startLine + generatedLineInfo.length, 0 ]);
 
         this.callbacks.didChange({ oldRange, newRange });
 
