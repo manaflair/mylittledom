@@ -72,20 +72,24 @@ For the same reasons than those highlighted above, some features work a bit diff
 
 #### APIs
 
-  - Unless specified otherwise, `scrollIntoView` and its variants will automatically detect the best alignment, depending on the current location of the target.
-  - In the same spirit, unless specified otherwise, `scrollIntoView` and its variants will have no effect if the target is already visible.
+  - Unless specified otherwise, `scrollIntoView` and its variants will automatically detect the best alignment, depending on the current location of the target. In the same spirit, the default behaviour of `scrollIntoView` and its variants is to have no effect if the target is already visible.
+  
   - The `getAttribute` and `setAttribute` functions differ from their browser counterparts in that they can store actual JavaScript objects (rather than only strings).
 
 #### Layouts
 
   - Margins do not collapse, except between siblings
+  
   - Elements size have the same effect as if they had been declared with `box-sizing: content-box`
+  
   - Fixed positioning will be applied relative to the nearest positioned element instead of the window
 
 #### Styling
 
   - Unlike actual CSS properties, OhUI properties are correctly typed, and expect a literal `null` instead of `"none"`
+  
   - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings
+  
   - To prevent mistakes and facilitate onboarding, setting an invalid value will throw instead of being silently ignored
 
 ### Supported CSS properties
@@ -99,24 +103,31 @@ An up-to-date list of supported CSS properties and supported values for each pro
   - `new TermScreen({ debugPaintRects })`
 
     - You will need to call `screen.attachScreen({ stdin, stdout })` before the screen actually prints anything (with `stdin` and `stdout` being Node.js streams). Use `screen.releaseScreen()` once you are done.
+
     - When `debugPaintRects` is on, the renderer will use random background colors to help you detect which parts of the screen have been redrawn. Check the section below for more information.
 
   - `new TermElement()`
 
     - Each other term element is a subclass of `TermElement` (including `TermScreen`).
+
     - You can focus an element (if it actually supports being focused!) by using `element.focus()`, and blur it by using `element.blur()`.
+
     - Scrolling to a specific row in the element can be done by using `element.scrollRowIntoView(row, { force, block })`. The `force` option is a boolean to instruct the function to scroll even if the specified row is already in the viewport, and `block` is used to specify where should the row be aligned (top or bottom). The default value is `auto`, which means that the algorithm will automatically compute the best alignment given the current position of the row relative to the viewport.
 
   - `new TermText({ textContent, textBuffer })`
 
     - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `textContent` option.
+
     - The `textContent` property contains the actual text content of the element. You can also access it directly from the `textBuffer` property.
 
   - `new TermInput({ value, textBuffer, allowNewlines })`
 
     - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `value` option.
+
     - The `value` property contains the actual value of the element. You can also access it directly from the `textBuffer` property.
+
     - When enabled, `allowNewlines` will permit the element to add newline characters to the value. When disabled, <kbd>enter</kbd> keystrokes will be ignored.
+
     - This element has a min-height
 
 --- 
