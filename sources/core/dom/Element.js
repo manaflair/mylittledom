@@ -78,8 +78,10 @@ export class Element extends Node {
 
     set scrollLeft(scrollLeft) {
 
+        this.triggerUpdates();
+
         let previousScrollLeft = this.scrollRect.x;
-        let newScrollLeft = Math.min(scrollLeft, this.scrollRect.width - this.elementRect.width);
+        let newScrollLeft = Math.min(scrollLeft, this.scrollRect.width - this.contentRect.width);
 
         if (previousScrollLeft !== newScrollLeft) {
 
@@ -102,8 +104,10 @@ export class Element extends Node {
 
     set scrollTop(scrollTop) {
 
+        this.triggerUpdates();
+
         let previousScrollTop = this.scrollRect.y;
-        let newScrollTop = Math.min(scrollTop, this.scrollRect.height - this.elementRect.height);
+        let newScrollTop = Math.min(scrollTop, this.scrollRect.height - this.contentRect.height);
 
         if (previousScrollTop !== newScrollTop) {
 
@@ -162,6 +166,8 @@ export class Element extends Node {
         this.rootNode.activeElement = this;
         this.styleDeclaration.enable(`focused`);
 
+        this.scrollIntoView();
+
         this.dispatchEvent(new Event(`focus`));
 
     }
@@ -209,7 +215,7 @@ export class Element extends Node {
 
             let activeIndex = this.focusList.indexOf(this.activeElement);
 
-            for (let t = 0; t < offset; ++t) {
+            for (let t = 0, T = Math.abs(offset); t < T; ++t) {
 
                 let nextIndex = getNextIndex(activeIndex);
 
@@ -303,13 +309,44 @@ export class Element extends Node {
 
     }
 
-    scrollRowIntoView(row, { block = `auto`, force = false } = {}) {
+    scrollIntoView({ block = `auto`, force = false } = {}) {
 
-        if (!force && row >= this.scrollTop && row < this.scrollTop + this.offsetHeight)
+        this.triggerUpdates();
+
+        if (!this.parentNode)
+            return;
+
+        this.parentNode.scrollIntoView({ block, force });
+
+        if (!force && this.elementRect.y >= this.parentNode.scrollTop && this.elementRect.y + this.elementRect.height - 1 < this.parentNode.scrollTop + this.parentNode.offsetHeight)
             return;
 
         if (block === `auto`)
-            block = row - this.scrollTop < this.scrollTop + this.offsetHeight - row ? `top` : `bottom`;
+            block = this.elementRect.y - this.parentNode.scrollTop < this.parentNode.scrollTop + this.parentNode.offsetHeight - this.elementRect.y - this.elementRect.height + 1 ? `top` : `bottom`;
+
+        switch (block) {
+
+            case `top`: {
+                this.parentNode.scrollTop = this.elementRect.y;
+            } break;
+
+            case `bottom`: {
+                this.parentNode.scrollTop = this.elementRect.y + this.elementRect.height - this.parentNode.offsetHeight;
+            } break;
+
+        }
+
+    }
+
+    scrollRowIntoView(row, { block = `auto`, force = false } = {}) {
+
+        this.triggerUpdates();
+
+        if (!force && row >= this.scrollTop && row < this.scrollTop + this.contentRect.height)
+            return;
+
+        if (block === `auto`)
+            block = row - this.scrollTop < this.scrollTop + this.contentRect.height - row ? `top` : `bottom`;
 
         switch (block) {
 
@@ -318,7 +355,7 @@ export class Element extends Node {
             } break;
 
             case `bottom`: {
-                this.scrollTop = row - this.offsetHeight + 1;
+                this.scrollTop = row - this.contentRect.height + 1;
             } break;
 
         }

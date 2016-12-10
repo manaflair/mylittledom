@@ -43,3 +43,5 @@ export class StyleLength {
 
 StyleLength.auto = new StyleLength();
 StyleLength.auto.serialize = () => `auto`;
+
+StyleLength.infinity = new StyleLength(Infinity);

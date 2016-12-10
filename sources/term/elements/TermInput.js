@@ -42,11 +42,19 @@ export class TermInput extends TermElement {
             dirtyRect.y += firstRow;
             dirtyRect.height = lastRow - firstRow;
 
-            if (!this.style.$.display.layout.isBlockWidthFixed(this) || (!this.style.$.display.layout.isBlockHeightFixed(this) && (oldRange.start.row !== newRange.start.row || oldRange.end.row !== newRange.end.row))) {
-                this.setDirtyLayoutFlag();
-            } else if (this.contentClipRect) {
+            if (oldRange.start.row !== newRange.start.row || oldRange.end.row !== newRange.end.row) {
+
+                if (!this.style.$.display.layout.isBlockWidthFixed(this) || !this.style.$.display.layout.isBlockHeightFixed(this)) {
+                    this.setDirtyLayoutFlag();
+                } else {
+                    this.setDirtyClippingFlag();
+                }
+
+            } else {
+
                 this.queueDirtyRect(dirtyRect.intersect(this.contentClipRect));
                 this.setDirtyRenderingFlag();
+
             }
 
         });
@@ -92,6 +100,54 @@ export class TermInput extends TermElement {
             this.caret.column = this.caretMaxColumn;
             this.caret = this.textFormatter.moveDown(this.caret);
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`pgup`, () => {
+
+            this.caret.column = this.caretMaxColumn;
+            this.caret = this.textFormatter.moveUp(this.caret, { amount: this.elementRect.height });
+            this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`pgdown`, () => {
+
+            this.caret.column = this.caretMaxColumn;
+            this.caret = this.textFormatter.moveDown(this.caret, { amount: this.elementRect.height });
+            this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`home`, () => {
+
+            this.caret = new Point();
+            this.caretIndex = 0;
+            this.caretMaxColumn = 0;
+
+            this.scrollRowIntoView(this.caret.row);
+
+            this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addShortcutListener(`end`, () => {
+
+            this.caretIndex = this.textBuffer.getMaxCharacterIndex();
+            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
+            this.caretMaxColumn = this.caret.column;
 
             this.scrollRowIntoView(this.caret.row);
 
@@ -160,6 +216,28 @@ export class TermInput extends TermElement {
             this.scrollRowIntoView(this.caret.row);
 
             this.dispatchEvent(new Event(`caret`));
+
+        });
+
+        this.addEventListener(`mousedown`, e => {
+
+            if (e.mouse.name !== `left`)
+                return;
+
+            if (!this.style.$.focusEvents)
+                return;
+
+            e.setDefault(() => {
+
+                this.caret = this.textFormatter.moveTo([ e.contentCoordinates.y, e.contentCoordinates.x ]);
+                this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
+                this.caretMaxColumn = this.caret.column;
+
+                this.focus();
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
 
         });
 
@@ -260,19 +338,10 @@ export class TermInput extends TermElement {
         let suffixLength = Math.max(0, l - prefixLength - lineLength);
 
         let prefix = this.renderBackground(prefixLength);
-        let line = fullLine.substr(lineStart, lineLength);
+        let text = this.renderText(fullLine.substr(lineStart, lineLength));
         let suffix = this.renderBackground(suffixLength);
 
-        if (this.style.$.backgroundColor)
-            line = this.style.$.backgroundColor.back + line;
-
-        if (this.style.$.color)
-            line = this.style.$.color.front + line;
-
-        if (this.style.$.backgroundColor || this.style.$.color)
-            line += style.clear;
-
-        return prefix + line + suffix;
+        return prefix + text + suffix;
 
     }
 

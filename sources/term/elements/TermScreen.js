@@ -59,7 +59,7 @@ export class TermScreen extends TermElement {
         this.addShortcutListener(`tab`, e => e.setDefault(() => this.focusNextElement()), { capture: true });
 
         // Bind the listener that exit the application on C-c
-        this.addShortcutListener(`C-c`, e => e.setDefault(() => process.exit(0)), { capture: true });
+        this.addShortcutListener(`C-c`, e => this.terminate(), { capture: true });
 
     }
 
@@ -94,7 +94,7 @@ export class TermScreen extends TermElement {
             this.stdin.setRawMode(true);
 
         this.stdout.write(screen.reset);
-        this.stdout.write(cursor.hide);
+        this.stdout.write(cursor.hidden);
 
         this.stdout.write(feature.enableMouseHoldTracking.in);
         this.stdout.write(feature.enableExtendedCoordinates.in);
@@ -122,6 +122,18 @@ export class TermScreen extends TermElement {
         this.stdout = null;
 
         this.ready = false;
+
+    }
+
+    terminate() {
+
+        if (typeof process === `undefined`)
+            return;
+
+        if (typeof process.exit === `undefined`)
+            return;
+
+        process.exit(0);
 
     }
 
@@ -178,10 +190,10 @@ export class TermScreen extends TermElement {
             if (!element.elementClipRect)
                 continue;
 
-            if (x < element.elementClipRect.left || x >= element.elementClipRect.left + element.elementClipRect.width)
+            if (x < element.elementClipRect.x || x >= element.elementClipRect.x + element.elementClipRect.width)
                 continue;
 
-            if (y < element.elementClipRect.top || y >= element.elementClipRect.top + element.elementClipRect.height)
+            if (y < element.elementClipRect.y || y >= element.elementClipRect.y + element.elementClipRect.height)
                 continue;
 
             return element;
@@ -196,7 +208,7 @@ export class TermScreen extends TermElement {
 
         this.triggerUpdates();
 
-        let buffer = cursor.hide;
+        let buffer = cursor.hidden;
 
         let debugColor = DEBUG_COLORS[currentDebugColorIndex];
         currentDebugColorIndex = (currentDebugColorIndex + 1) % DEBUG_COLORS.length;
@@ -246,7 +258,7 @@ export class TermScreen extends TermElement {
 
             if (x >= this.activeElement.contentClipRect.x && x < this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width && y >= this.activeElement.contentClipRect.y && y < this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height) {
                 buffer += cursor.moveTo({ x, y });
-                buffer += cursor.display;
+                buffer += cursor.normal;
             }
 
         }
@@ -276,13 +288,11 @@ export class TermScreen extends TermElement {
 
         } else if (input instanceof Mouse) {
 
-            let worldCoordinates = new Point({ x: input.x - 1, y: input.y - 1 });
+            let worldCoordinates = new Point({ x: input.x, y: input.y });
 
             let targetElement = this.getElementAt(worldCoordinates);
 
-            let contentCoordinates = worldCoordinates;
-
-            console.log(worldCoordinates, targetElement, input);
+            let contentCoordinates = new Point({ x: worldCoordinates.x - targetElement.contentWorldRect.x, y: worldCoordinates.y - targetElement.contentWorldRect.y + targetElement.scrollTop });
 
             if (input.start) {
 

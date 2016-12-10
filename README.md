@@ -53,7 +53,7 @@ ball.appendTo(screen);
 })(+1, +1)
 ```
 
---- 
+---
 
 ## HTML compatibility
 
@@ -73,30 +73,32 @@ For the same reasons than those highlighted above, some features work a bit diff
 #### APIs
 
   - Unless specified otherwise, `scrollIntoView` and its variants will automatically detect the best alignment, depending on the current location of the target. In the same spirit, the default behaviour of `scrollIntoView` and its variants is to have no effect if the target is already visible.
-  
+
   - The `getAttribute` and `setAttribute` functions differ from their browser counterparts in that they can store actual JavaScript objects (rather than only strings).
 
 #### Layouts
 
-  - Margins do not collapse, except between siblings
-  
-  - Elements size have the same effect as if they had been declared with `box-sizing: content-box`
-  
-  - Fixed positioning will be applied relative to the nearest positioned element instead of the window
+  - Margins do not collapse, except between siblings.
+
+  - The paddings are located outside of the scroll containers instead of inside.
+
+  - Elements size have the same effect as if they had been declared with `box-sizing: content-box`.
+
+  - Fixed positioning will be applied relative to the nearest positioned element instead of the window.
 
 #### Styling
 
-  - Unlike actual CSS properties, OhUI properties are correctly typed, and expect a literal `null` instead of `"none"`
-  
-  - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings
-  
-  - To prevent mistakes and facilitate onboarding, setting an invalid value will throw instead of being silently ignored
+  - Unlike actual CSS properties, OhUI properties are correctly typed, and expect a literal `null` instead of `"none"`.
+
+  - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings.
+
+  - To prevent mistakes and facilitate onboarding, setting an invalid value will throw instead of being silently ignored.
 
 ### Supported CSS properties
 
 An up-to-date list of supported CSS properties and supported values for each property can be found in the actual [source code](sources/core/style/styleProperties.js) of the repository.
 
---- 
+---
 
 ## User API
 
@@ -130,7 +132,7 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - This element has a min-height
 
---- 
+---
 
 ## Developer API
 
@@ -152,7 +154,7 @@ The default implementation doesn't render anything else than the background, so 
 
 #### `element.renderText(text)`
 
-You can call this function by passing it a string as parameter. It will return the same string, except that it will account for the `backgroundColor` and `color` style properties by adding the required terminal sequences.
+You can call this function by passing it a string as parameter. It will return the same string, except that it will account for the `fontWeight`, `textDecoration`, `backgroundColor` and `color` style properties by adding the required terminal sequences.
 
 Note that the `length` property of the returned string cannot be trusted to be equal to the `length` property of the input string, since the string might contain additional invisible characters used for terminal sequences.
 
@@ -232,7 +234,7 @@ The `debugPaintRects` option can be set on TermScreen elements. As long as this 
 
 A small catch tho: this option has no effect on elements that have a background color (because the element background color will unfortunately override the one set by the TermScreen element).
 
---- 
+---
 
 ## License (MIT)
 

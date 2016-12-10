@@ -18,8 +18,10 @@ export class Node {
 
     constructor() {
 
+        this.id = currentNodeId++;
+        this.classList = new Set();
+
         this.nodeName = this.constructor.name;
-        this.nodeId = currentNodeId++;
 
         this.rootNode = this;
         this.parentNode = null;
@@ -205,7 +207,7 @@ export class Node {
 
     inspect() {
 
-        return `<${this.nodeName}#${this.props.name ? this.props.name : this.nodeId}>`;
+        return `<${this.nodeName}#${this.id}${Array.from(this.classList).map(className => `.${className}`).join(``)}>`;
 
     }
 

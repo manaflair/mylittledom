@@ -4,6 +4,7 @@ import { colorNames }                                           from './colorNam
 import { parseRawValue }                                        from './tools/parseRawValue';
 import { StyleColor }                                           from './types/StyleColor';
 import { StyleLength }                                          from './types/StyleLength';
+import { StyleWeight }                                          from './types/StyleWeight';
 
 export function repeat(n, parsers) {
 
@@ -82,7 +83,16 @@ length.auto = function (rawValue) {
 
     return StyleLength.auto;
 
-}
+};
+
+length.infinity = function (rawValue) {
+
+    if (rawValue !== Infinity)
+        return undefined;
+
+    return StyleLength.infinity;
+
+};
 
 export function character(rawValue) {
 
@@ -113,5 +123,19 @@ export function color(rawValue) {
         return undefined;
 
     return new StyleColor(rawValue);
+
+}
+
+export function weight(rawValue) {
+
+    if (!isNumber(rawValue) && !isString(rawValue))
+        return undefined;
+
+    let value = Number(rawValue);
+
+    if (!isFinite(value))
+        return undefined;
+
+    return new StyleWeight(value);
 
 }

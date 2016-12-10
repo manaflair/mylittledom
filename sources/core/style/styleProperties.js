@@ -1,14 +1,16 @@
-import { pick }                                                                        from 'lodash';
+import { pick }                                                                          from 'lodash';
 
-import { display, position, overflow, repeat, length, character, color, number }       from './styleParsers';
-import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList } from './styleTriggers';
-import { onNullSwitch }                                                                from './styleTriggers';
-import { StyleAlignment }                                                              from './types/StyleAlignment';
-import { StyleDisplay }                                                                from './types/StyleDisplay';
-import { StyleOverflowWrap }                                                           from './types/StyleOverflowWrap';
-import { StyleOverflow }                                                               from './types/StyleOverflow';
-import { StylePosition }                                                               from './types/StylePosition';
-import { StyleWhiteSpace }                                                             from './types/StyleWhiteSpace';
+import { display, position, overflow, repeat, length, character, color, number, weight } from './styleParsers';
+import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList }   from './styleTriggers';
+import { onNullSwitch }                                                                  from './styleTriggers';
+import { StyleAlignment }                                                                from './types/StyleAlignment';
+import { StyleDecoration }                                                               from './types/StyleDecoration';
+import { StyleDisplay }                                                                  from './types/StyleDisplay';
+import { StyleOverflowWrap }                                                             from './types/StyleOverflowWrap';
+import { StyleOverflow }                                                                 from './types/StyleOverflow';
+import { StylePosition }                                                                 from './types/StylePosition';
+import { StyleWeight }                                                                   from './types/StyleWeight';
+import { StyleWhiteSpace }                                                               from './types/StyleWhiteSpace';
 
 let simple = [ `+`, `+`, `+`, `+`, `-`, `|` ];
 let modern = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
@@ -101,27 +103,27 @@ export let styleProperties = {
     },
 
     minWidth: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel ],
         triggers: [ dirtyLayout ],
-        initial: `auto`
+        initial: 0
     },
 
     minHeight: {
         parsers: [ length, length.rel, length.auto ],
         triggers: [ dirtyLayout ],
-        initial: `auto`
+        initial: 0
     },
 
     maxWidth: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.infinity ],
         triggers: [ dirtyLayout ],
-        initial: `auto`
+        initial: Infinity
     },
 
     maxHeight: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.infinity ],
         triggers: [ dirtyLayout ],
-        initial: `auto`
+        initial: Infinity
     },
 
     overflow: {
@@ -220,10 +222,22 @@ export let styleProperties = {
         initial: 0
     },
 
+    fontWeight: {
+        parsers: [ pick(StyleWeight, `normal`, `bold`) ],
+        triggers: [ dirtyRendering ],
+        initial: `normal`
+    },
+
     textAlign: {
         parsers: [ pick(StyleAlignment, `left`, `center`, `right`, `justify`) ],
         triggers: [ dirtyRendering ],
         initial: `left`
+    },
+
+    textDecoration: {
+        parsers: [ pick(StyleDecoration, `underline`), null ],
+        triggers: [ dirtyRendering ],
+        initial: null
     },
 
     whiteSpace: {

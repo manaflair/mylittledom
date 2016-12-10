@@ -3,12 +3,19 @@ import { TermElement, TermText, TermInput } from 'ohui/term';
 for (let t = 0; t < 10; ++t) {
 
     let container = new TermElement();
+    container.style.marginTop = t > 0 ? 1 : 0;
     container.appendTo(screen);
 
-    let label = new TermText({ textContent: `Hello World!` });
+    let n = t + 1;
+    let th = n === 1 ? `st` : n === 2 ? `nd` : n === 3 ? `rd` : `th`;
+
+    let label = new TermText({ textContent: `The ${n}${th} form entry` });
+    label.style.fontWeight = `bold`;
+    label.style.textDecoration = `underline`;
     label.appendTo(container);
 
     let input = new TermInput({ value: `test`, allowNewlines: true });
+    input.style.marginTop = 1;
     input.appendTo(container);
 
 }

@@ -8,7 +8,7 @@
     "serve:demo": "webpack-dev-server"
   },
   "dependencies": {
-    "@manaflair/term-strings": "^0.1.1",
+    "@manaflair/term-strings": "^0.2.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",
     "immutable": "^3.8.1",

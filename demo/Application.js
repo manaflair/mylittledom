@@ -76,6 +76,7 @@ export class Application extends React.PureComponent {
         try {
 
             let screen = new TermScreen();
+            screen.addShortcutListener(`C-r`, () => window.location.reload());
 
             let raf = makeAnimationFunctions();
 
@@ -104,7 +105,7 @@ export class Application extends React.PureComponent {
             if (this.screen)
                 this.screen.releaseScreen();
 
-            this.screen = screen;
+            this.screen = window.screen = screen;
             this.screen.attachScreen({ stdin: this.refs.terminal.stdin, stdout: this.refs.terminal.stdout });
 
             if (this.raf)

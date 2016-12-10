@@ -102,6 +102,13 @@ export let BlockLayout = new class BlockLayout {
 
         }
 
+        let minWidth = node.style.$.minWidth.resolve(containerWidth);
+        let maxWidth = node.style.$.maxWidth.resolve(containerWidth);
+
+        // Apply min/max width parameters
+        node.elementRect.width = Math.max(minWidth, Math.min(node.elementRect.width, maxWidth));
+
+        // Compute the content width
         node.contentRect.width = Math.max(0, node.elementRect.width - borderLeft - paddingLeft - borderRight - paddingRight);
 
     }
@@ -143,6 +150,13 @@ export let BlockLayout = new class BlockLayout {
 
         }
 
+        let minHeight = node.style.$.minHeight.resolve(containerHeight);
+        let maxHeight = node.style.$.maxHeight.resolve(containerHeight);
+
+        // Apply min/max height parameters
+        node.elementRect.height = Math.max(minHeight, Math.min(node.elementRect.height, maxHeight));
+
+        // Compute the content height
         node.contentRect.height = Math.max(0, node.elementRect.height - borderTop - paddingTop - borderBottom - paddingBottom);
 
     }

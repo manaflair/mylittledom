@@ -106,19 +106,10 @@ export class TermText extends TermElement {
         let suffixLength = Math.max(0, l - prefixLength - lineLength);
 
         let prefix = this.renderBackground(prefixLength);
-        let line = fullLine.substr(lineStart, lineLength);
+        let text = this.renderText(fullLine.substr(lineStart, lineLength));
         let suffix = this.renderBackground(suffixLength);
 
-        if (this.style.$.backgroundColor)
-            line = this.style.$.backgroundColor.back + line;
-
-        if (this.style.$.color)
-            line = this.style.$.color.front + line;
-
-        if (this.style.$.backgroundColor || this.style.$.color)
-            line += style.clear;
-
-        return prefix + line + suffix;
+        return prefix + text + suffix;
 
     }
 

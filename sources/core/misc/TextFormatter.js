@@ -170,7 +170,40 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveLeft(position, copy) {
+    moveTo(position, { copy = false } = {}) {
+
+        if (this.lineInfo.length === 0)
+            return new Point();
+
+        position = Point.fromObject(position, copy);
+
+        position.row = Math.max(0, Math.min(position.row, this.lineInfo.length - 1));
+        position.column = Math.max(0, Math.min(position.column, this.lineInfo[position.row].outputLineLength));
+
+        if (position.column === 0 || position.column === this.lineInfo[position.row].outputLineLength)
+            return position;
+
+        let tokenLocator = this.tokenLocatorForPosition(position);
+        let [ row, tokenIndex, line, token ] = tokenLocator;
+
+        if (token.type === DYNAMIC_TOKEN) {
+
+            // if we're closer to the right side, we jump to it
+            if (position.column >= token.outputOffset + token.outputLength / 2) {
+                position.column = token.outputOffset + token.outputLength;
+
+            // and if we're closer to the left side, we do the same
+            } else {
+                position.column = token.outputOffset;
+            }
+
+        }
+
+        return position;
+
+    }
+
+    moveLeft(position, { copy = false } = {}) {
 
         if (this.lineInfo.length === 0)
             return new Point();
@@ -226,7 +259,7 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveRight(position, copy) {
+    moveRight(position, { copy = false } = {}) {
 
         if (this.lineInfo.length === 0)
             return new Point();
@@ -282,19 +315,20 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveUp(position, copy) {
+    moveUp(position, { copy = false, amount = 1 } = {}) {
 
         if (this.lineInfo.length === 0)
             return new Point();
 
         position = Point.fromObject(position, copy);
 
-        // if we're already on the very first row, we just go to the beginning of the line
-        if (position.row === 0) {
+        // if jumping would bring us above the very first line, we just go to the beginning of this line
+        if (position.row - amount < 0) {
+            position.row = 0;
             position.column = 0;
 
         } else {
-            position.row -= 1;
+            position.row -= amount;
 
             // if we land on the left edge, short-circuit the rest of the procedure
             if (position.column === 0) {
@@ -331,19 +365,20 @@ exports.TextFormatter = class TextFormatter {
 
     }
 
-    moveDown(position, copy) {
+    moveDown(position, { copy = false, amount = 1 } = {}) {
 
         if (this.lineInfo.length === 0)
             return new Point();
 
         position = Point.fromObject(position, copy);
 
-        // if we're already on the very last line, we just go to the end of the line
-        if (position.row === this.lineInfo.length - 1) {
+        // if jumping would bring us below the very last line, we just go to the end of this line
+        if (position.row + amount >= this.lineInfo.length) {
+            position.row = this.lineInfo.length - 1;
             position.column = this.lineInfo[position.row].outputLineLength;
 
         } else {
-            position.row += 1;
+            position.row += amount;
 
             // if we land on the left edge, short-circuit the rest of the procedure
             if (position.column === 0) {

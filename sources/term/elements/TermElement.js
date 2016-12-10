@@ -20,6 +20,20 @@ export class TermElement extends Element {
 
         this.declareEvent(`data`);
 
+        this.addEventListener(`mousedown`, e => {
+
+            if (e.mouse.name !== `left`)
+                return;
+
+            if (!this.style.$.focusEvents)
+                return;
+
+            e.setDefault(() => {
+                this.focus();
+            });
+
+        }, { capture: true });
+
     }
 
     appendChild(node) {
@@ -250,6 +264,32 @@ export class TermElement extends Element {
             background += style.clear;
 
         return background;
+
+    }
+
+    renderText(text) {
+
+        let prefix = ``;
+        let suffix = ``;
+
+        if (this.style.$.fontWeight < 400)
+            prefix += style.fainted.in;
+        else if (this.style.$.fontWeight > 400)
+            prefix += style.emboldened.in;
+
+        if (this.style.$.textDecoration && this.style.$.textDecoration.isUnderlined)
+            prefix += style.underlined.in;
+
+        if (this.style.$.backgroundColor)
+            prefix += this.style.$.backgroundColor.back;
+
+        if (this.style.$.color)
+            prefix += this.style.$.color.front;
+
+        if (prefix.length !== 0)
+            suffix += style.clear;
+
+        return prefix + text + suffix;
 
     }
 
