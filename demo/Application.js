@@ -2,6 +2,7 @@ import './Application.css';
 
 import { transform }              from 'babel-standalone';
 import { autobind }               from 'core-decorators';
+import faker                      from 'faker';
 import * as OhUICore              from 'ohui/core';
 import * as OhUITerm              from 'ohui/term';
 import { TermScreen }             from 'ohui/term';
@@ -75,7 +76,7 @@ export class Application extends React.PureComponent {
 
         try {
 
-            let screen = new TermScreen();
+            let screen = new TermScreen({ debugPaintRects: true });
             screen.addShortcutListener(`C-r`, () => window.location.reload());
 
             let raf = makeAnimationFunctions();
@@ -83,7 +84,7 @@ export class Application extends React.PureComponent {
             let transpiled = `(function (env) { with(env) {${transform(code, { presets: [ `es2015` ] }).code}\n} })`;
             let compiled = window.eval(transpiled);
 
-            let modules = { [`ohui`]: OhUICore, [`ohui/term`]: OhUITerm };
+            let modules = { [`faker`]: faker, [`ohui`]: OhUICore, [`ohui/term`]: OhUITerm };
             let require = name => modules[name];
 
             compiled(Object.assign(Object.create(null), OhUICore, OhUITerm, {

@@ -1,10 +1,10 @@
-import { style }                from '@manaflair/term-strings';
-import { autobind }             from 'core-decorators';
-import TextBuffer, { Point }    from 'text-buffer';
+import { style }                       from '@manaflair/term-strings';
+import { autobind }                    from 'core-decorators';
+import TextBuffer                      from 'text-buffer';
 
-import { Event, TextFormatter } from '../../core';
+import { Event, Point, TextFormatter } from '../../core';
 
-import { TermElement }          from './TermElement';
+import { TermElement }                 from './TermElement';
 
 export class TermInput extends TermElement {
 
@@ -21,14 +21,22 @@ export class TermInput extends TermElement {
         this.style.element.backgroundCharacter = `.`;
         this.style.element.focusEvents = true;
 
-        this.style.focused.backgroundColor = `#000088`;
+        //this.style.focused.backgroundColor = `#000088`;
 
         this.textBuffer = textBuffer;
-        this.textFormatter = TextFormatter.open(this.textBuffer, { demoteNewlines: !allowNewlines });
+        this.textFormatter = TextFormatter.open(this.textBuffer);
+
+        this.setPropertyTrigger(`transformPass`, value => {
+
+            if (value !== null && typeof value !== `function`)
+                throw new Error(`Failed to set "transformPass": Value has to be null or a function.`);
+
+            this.setDirtyRenderingFlag();
+
+        }, { initial: null });
 
         this.setPropertyTrigger(`allowNewlines`, value => {
 
-            this.textFormatter.setOptions({ demoteNewlines: !value });
             this.style.element.height = value ? 10 : 1;
 
         }, { initial: allowNewlines });
@@ -53,7 +61,6 @@ export class TermInput extends TermElement {
             } else {
 
                 this.queueDirtyRect(dirtyRect.intersect(this.contentClipRect));
-                this.setDirtyRenderingFlag();
 
             }
 
@@ -62,10 +69,10 @@ export class TermInput extends TermElement {
         this.addShortcutListener(`left`, () => {
 
             this.caretIndex = Math.max(0, this.caretIndex - 1);
-            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
-            this.caretMaxColumn = this.caret.column;
+            this.caret = new Point(this.textFormatter.positionForCharacterIndex(this.caretIndex));
+            this.caretMaxColumn = this.caret.x;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -74,10 +81,10 @@ export class TermInput extends TermElement {
         this.addShortcutListener(`right`, () => {
 
             this.caretIndex = Math.min(this.caretIndex + 1, this.textBuffer.getMaxCharacterIndex());
-            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
-            this.caretMaxColumn = this.caret.column;
+            this.caret = new Point(this.textFormatter.positionForCharacterIndex(this.caretIndex));
+            this.caretMaxColumn = this.caret.x;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -85,11 +92,11 @@ export class TermInput extends TermElement {
 
         this.addShortcutListener(`up`, () => {
 
-            this.caret.column = this.caretMaxColumn;
-            this.caret = this.textFormatter.moveUp(this.caret);
+            this.caret.x = this.caretMaxColumn;
+            this.caret = new Point(this.textFormatter.moveUp(this.caret));
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -97,11 +104,11 @@ export class TermInput extends TermElement {
 
         this.addShortcutListener(`down`, () => {
 
-            this.caret.column = this.caretMaxColumn;
-            this.caret = this.textFormatter.moveDown(this.caret);
+            this.caret.x = this.caretMaxColumn;
+            this.caret = new Point(this.textFormatter.moveDown(this.caret));
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -109,11 +116,11 @@ export class TermInput extends TermElement {
 
         this.addShortcutListener(`pgup`, () => {
 
-            this.caret.column = this.caretMaxColumn;
-            this.caret = this.textFormatter.moveUp(this.caret, { amount: this.elementRect.height });
+            this.caret.x = this.caretMaxColumn;
+            this.caret = new Point(this.textFormatter.moveUp(this.caret, { amount: this.elementRect.height }));
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -121,11 +128,11 @@ export class TermInput extends TermElement {
 
         this.addShortcutListener(`pgdown`, () => {
 
-            this.caret.column = this.caretMaxColumn;
-            this.caret = this.textFormatter.moveDown(this.caret, { amount: this.elementRect.height });
+            this.caret.x = this.caretMaxColumn;
+            this.caret = new Point(this.textFormatter.moveDown(this.caret, { amount: this.elementRect.height }));
             this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -137,7 +144,7 @@ export class TermInput extends TermElement {
             this.caretIndex = 0;
             this.caretMaxColumn = 0;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -146,10 +153,10 @@ export class TermInput extends TermElement {
         this.addShortcutListener(`end`, () => {
 
             this.caretIndex = this.textBuffer.getMaxCharacterIndex();
-            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
-            this.caretMaxColumn = this.caret.column;
+            this.caret = new Point(this.textFormatter.positionForCharacterIndex(this.caretIndex));
+            this.caretMaxColumn = this.caret.x;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -163,10 +170,10 @@ export class TermInput extends TermElement {
             this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), `\n`);
 
             this.caretIndex += 1;
-            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
-            this.caretMaxColumn = this.caret.column;
+            this.caret = new Point(this.textFormatter.positionForCharacterIndex(this.caretIndex));
+            this.caretMaxColumn = this.caret.x;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -183,10 +190,10 @@ export class TermInput extends TermElement {
             this.textBuffer.setTextInRange([ start, end ], ``);
 
             this.caretIndex -= 1;
-            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
-            this.caretMaxColumn = this.caret.column;
+            this.caret = new Point(this.textFormatter.positionForCharacterIndex(this.caretIndex));
+            this.caretMaxColumn = this.caret.x;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -199,7 +206,7 @@ export class TermInput extends TermElement {
 
             this.textBuffer.setTextInRange([ start, end ], ``);
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
         });
 
@@ -210,10 +217,10 @@ export class TermInput extends TermElement {
             this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), string);
 
             this.caretIndex += string.length;
-            this.caret = this.textFormatter.positionForCharacterIndex(this.caretIndex);
-            this.caretMaxColumn = this.caret.column;
+            this.caret = new Point(this.textFormatter.positionForCharacterIndex(this.caretIndex));
+            this.caretMaxColumn = this.caret.x;
 
-            this.scrollRowIntoView(this.caret.row);
+            this.scrollCellIntoView(this.caret);
 
             this.dispatchEvent(new Event(`caret`));
 
@@ -229,9 +236,9 @@ export class TermInput extends TermElement {
 
             e.setDefault(() => {
 
-                this.caret = this.textFormatter.moveTo([ e.contentCoordinates.y, e.contentCoordinates.x ]);
+                this.caret = new Point(this.textFormatter.moveTo([ e.contentCoordinates.y, e.contentCoordinates.x ]));
                 this.caretIndex = this.textFormatter.characterIndexForPosition(this.caret);
-                this.caretMaxColumn = this.caret.column;
+                this.caretMaxColumn = this.caret.x;
 
                 this.focus();
 
@@ -295,7 +302,7 @@ export class TermInput extends TermElement {
 
     finalizeHorizontalLayout() {
 
-        this.textFormatter.setOptions({ columns: this.contentRect.width });
+        this.textFormatter.setOptions({ columns: this.style.$.whiteSpace.doesWrap ? this.contentRect.width : Infinity });
         this.textFormatter.apply(this.textBuffer);
 
     }
@@ -324,17 +331,22 @@ export class TermInput extends TermElement {
             return this.renderBackground(l);
 
         let fullLine = this.textFormatter.lineForRow(y);
+        let fullLineLength = fullLine.length;
+
+        if (this.transformPass)
+            fullLine = this.transformPass(fullLine, y);
+
         let fullLineStart = 0;
 
         if (this.style.$.textAlign.isCentered)
-            fullLineStart = Math.floor((this.scrollRect.width - fullLine.length) / 2);
+            fullLineStart = Math.floor((this.scrollRect.width - fullLineLength) / 2);
 
         if (this.style.$.textAlign.isRightAligned)
-            fullLineStart = this.scrollRect.width - fullLine.length;
+            fullLineStart = this.scrollRect.width - fullLineLength;
 
         let prefixLength = Math.max(0, Math.min(fullLineStart - x, l));
         let lineStart = Math.max(0, x - fullLineStart);
-        let lineLength = Math.max(0, Math.min(l - prefixLength, fullLine.length));
+        let lineLength = Math.max(0, Math.min(fullLineLength - lineStart, l));
         let suffixLength = Math.max(0, l - prefixLength - lineLength);
 
         let prefix = this.renderBackground(prefixLength);

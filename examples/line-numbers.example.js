@@ -1,4 +1,5 @@
-import { TextElement, TermText, TermInput } from 'ohui/term';
+import { lorem }                            from 'faker';
+import { TermElement, TermText, TermInput } from 'ohui/term';
 
 let container = new TermElement();
 container.style.position = `relative`;
@@ -10,6 +11,7 @@ input.style.backgroundCharacter = ` `;
 input.style.backgroundColor = null;
 input.style.height = `auto`;
 input.style.maxHeight = `100%`;
+input.value = lorem.paragraphs(5);
 container.appendChild(input);
 
 let lines = new TermElement();
@@ -19,5 +21,9 @@ lines.style.top = 0;
 lines.style.bottom = 0;
 lines.style.width = 4;
 lines.style.backgroundColor = `red`;
-lines.renderContent = (x, y, l) => `${y}`.padEnd(4).substr(x, l);
+lines.renderContent = (x, y, l) => `${y + input.scrollTop}`.padEnd(4).substr(x, l);
 container.appendChild(lines);
+
+input.addEventListener(`scroll`, () => {
+    lines.setDirtyRenderingFlag();
+});

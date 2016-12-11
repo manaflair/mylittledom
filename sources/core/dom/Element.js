@@ -338,27 +338,59 @@ export class Element extends Node {
 
     }
 
-    scrollRowIntoView(row, { block = `auto`, force = false } = {}) {
+    scrollCellIntoView(position, { align = `auto`, alignX = align, alignY = align, force = false, forceX = force, forceY = force } = {}) {
 
         this.triggerUpdates();
 
-        if (!force && row >= this.scrollTop && row < this.scrollTop + this.contentRect.height)
-            return;
+        if (forceX || position.x < this.scrollLeft || position.x >= this.scrollLeft + this.contentRect.width) {
 
-        if (block === `auto`)
-            block = row - this.scrollTop < this.scrollTop + this.contentRect.height - row ? `top` : `bottom`;
+            if (alignX === `auto`)
+                alignX = position.x - this.scrollLeft < this.scrollLeft + this.contentRect.width - position.x ? `start` : `end`;
 
-        switch (block) {
+            switch (alignX) {
 
-            case `top`: {
-                this.scrollTop = row;
-            } break;
+                case `start`: {
+                    this.scrollLeft = position.x;
+                } break;
 
-            case `bottom`: {
-                this.scrollTop = row - this.contentRect.height + 1;
-            } break;
+                case `end`: {
+                    this.scrollLeft = position.x - this.contentRect.width + 1;
+                } break;
+
+            }
 
         }
+
+        if (forceY || position.y < this.scrollTop || position.y >= this.scrollTop + this.contentRect.height) {
+
+            if (alignY === `auto`)
+                alignY = position.y - this.scrollTop < this.scrollTop + this.contentRect.height - position.y ? `start` : `end`;
+
+            switch (alignY) {
+
+                case `start`: {
+                    this.scrollTop = position.y;
+                } break;
+
+                case `end`: {
+                    this.scrollTop = position.y - this.contentRect.height + 1;
+                } break;
+
+            }
+
+        }
+
+    }
+
+    scrollColumnIntoView(column, { align = `auto`, force = false } = {}) {
+
+        this.scrollCellIntoView(new Point(column, this.scrollTop), { alignX: align, forceX: force });
+
+    }
+
+    scrollRowIntoView(row, { align = `auto`, force = false } = {}) {
+
+        this.scrollCellIntoView(new Point(this.scrollLeft, row), { alignY: align, forceY: force });
 
     }
 
@@ -513,8 +545,10 @@ export class Element extends Node {
         if (!dirtyRect)
             return;
 
-        if (this.rootNode !== this)
+        if (this.rootNode !== this) {
             this.rootNode.queueDirtyRect(dirtyRect, checkIntersectionFrom);
+            return;
+        }
 
         let intersectorIndex = this.dirtyRects.findIndex(other => {
             return dirtyRect.doesIntersect(other);

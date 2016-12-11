@@ -15,6 +15,15 @@ export class TermText extends TermElement {
         this.textBuffer = new TextBuffer();
         this.textFormatter = TextFormatter.open(this.textBuffer);
 
+        this.setPropertyTrigger(`transformPass`, value => {
+
+            if (value !== null && typeof value !== `function`)
+                throw new Error(`Failed to set "transformPass": Value has to be null or a function.`);
+
+            this.setDirtyRenderingFlag();
+
+        }, { initial: null });
+
         if (textContent) {
             this.textContent = textContent;
         }
@@ -75,7 +84,7 @@ export class TermText extends TermElement {
 
     finalizeHorizontalLayout() {
 
-        this.textFormatter.setOptions({ columns: this.contentRect.width });
+        this.textFormatter.setOptions({ columns: this.style.$.whiteSpace.doesWrap ? this.contentRect.width : Infinity });
         this.textFormatter.apply(this.textBuffer);
 
     }
@@ -92,6 +101,10 @@ export class TermText extends TermElement {
             return this.renderBackground(l);
 
         let fullLine = this.textFormatter.lineForRow(y);
+
+        if (this.transformPass)
+            fullLine = this.transformPass(fullLine, y);
+
         let fullLineStart = 0;
 
         if (this.style.$.textAlign.isCentered)

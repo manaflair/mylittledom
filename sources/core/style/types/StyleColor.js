@@ -8,12 +8,12 @@ export class StyleColor {
         this.name = name;
 
         Reflect.defineProperty(this, `front`, {
-            get: memoize(() => style.color.front(this.name)),
+            get: memoize(() => style.color.front(this.name).in),
             enumerable: false
         });
 
         Reflect.defineProperty(this, `back`, {
-            get: memoize(() => style.color.back(this.name)),
+            get: memoize(() => style.color.back(this.name).in),
             enumerable: false
         });
 

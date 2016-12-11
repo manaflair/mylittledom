@@ -238,7 +238,7 @@ export class TermScreen extends TermElement {
                     let line = String(element.renderElement(relativeX, relativeY, intersection.width));
 
                     if (this.debugPaintRects)
-                        line = style.back(debugColor) + line + style.clear;
+                        line = style.color.back(debugColor).in + line + style.clear;
 
                     buffer += cursor.moveTo({ x: intersection.x, y: intersection.y + y });
                     buffer += line;
@@ -253,8 +253,8 @@ export class TermScreen extends TermElement {
 
         if (this.activeElement && this.activeElement.contentClipRect && this.activeElement.caret) {
 
-            let x = this.activeElement.contentWorldRect.x - this.activeElement.scrollRect.x + this.activeElement.caret.column;
-            let y = this.activeElement.contentWorldRect.y - this.activeElement.scrollRect.y + this.activeElement.caret.row;
+            let x = this.activeElement.contentWorldRect.x - this.activeElement.scrollRect.x + this.activeElement.caret.x;
+            let y = this.activeElement.contentWorldRect.y - this.activeElement.scrollRect.y + this.activeElement.caret.y;
 
             if (x >= this.activeElement.contentClipRect.x && x < this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width && y >= this.activeElement.contentClipRect.y && y < this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height) {
                 buffer += cursor.moveTo({ x, y });

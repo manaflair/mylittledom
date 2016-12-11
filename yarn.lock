@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@manaflair/term-strings@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@manaflair/term-strings/-/term-strings-0.2.0.tgz#b764635bb6558dc9186703b2eec76b27b620bbc2"
+"@manaflair/term-strings@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@manaflair/term-strings/-/term-strings-0.3.0.tgz#bb428c800a11575d1d90096171612e18da1d5869"
   dependencies:
     babel-cli "^6.18.0"
     color-diff "^1.0.0"
@@ -1177,9 +1177,9 @@ browserslist@~1.4.0:
   dependencies:
     caniuse-db "^1.0.30000539"
 
-buffer-offset-index@arcanis/buffer-offset-index#bc5d71e:
+buffer-offset-index@arcanis/buffer-offset-index#ad81238:
   version "0.1.0"
-  resolved "https://codeload.github.com/arcanis/buffer-offset-index/tar.gz/bc5d71e"
+  resolved "https://codeload.github.com/arcanis/buffer-offset-index/tar.gz/ad81238"
   dependencies:
     autogypi "^0.2.2"
     nbind "^0.3.5"
@@ -2009,6 +2009,10 @@ extsprintf@1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.0.2.tgz#e1080e0658e300b06294990cc70e1502235fd550"
 
+faker@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/faker/-/faker-3.1.0.tgz#0f908faf4e6ec02524e54a57e432c5c013e08c9f"
+
 fastparse@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/fastparse/-/fastparse-1.1.1.tgz#d1e2643b38a94d7583b479060e6c4affc94071f8"
@@ -2836,9 +2840,9 @@ macaddress@^0.2.8:
   version "0.2.8"
   resolved "https://registry.yarnpkg.com/macaddress/-/macaddress-0.2.8.tgz#5904dc537c39ec6dbefeae902327135fa8511f12"
 
-marker-index@arcanis/marker-index#8acbda1:
+marker-index@arcanis/marker-index#3db05be:
   version "4.0.1"
-  resolved "https://codeload.github.com/arcanis/marker-index/tar.gz/8acbda1"
+  resolved "https://codeload.github.com/arcanis/marker-index/tar.gz/3db05be"
   dependencies:
     babel-cli "^6.18.0"
     babel-core "^6.18.2"
@@ -3303,9 +3307,9 @@ path-type@^1.0.0:
     pify "^2.0.0"
     pinkie-promise "^2.0.0"
 
-pathwatcher@arcanis/node-pathwatcher#6d4a212:
+pathwatcher@arcanis/node-pathwatcher#713a7b5:
   version "6.7.1"
-  resolved "https://codeload.github.com/arcanis/node-pathwatcher/tar.gz/6d4a212"
+  resolved "https://codeload.github.com/arcanis/node-pathwatcher/tar.gz/713a7b5"
   dependencies:
     async "~0.2.10"
     emissary "^1.3.2"
@@ -4233,7 +4237,7 @@ text-buffer:
   resolved "https://registry.yarnpkg.com/text-buffer/-/text-buffer-9.4.2.tgz#24339a3484cdeae7b799f7c4e96126171790ca50"
   dependencies:
     atom-patch "0.3.0"
-    buffer-offset-index "arcanis/buffer-offset-index#bc5d71e"
+    buffer-offset-index "arcanis/buffer-offset-index#ad81238"
     delegato "^1.0.0"
     diff "^2.2.1"
     display-index "^0.1.0"

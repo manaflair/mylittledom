@@ -1,9 +1,33 @@
 export class Point {
 
-    constructor({ x = 0, y = 0 } = {}) {
+    constructor({ column = 0, row = 0, x = column, y = row } = {}) {
 
         this.x = x;
         this.y = y;
+
+    }
+
+    get column() {
+
+        return this.x;
+
+    }
+
+    get row() {
+
+        return this.y;
+
+    }
+
+    set column(column) {
+
+        this.x = column;
+
+    }
+
+    set row(row) {
+
+        this.y = row;
 
     }
 
