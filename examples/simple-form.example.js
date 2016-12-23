@@ -1,3 +1,4 @@
+import { lorem }                            from 'faker';
 import { TermElement, TermText, TermInput } from 'ohui/term';
 
 for (let t = 0; t < 10; ++t) {
@@ -14,7 +15,7 @@ for (let t = 0; t < 10; ++t) {
     label.style.textDecoration = `underline`;
     label.appendTo(container);
 
-    let input = new TermInput({ value: `test`, allowNewlines: true });
+    let input = new TermInput({ value: lorem.sentence(), multiline: true });
     input.style.marginTop = 1;
     input.appendTo(container);
 

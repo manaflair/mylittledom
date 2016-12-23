@@ -18,6 +18,9 @@ export class TermElement extends Element {
         this.declareEvent(`mouseenter`);
         this.declareEvent(`mouseleave`);
 
+        this.declareEvent(`change`);
+        this.declareEvent(`submit`);
+
         this.declareEvent(`data`);
 
         this.addEventListener(`mousedown`, e => {

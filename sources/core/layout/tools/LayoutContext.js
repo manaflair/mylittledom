@@ -2,6 +2,9 @@ import Immutable from 'immutable';
 
 export class LayoutContext extends new Immutable.Record({
 
+    shrinkWidthFlag: false,
+    shrinkHeightFlag: false,
+
     staticWidth: 0,
     staticHeight: 0,
 

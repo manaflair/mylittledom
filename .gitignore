@@ -1,3 +1,5 @@
 node_modules
 yarn-error.log
-npm-debug.log
+npm-debug.log*
+stacktrace-*.log
+vgcore.*

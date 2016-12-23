@@ -47,6 +47,8 @@ export class Element extends Node {
 
         this.activeElement = null;
 
+        this.layoutContext = null;
+
         this.elementRect = new Rect(); // Position & size of the whole element inside its parent
         this.contentRect = new Rect(); // Position & size of the content box inside the element
         this.scrollRect = new Rect(); // Position & size of the element children box | note: both `x` and `y` are "wrong", in that they are not the actual box offset (which would always be 0;0), but rather the scroll offset (ie = scrollLeft / scrollTop)
@@ -292,6 +294,8 @@ export class Element extends Node {
             throw new Error(`Failed to execute 'removeChild': Parameter 1 is not of type 'Element'.`);
 
         super.removeChild(node);
+
+        this.layoutContext = null;
 
         this.setDirtyLayoutFlag();
         this.setDirtyClippingFlag();
@@ -710,7 +714,7 @@ export class Element extends Node {
             this.setDirtyClippingFlag();
             this.forceLayout({ context });
 
-        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN && (this.style.$.display.layout.isBlockWidthFixed(this, context) || this.style.$.display.layout.isBlockHeightFixed(this, context))) {
+        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN && (this.style.$.display.layout.isBlockWidthFixed(this) || this.style.$.display.layout.isBlockHeightFixed(this))) {
 
             this.setDirtyClippingFlag();
             this.forceLayout({ context });
@@ -767,10 +771,12 @@ export class Element extends Node {
 
     forceLayout({ context = new LayoutContext() } = {}) {
 
-        let subContext = context;
-
         let parentLayout = this.parentNode ? this.parentNode.style.$.display.layout : null;
         let nodeLayout = this.style.$.display.layout;
+
+        // -- First, we can store this element context
+
+        this.layoutContext = context;
 
         // -- If the element is absolutely positioned, we use a different layout instead of the parent one
 
@@ -791,29 +797,35 @@ export class Element extends Node {
 
         let computeBlockWidth = () => {
 
-            nodeLayout.computeNodeWidth(this, context);
-            parentLayout.computeChildPositionX(this, context);
+            nodeLayout.computeNodeWidth(this);
+            parentLayout.computeChildPositionX(this);
 
             this.finalizeHorizontalLayout();
 
-            subContext = subContext.pushNodeWidth(this);
+            context = context.pushNodeWidth(this);
 
         };
 
         let computeBlockHeight = () => {
 
-            nodeLayout.computeNodeHeight(this, context);
-            parentLayout.computeChildPositionY(this, context);
+            nodeLayout.computeNodeHeight(this);
+            parentLayout.computeChildPositionY(this);
 
             this.finalizeVerticalLayout();
 
-            subContext = subContext.pushNodeHeight(this);
+            context = context.pushNodeHeight(this);
 
         };
 
         // -- First we can trigger the "will update layout" hook
 
         this.prepareForLayout();
+
+        // --
+
+        context = context.set(`shrinkWidthFlag`, context.shrinkWidthFlag
+            ? !this.style.$.display.layout.isBlockWidthFixed(this)
+            : this.style.$.position.isAbsolutelyPositioned && !this.style.$.display.layout.isBlockWidthFixed(this));
 
         // -- If the element has a fixed width and/or height, then we can compute them here and now
 
@@ -825,13 +837,13 @@ export class Element extends Node {
 
         // -- Whatever happened, we now need to compute the element content box position, since our children will use it to position themselves
 
-        nodeLayout.computeNodeContentPosition(this, context);
+        nodeLayout.computeNodeContentPosition(this);
 
         // -- We now iterate over each non-absolutely-positioned children (we will process the absolutely-positioned ones at a later time, continue reading)
 
         for (let child of this.childNodes)
             if (!child.style.$.position.isAbsolutelyPositioned)
-                child.forceLayout({ context: subContext });
+                child.forceLayout({ context });
 
         // -- If the element has a width and/or height that depend on the element's children, then we can now compute them correctly
 
@@ -845,7 +857,7 @@ export class Element extends Node {
 
         for (let child of this.childNodes)
             if (child.style.$.position.isAbsolutelyPositioned)
-                child.forceLayout({ context: subContext });
+                child.forceLayout({ context });
 
         // -- Clear the layout flags so that we don't perform those tasks again
 

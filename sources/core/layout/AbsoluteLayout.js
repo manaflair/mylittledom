@@ -2,9 +2,9 @@ import { StyleLength } from '../style/types/StyleLength';
 
 export let AbsoluteLayout = new class AbsoluteLayout {
 
-    computeChildPositionX(child, context) {
+    computeChildPositionX(child) {
 
-        let containerWidth = context.getContainerWidth(child);
+        let containerWidth = child.layoutContext.getContainerWidth(child);
 
         let left = child.style.$.left.resolve(containerWidth);
         let right = child.style.$.right.resolve(containerWidth);
@@ -22,9 +22,9 @@ export let AbsoluteLayout = new class AbsoluteLayout {
 
     }
 
-    computeChildPositionY(child, context) {
+    computeChildPositionY(child) {
 
-        let containerHeight = context.getContainerHeight(child);
+        let containerHeight = child.layoutContext.getContainerHeight(child);
 
         let top = child.style.$.top.resolve(containerHeight);
         let bottom = child.style.$.bottom.resolve(containerHeight);

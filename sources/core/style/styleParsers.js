@@ -6,6 +6,77 @@ import { StyleColor }                                           from './types/St
 import { StyleLength }                                          from './types/StyleLength';
 import { StyleWeight }                                          from './types/StyleWeight';
 
+class Optional {
+
+    constructor(parsers) {
+
+        this.parsers = parsers;
+
+    }
+
+}
+
+export function list(parserList) {
+
+    let minSize = parserList.reduce((count, parser) => count + (parser instanceof Optional ? 0 : 1), 0);
+    let maxSize = parserList.length;
+
+    function iterate(parserList, rawValues) {
+
+        if (rawValues.length === 0 && parserList.length === 0)
+            return [];
+
+        if (rawValues.length > 0 && parserList.length === 0)
+            return undefined;
+
+        if (parserList.length > 0 && rawValues.length === 0)
+            return undefined;
+
+        let rawValue = rawValues[0];
+        let parserEntry = parserList[0];
+
+        let isOptional = parserEntry instanceof Optional;
+        let parsers = parserEntry instanceof Optional ? parserEntry.parsers : parserEntry;
+
+        let value = parseRawValue(rawValue, parsers);
+
+        if (value === undefined && !isOptional)
+            return undefined;
+
+        let next = value !== undefined
+            ? iterate(parserList.slice(1), rawValues.slice(1))
+            : iterate(parserList.slice(1), rawValues);
+
+        if (next !== undefined) {
+            return [ value, ... next ];
+        } else {
+            return undefined;
+        }
+
+    }
+
+    return rawValue => {
+
+        rawValue = castArray(rawValue);
+
+        if (rawValue.length < minSize)
+            return undefined;
+
+        if (rawValue.length > maxSize)
+            return undefined;
+
+        return iterate(parserList, rawValue);
+
+    };
+
+}
+
+export function optional(parsers) {
+
+    return new Optional(parsers);
+
+}
+
 export function repeat(n, parsers) {
 
     return rawValue => {

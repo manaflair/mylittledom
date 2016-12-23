@@ -21,8 +21,9 @@ export let BlockLayout = new class BlockLayout {
 
                 node.style.$.width !== StyleLength.auto ||
 
-                node.style.$.marginLeft !== StyleLength.auto ||
-                node.style.$.marginRight !== StyleLength.auto
+                (!node.layoutContext.shrinkWidthFlag &&
+                 (node.style.$.marginLeft !== StyleLength.auto ||
+                  node.style.$.marginRight !== StyleLength.auto))
 
             );
 
@@ -55,9 +56,9 @@ export let BlockLayout = new class BlockLayout {
 
     }
 
-    computeNodeWidth(node, context) {
+    computeNodeWidth(node) {
 
-        let containerWidth = context.getContainerWidth(node);
+        let containerWidth = node.layoutContext.getContainerWidth(node);
 
         let borderLeft = node.style.$.borderLeftCharacter ? 1 : 0;
         let borderRight = node.style.$.borderRightCharacter ? 1 : 0;
@@ -73,16 +74,14 @@ export let BlockLayout = new class BlockLayout {
 
             if (node.style.$.left === StyleLength.auto || node.style.$.right === StyleLength.auto) {
 
-                let baseWidth = node.getPreferredContentWidth();
-
-                baseWidth += borderLeft + paddingLeft;
-                baseWidth += borderRight + paddingRight;
-
-                node.elementRect.width = Math.max(baseWidth, ... node.childNodes.filter(child => {
+                node.elementRect.width = Math.max(node.getPreferredContentWidth(), ... node.childNodes.filter(child => {
                     return !child.style.$.position.isAbsolutelyPositioned;
                 }).map(child => {
                     return child.elementRect.width;
                 }));
+
+                node.elementRect.width += borderLeft + paddingLeft;
+                node.elementRect.width += borderRight + paddingRight;
 
             } else {
 
@@ -95,10 +94,25 @@ export let BlockLayout = new class BlockLayout {
 
         } else {
 
-            let marginLeft = node.style.$.marginLeft.resolve(containerWidth);
-            let marginRight = node.style.$.marginRight.resolve(containerWidth);
+            if (node.layoutContext.shrinkWidthFlag) {
 
-            node.elementRect.width = Math.max(0, containerWidth - marginLeft - marginRight);
+                node.elementRect.width = Math.max(node.getPreferredContentWidth(), ... node.childNodes.filter(child => {
+                    return !child.style.$.position.isAbsolutelyPositioned;
+                }).map(child => {
+                    return child.elementRect.width;
+                }));
+
+                node.elementRect.width += borderLeft + paddingLeft;
+                node.elementRect.width += borderRight + paddingRight;
+
+            } else {
+
+                let marginLeft = node.style.$.marginLeft.resolve(containerWidth);
+                let marginRight = node.style.$.marginRight.resolve(containerWidth);
+
+                node.elementRect.width = Math.max(0, containerWidth - marginLeft - marginRight);
+
+            }
 
         }
 
@@ -113,10 +127,10 @@ export let BlockLayout = new class BlockLayout {
 
     }
 
-    computeNodeHeight(node, context) {
+    computeNodeHeight(node) {
 
-        let containerWidth = context.getContainerWidth(node);
-        let containerHeight = context.getContainerHeight(node);
+        let containerWidth = node.layoutContext.getContainerWidth(node);
+        let containerHeight = node.layoutContext.getContainerHeight(node);
 
         let borderTop = node.style.$.borderTopCharacter ? 1 : 0;
         let borderBottom = node.style.$.borderBottomCharacter ? 1 : 0;
@@ -161,10 +175,10 @@ export let BlockLayout = new class BlockLayout {
 
     }
 
-    computeNodeContentPosition(node, context) {
+    computeNodeContentPosition(node) {
 
-        let containerWidth = context.getContainerWidth(node);
-        let containerHeight = context.getContainerHeight(node);
+        let containerWidth = node.layoutContext.getContainerWidth(node);
+        let containerHeight = node.layoutContext.getContainerHeight(node);
 
         let borderLeft = node.style.$.borderLeftCharacter ? 1 : 0;
         let borderTop = node.style.$.borderTopCharacter ? 1 : 0;
@@ -177,9 +191,9 @@ export let BlockLayout = new class BlockLayout {
 
     }
 
-    computeChildPositionX(child, context) {
+    computeChildPositionX(child) {
 
-        let containerWidth = context.getContainerWidth(child);
+        let containerWidth = child.layoutContext.getContainerWidth(child);
 
         // -- Start our computations with using the parent node's border & padding properties
 
@@ -218,13 +232,9 @@ export let BlockLayout = new class BlockLayout {
 
     }
 
-    computeChildPositionY(child, context) {
+    computeChildPositionY(child) {
 
-        let containerHeight = context.getContainerHeight(child);
-
-        // -- Start our computations with using the parent node's border & padding properties
-
-        child.elementRect.y = child.parentNode ? child.parentNode.contentRect.y : 0;
+        let containerHeight = child.layoutContext.getContainerHeight(child);
 
         // -- We compute the element's position on the vertical axis
 
@@ -235,13 +245,10 @@ export let BlockLayout = new class BlockLayout {
 
         if (flowPrevSibling) {
 
-            child.elementRect.y += Math.max(
-                flowPrevSibling.style.$.marginBottom.resolve(containerHeight),
-                child.style.$.marginTop.resolve(containerHeight)
-            );
+            child.elementRect.y = flowPrevSibling.elementRect.y;
 
-            child.elementRect.y += flowPrevSibling.elementRect.y;
             child.elementRect.y += flowPrevSibling.elementRect.height;
+            child.elementRect.y -= flowPrevSibling.style.$.marginTop;
 
             if (flowPrevSibling.style.$.position.isPositioned) {
                 if (flowPrevSibling.style.$.top !== StyleLength.auto) {
@@ -251,7 +258,14 @@ export let BlockLayout = new class BlockLayout {
                 }
             }
 
+            child.elementRect.y += Math.max(
+                flowPrevSibling.style.$.marginBottom.resolve(containerHeight),
+                child.style.$.marginTop.resolve(containerHeight)
+            );
+
         } else {
+
+            child.elementRect.y = child.parentNode ? child.parentNode.contentRect.y : 0;
 
             child.elementRect.y += child.style.$.marginTop.resolve(containerHeight);
 

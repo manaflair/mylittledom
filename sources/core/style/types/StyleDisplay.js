@@ -1,4 +1,5 @@
 import { BlockLayout } from '../../layout/BlockLayout';
+import { FlexLayout }  from '../../layout/FlexLayout';
 
 export class StyleDisplay {
 
@@ -25,3 +26,4 @@ export class StyleDisplay {
 }
 
 StyleDisplay.block = new StyleDisplay(`block`, BlockLayout);
+StyleDisplay.flex = new StyleDisplay(`flex`, FlexLayout);

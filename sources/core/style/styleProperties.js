@@ -1,16 +1,16 @@
-import { pick }                                                                          from 'lodash';
+import { pick }                                                                                          from 'lodash';
 
-import { display, position, overflow, repeat, length, character, color, number, weight } from './styleParsers';
-import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList }   from './styleTriggers';
-import { onNullSwitch }                                                                  from './styleTriggers';
-import { StyleAlignment }                                                                from './types/StyleAlignment';
-import { StyleDecoration }                                                               from './types/StyleDecoration';
-import { StyleDisplay }                                                                  from './types/StyleDisplay';
-import { StyleOverflowWrap }                                                             from './types/StyleOverflowWrap';
-import { StyleOverflow }                                                                 from './types/StyleOverflow';
-import { StylePosition }                                                                 from './types/StylePosition';
-import { StyleWeight }                                                                   from './types/StyleWeight';
-import { StyleWhiteSpace }                                                               from './types/StyleWhiteSpace';
+import { display, position, overflow, repeat, length, character, color, number, weight, list, optional } from './styleParsers';
+import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList }                   from './styleTriggers';
+import { onNullSwitch }                                                                                  from './styleTriggers';
+import { StyleAlignment }                                                                                from './types/StyleAlignment';
+import { StyleDecoration }                                                                               from './types/StyleDecoration';
+import { StyleDisplay }                                                                                  from './types/StyleDisplay';
+import { StyleOverflowWrap }                                                                             from './types/StyleOverflowWrap';
+import { StyleOverflow }                                                                                 from './types/StyleOverflow';
+import { StylePosition }                                                                                 from './types/StylePosition';
+import { StyleWeight }                                                                                   from './types/StyleWeight';
+import { StyleWhiteSpace }                                                                               from './types/StyleWhiteSpace';
 
 let simple = [ `+`, `+`, `+`, `+`, `-`, `|` ];
 let modern = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
@@ -19,7 +19,7 @@ let strong = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
 export let styleProperties = {
 
     display: {
-        parsers: [ pick(StyleDisplay, `block`), null ],
+        parsers: [ pick(StyleDisplay, `block`, `flex`), null ],
         triggers: [ dirtyLayout, onNullSwitch(dirtyRenderList) ],
         initial: `block`
     },
@@ -88,6 +88,30 @@ export let styleProperties = {
         parsers: [ length, length.rel, length.auto ],
         triggers: [ dirtyLayout ],
         initial: 0
+    },
+
+    flex: {
+        parsers: [ list([ number, optional(number), optional([ length.rel ]) ]), list([ optional(number), optional(number), [ length, length.rel ] ]), new Map([ [ null, [ 0, 0, `auto` ] ] ]) ],
+        getter: (style) => [ style.flexGrow, style.flexShrink, style.flexBasis ],
+        setter: (style, [ flexGrow, flexShrink, flexBasis ]) => Object.assign(style, { flexGrow, flexShrink, flexBasis })
+    },
+
+    flexGrow: {
+        parsers: [ number ],
+        triggers: [ dirtyLayout ],
+        initial: 0
+    },
+
+    flexShrink: {
+        parsers: [ number ],
+        triggers: [ dirtyLayout ],
+        initial: 0
+    },
+
+    flexBasis: {
+        parsers: [ length, length.rel, length.auto ],
+        triggers: [ dirtyLayout ],
+        initial: `auto`
     },
 
     width: {
@@ -268,6 +292,13 @@ export let styleProperties = {
         parsers: [ color, null ],
         triggers: [ dirtyRendering ],
         initial: null
+    },
+
+
+    background: {
+        parsers: [ list([ optional(character), color ]), list([ character, optional(color) ]), new Map([ [ null, [ null, ` ` ] ] ]) ],
+        getter: (style) => [ style.backgroundCharacter, style.backgroundColor ],
+        setter: (style, [ backgroundCharacter = style.backgroundCharacter, backgroundColor = style.backgroundColor ]) => Object.assign(style, { backgroundCharacter, backgroundColor })
     },
 
     backgroundColor: {

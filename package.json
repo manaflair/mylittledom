@@ -2,13 +2,14 @@
   "scripts": {
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
-    "demo": "node -r babel-register -r core-js -r ./examples/setup -- examples/line-numbers.example.js",
+    "demo": "node -r babel-register -r core-js -r ./examples/setup --",
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
     "build:demo": "webpack",
     "serve:demo": "webpack-dev-server"
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.3.0",
+    "@manaflair/text-layout": "^0.3.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",
     "immutable": "^3.8.1",
@@ -46,6 +47,7 @@
     "react-dom": "^15.4.1",
     "react-measure": "^1.4.2",
     "resize-observer-polyfill": "^1.2.1",
+    "segfault-handler": "^1.0.0",
     "style-loader": "^0.13.1",
     "text-loader": "^0.0.1",
     "webpack": "^2.1.0-beta",

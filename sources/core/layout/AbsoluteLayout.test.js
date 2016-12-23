@@ -51,6 +51,41 @@ describe(`AbsoluteLayout`, () => {
 
     });
 
+    it(`should change width: auto behaviour to be as small as possible, taking into account deep nodes`, () => {
+
+        let screen = new Screen();
+        screen.style.width = 800;
+        screen.style.height = 600;
+
+        let elementA = new Element();
+        elementA.style.position = `absolute`;
+        elementA.style.left = 50;
+        elementA.style.top = 50;
+        elementA.appendTo(screen);
+
+        let elementB = new Element();
+        elementB.appendTo(elementA);
+
+        let elementC = new Element();
+        elementC.style.width = 200;
+        elementC.style.height = 100;
+        elementC.appendTo(elementB);
+
+        let elementD = new Element();
+        elementD.style.width = 100;
+        elementD.style.height = 100;
+        elementD.appendTo(elementB);
+
+        screen.triggerUpdates();
+
+        expect(screen.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 600 });
+        expect(elementA.elementRect).to.deep.equal({ x: 50, y: 50, width: 200, height: 200 });
+        expect(elementB.elementRect).to.deep.equal({ x: 0, y: 0, width: 200, height: 200 });
+        expect(elementC.elementRect).to.deep.equal({ x: 0, y: 0, width: 200, height: 100 });
+        expect(elementD.elementRect).to.deep.equal({ x: 0, y: 100, width: 100, height: 100 });
+
+    });
+
     it(`should correctly set an element width when using both left & right positions`, () => {
 
         let screen = new Screen();

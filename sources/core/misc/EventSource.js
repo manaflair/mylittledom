@@ -47,6 +47,15 @@ export class EventSource {
 
     }
 
+    hasDeclaredEvent(name) {
+
+        if (!isString(name))
+            throw new Error(`Failed to execute 'hasDeclaredEvent': Parameter 1 is not of type 'string'.`);
+
+        return this.listeners.has(name);
+
+    }
+
     declareEvent(name) {
 
         if (!isString(name))
@@ -170,7 +179,7 @@ export class EventSource {
         return this.addEventListener(... args);
 
     }
-s
+
     off(... args) {
 
         return this.removeEventListener(... args);
