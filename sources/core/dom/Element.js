@@ -1,9 +1,5 @@
 import { flatten, groupBy, isEmpty, isNull } from 'lodash';
-
-import { AbsoluteLayout }                    from '../layout/AbsoluteLayout';
-import { RootLayout }                        from '../layout/RootLayout';
-import { ClippingContext }                   from '../layout/tools/ClippingContext';
-import { LayoutContext }                     from '../layout/tools/LayoutContext';
+import Yoga                                  from 'yoga-layout';
 
 import { EventSource }                       from '../misc/EventSource';
 import { Event }                             from '../misc/Event';
@@ -27,6 +23,8 @@ export class Element extends Node {
 
         EventSource.setup(this, { getParentInstance: () => this.parentNode });
 
+        this.yogaNode = Yoga.Node.create();
+
         this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
         this.styleDeclaration = new StyleDeclaration(this);
@@ -46,8 +44,6 @@ export class Element extends Node {
         this.renderList = [];
 
         this.activeElement = null;
-
-        this.layoutContext = null;
 
         this.elementRect = new Rect(); // Position & size of the whole element inside its parent
         this.contentRect = new Rect(); // Position & size of the content box inside the element
@@ -257,16 +253,6 @@ export class Element extends Node {
 
         super.appendChild(node);
 
-        this.setDirtyLayoutFlag();
-        this.setDirtyClippingFlag();
-        this.setDirtyRenderingFlag();
-
-        this.rootNode.setDirtyNodeListFlag();
-        this.rootNode.setDirtyRenderListFlag();
-
-        node.clearDirtyNodeListFlag();
-        node.clearDirtyRenderListFlag();
-
     }
 
     insertBefore(node, referenceNode) {
@@ -275,6 +261,8 @@ export class Element extends Node {
             throw new Error(`Failed to execute 'insertBefore': Parameter 1 is not of type 'Element'.`);
 
         super.insertBefore(node, referenceNode);
+
+        this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
 
         this.setDirtyLayoutFlag();
         this.setDirtyClippingFlag();
@@ -295,7 +283,7 @@ export class Element extends Node {
 
         super.removeChild(node);
 
-        this.layoutContext = null;
+        this.yogaNode.removeChild(node.yogaNode);
 
         this.setDirtyLayoutFlag();
         this.setDirtyClippingFlag();
@@ -618,6 +606,8 @@ export class Element extends Node {
 
         let dirtyLayoutNodes = this.findDirtyLayoutNodes();
 
+        this.yogaNode.calculateLayout();
+
         this.cascadeLayout();
         this.cascadeClipping();
         this.cascadeRendering();
@@ -707,247 +697,142 @@ export class Element extends Node {
 
     }
 
-    cascadeLayout({ context = new LayoutContext() } = {}) {
+    cascadeLayout(force) {
 
-        if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT) {
+        if (force)
+            this.flags |= flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-            this.setDirtyClippingFlag();
-            this.forceLayout({ context });
+        force = flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN && (this.style.$.display.layout.isBlockWidthFixed(this) || this.style.$.display.layout.isBlockHeightFixed(this))) {
+        if (this.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN)) {
 
-            this.setDirtyClippingFlag();
-            this.forceLayout({ context });
+            let nextElementRect = new Rect();
 
-        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN) {
+            nextElementRect.x = this.yogaNode.getComputedLeft();
+            nextElementRect.y = this.yogaNode.getComputedTop();
 
-            let subContext = context.pushNode(this);
+            nextElementRect.width = this.yogaNode.getComputedWidth();
+            nextElementRect.height = this.yogaNode.getComputedHeight();
+
+            let nextContentRect = new Rect();
+
+            nextContentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
+            nextContentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
+
+            nextContentRect.width = nextElementRect.width - this.yogaNode.getComputedBorder(Yoga.EDGE_HORIZONTAL) - this.yogaNode.getComputedPadding(Yoga.EDGE_HORIZONTAL);
+            nextContentRect.height = nextElementRect.height - this.yogaNode.getComputedBorder(Yoga.EDGE_VERTICAL) - this.yogaNode.getComputedPadding(Yoga.EDGE_VERTICAL);
+
+            if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT || !nextElementRect.equals(this.elementRect) || !nextContentRect.equals(this.contentRect))
+                this.setDirtyClippingFlag();
+
+            this.elementRect = nextElementRect;
+            this.contentRect = nextContentRect;
 
             for (let child of this.childNodes)
-                child.cascadeLayout({ context: subContext });
+                child.cascadeLayout(force);
 
+            this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
+                return child.elementRect.x + child.elementRect.width;
+            }));
+
+            this.scrollRect.height = Math.max(this.contentRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
+                return child.elementRect.y + child.elementRect.height;
+            }));
+
+            this.clearDirtyLayoutFlag();
             this.clearDirtyLayoutChildrenFlag();
 
         }
 
     }
 
-    cascadeClipping({ context = new ClippingContext() } = {}) {
+    cascadeClipping(force) {
 
-        if (this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING) {
+        if (force)
+            this.flags |= flags.ELEMENT_HAS_DIRTY_CLIPPING;
 
-            this.setDirtyRenderingFlag();
-            this.forceClipping({ context });
+        force = flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN) {
+        if (this.flags & (flags.ELEMENT_HAS_DIRTY_CLIPPING | flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN)) {
 
-            let subContext = context.pushNode(this);
+            if (this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING) {
+
+                this.rootNode.queueDirtyRect(this.elementClipRect);
+
+                this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
+                this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+
+                if (!this.parentNode) {
+
+                    this.elementWorldRect.x = 0;
+                    this.elementWorldRect.y = 0;
+
+                    this.elementWorldRect.width = this.elementRect.width;
+                    this.elementWorldRect.height = this.elementRect.height;
+
+                } else {
+
+                    this.elementWorldRect.x = this.parentNode.elementWorldRect.x + this.elementRect.x - this.parentNode.scrollRect.x;
+                    this.elementWorldRect.y = this.parentNode.elementWorldRect.y + this.elementRect.y - this.parentNode.scrollRect.y;
+
+                    this.elementWorldRect.width = this.elementRect.width;
+                    this.elementWorldRect.height = this.elementRect.height;
+
+                }
+
+                this.contentWorldRect.x = this.elementWorldRect.x + this.contentRect.x;
+                this.contentWorldRect.y = this.elementWorldRect.y + this.contentRect.y;
+
+                this.contentWorldRect.width = this.contentRect.width;
+                this.contentWorldRect.height = this.contentRect.height;
+
+                if (this.parentNode) {
+
+                    let relativeClipRect = this.style.$.position.isAbsolutelyPositioned ? this.parentNode.elementClipRect : this.parentNode.contentClipRect;
+
+                    this.elementClipRect = relativeClipRect ? relativeClipRect.intersect(this.elementWorldRect) : null;
+                    this.contentClipRect = relativeClipRect ? relativeClipRect.intersect(this.contentWorldRect) : null;
+
+                } else {
+
+                    this.elementClipRect = this.elementWorldRect;
+                    this.contentClipRect = this.contentWorldRect;
+
+                }
+
+                this.rootNode.queueDirtyRect(this.elementClipRect);
+
+            }
 
             for (let child of this.childNodes)
-                child.cascadeClipping({ context: subContext });
+                child.cascadeClipping(force);
 
+            this.clearDirtyClippingFlag();
             this.clearDirtyClippingChildrenFlag();
 
         }
 
     }
 
-    cascadeRendering() {
+    cascadeRendering(force) {
 
-        if (this.flags & flags.ELEMENT_HAS_DIRTY_RENDERING) {
+        if (force)
+            this.flags |= flags.ELEMENT_HAS_DIRTY_CLIPPING;
 
-            this.forceRendering();
+        force = flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        } else if (this.flags & flags.ELEMENT_HAS_DIRTY_RENDERING_CHILDREN) {
+        if (this.flags & (flags.ELEMENT_HAS_DIRTY_RENDERING | flags.ELEMENT_HAS_DIRTY_RENDERING_CHILDREN)) {
+
+            if (this.flags & flags.ELEMENT_HAS_DIRTY_RENDERING)
+                this.queueDirtyRect(this.elementClipRect);
 
             for (let child of this.childNodes)
-                child.cascadeRendering();
+                child.cascadeRendering(force);
 
+            this.clearDirtyRenderingFlag();
             this.clearDirtyRenderingChildrenFlag();
 
         }
-
-    }
-
-    forceLayout({ context = new LayoutContext() } = {}) {
-
-        let parentLayout = this.parentNode ? this.parentNode.style.$.display.layout : null;
-        let nodeLayout = this.style.$.display.layout;
-
-        // -- First, we can store this element context
-
-        this.layoutContext = context;
-
-        // -- If the element is absolutely positioned, we use a different layout instead of the parent one
-
-        if (parentLayout && this.style.$.position.isAbsolutelyPositioned)
-            parentLayout = AbsoluteLayout;
-
-        // -- If there's no parent layout, we assign one by default (it will simply set the position to 0;0)
-
-        if (!parentLayout)
-            parentLayout = RootLayout;
-
-        // -- Detect if the element has fixed width and/or height (ie does not depend on its children to compute these sizes)
-
-        let isBlockWidthFixed = nodeLayout.isBlockWidthFixed(this);
-        let isBlockHeightFixed = nodeLayout.isBlockHeightFixed(this);
-
-        // -- Setup the procedures that will actually compute the X and Y axes
-
-        let computeBlockWidth = () => {
-
-            nodeLayout.computeNodeWidth(this);
-            parentLayout.computeChildPositionX(this);
-
-            this.finalizeHorizontalLayout();
-
-            context = context.pushNodeWidth(this);
-
-        };
-
-        let computeBlockHeight = () => {
-
-            nodeLayout.computeNodeHeight(this);
-            parentLayout.computeChildPositionY(this);
-
-            this.finalizeVerticalLayout();
-
-            context = context.pushNodeHeight(this);
-
-        };
-
-        // -- First we can trigger the "will update layout" hook
-
-        this.prepareForLayout();
-
-        // --
-
-        context = context.set(`shrinkWidthFlag`, context.shrinkWidthFlag
-            ? !this.style.$.display.layout.isBlockWidthFixed(this)
-            : this.style.$.position.isAbsolutelyPositioned && !this.style.$.display.layout.isBlockWidthFixed(this));
-
-        // -- If the element has a fixed width and/or height, then we can compute them here and now
-
-        if (isBlockWidthFixed)
-            computeBlockWidth();
-
-        if (isBlockHeightFixed)
-            computeBlockHeight();
-
-        // -- Whatever happened, we now need to compute the element content box position, since our children will use it to position themselves
-
-        nodeLayout.computeNodeContentPosition(this);
-
-        // -- We now iterate over each non-absolutely-positioned children (we will process the absolutely-positioned ones at a later time, continue reading)
-
-        for (let child of this.childNodes)
-            if (!child.style.$.position.isAbsolutelyPositioned)
-                child.forceLayout({ context });
-
-        // -- If the element has a width and/or height that depend on the element's children, then we can now compute them correctly
-
-        if (!isBlockWidthFixed)
-            computeBlockWidth();
-
-        if (!isBlockHeightFixed)
-            computeBlockHeight();
-
-        // -- Now that our element size has been fully computed, we can process absolutely positioned element (otherwise, size calculation that would have required to know this element's size, such as a child with "left: 0; right: 0", would have returned wrong results)
-
-        for (let child of this.childNodes)
-            if (child.style.$.position.isAbsolutelyPositioned)
-                child.forceLayout({ context });
-
-        // -- Clear the layout flags so that we don't perform those tasks again
-
-        this.clearDirtyLayoutFlag();
-        this.clearDirtyLayoutChildrenFlag();
-
-    }
-
-    forceClipping({ context = new ClippingContext() } = {}) {
-
-        // -- We queue the current clip rect so that if it moves or shrinks, we will still redraw the area beneath it
-
-        if (this.elementClipRect)
-            this.rootNode.queueDirtyRect(this.elementClipRect);
-
-        // -- We first need to update our scroll rect
-
-        this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
-            return child.elementRect.x + child.elementRect.width;
-        }));
-
-        this.scrollRect.height = Math.max(this.contentRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
-            return child.elementRect.y + child.elementRect.height;
-        }));
-
-        // -- Don't forget to change the current scroll position if needed, so it doesn't suddenly become invalid
-
-        this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
-        this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
-
-        // -- We can now compute the world rects ...
-
-        if (!this.parentNode) {
-
-            this.elementWorldRect.x = 0;
-            this.elementWorldRect.y = 0;
-
-            this.elementWorldRect.width = this.elementRect.width;
-            this.elementWorldRect.height = this.elementRect.height;
-
-        } else {
-
-            this.elementWorldRect.x = this.parentNode.elementWorldRect.x + this.elementRect.x - this.parentNode.scrollRect.x;
-            this.elementWorldRect.y = this.parentNode.elementWorldRect.y + this.elementRect.y - this.parentNode.scrollRect.y;
-
-            this.elementWorldRect.width = this.elementRect.width;
-            this.elementWorldRect.height = this.elementRect.height;
-
-        }
-
-        this.contentWorldRect.x = this.elementWorldRect.x + this.contentRect.x;
-        this.contentWorldRect.y = this.elementWorldRect.y + this.contentRect.y;
-
-        this.contentWorldRect.width = this.contentRect.width;
-        this.contentWorldRect.height = this.contentRect.height;
-
-        // -- ... and derive the clip rects from them
-
-        this.elementClipRect = context.getElementClipRect(this);
-        this.contentClipRect = context.getContentClipRect(this);
-
-        // -- Now that the clip rect has been updated, we can now request to render it
-
-        if (this.elementClipRect)
-            this.rootNode.queueDirtyRect(this.elementClipRect);
-
-        // -- Iterate over our childrens to update their own clip rects
-
-        let subContext = context.pushNode(this);
-
-        for (let child of this.childNodes)
-            child.forceClipping({ context: subContext });
-
-        // -- Clear the clipping flags so that we don't perform those tasks again
-
-        this.clearDirtyClippingFlag();
-        this.clearDirtyClippingChildrenFlag();
-
-    }
-
-    forceRendering() {
-
-        if (this.elementClipRect)
-            this.rootNode.queueDirtyRect(this.elementClipRect);
-
-        for (let child of this.childNodes)
-            child.forceRendering();
-
-        this.clearDirtyRenderingFlag();
-        this.clearDirtyRenderingChildrenFlag();
 
     }
 
@@ -973,68 +858,13 @@ export class Element extends Node {
 
     }
 
-    prepareForLayout() {
-
-        // This method is called right before the layout process actually start on the context element. You can use it to setup internal values that will be used to compute the preferred width and/or height in the following hooks.
-        // You obviously cannot use any rect properties yet, because they haven't yet been updated. Any access will yield out-of-date values.
-
-    }
-
-    getPreferredContentWidth() {
-
-        // This method is used to ask the element for its preferred content width. It will only be called if this value is required by the layout algorithm (so for example on a "position: absolute; left: 0; right: auto" element).
-        // You still cannot use any rect here, because they may or may not have been computed yet. Any access will result in an undefined behaviour.
-
-        // For example, a text editor widget would use this hook to return the number of columns in the editor should the text not wrap.
-
-        return 0;
-
-    }
-
-    getPreferredContentHeight() {
-
-        // This method is used to ask the element for its preferred content width. It will only be called if this value is required by the layout algorithm (which is the case for most elements without explicit height).
-        // You can access this element's rects' "width" properties, since they are guaranteed to have already been computed when this function is called.
-
-        // For example, a text editor widget would use this hook to return the number of rows in the editor given the maximal line size being set to "contentRect.width", soft wraps included.
-
-        return 0;
-
-    }
-
-    finalizeHorizontalLayout() {
-
-        // This method is called once we've found out every horizontal-axis-properties from this element's rects. You can freely use the "x" and "width" properties of both elementRect and contentRect.
-        // Note that you CANNOT use the element's "y" and "height" properties from any rect! The vertical axis might be computed before the horizontal one in some cases, such as if the height uses a fixed size but the width doesn't.
-
-        // For example, a text editor would use this hook to wrap its content according to the "contentBox.width" property. Note that it cannot do this before (such as during "getPreferredContentWidth"), because 1/ getPreferredContentWidth shouldn't have any observable side effect, and 2/ the final size might not be equal to the preferred size (for example if min-width / max-width are set).
-
-    }
-
-    finalizeVerticalLayout() {
-
-        // This method is called once we've found out every vertical-axis-properties from this element's rects. You can freely use the "y" and "height" properties of both elementRect and contentRect.
-        // Note that you CANNOT use the element's "y" and "height" properties from any rect! The horizontal axis might be computed before the vertical one in some cases, such as if the width uses a fixed size but the height doesn't.
-
-        // A text editor wouldn't have anything special to do there, the hook mainly exists for consistency with the other ones.
-
-    }
-
     getInternalContentWidth() {
-
-        // This method will be called once the layout has been fully computed, and should return the internal width of the element, which will then be used to compute the scroll box.
-
-        // For example, a text editor would probably want to return the number of columns after which the text would wrap.
 
         return 0;
 
     }
 
     getInternalContentHeight() {
-
-        // This method will be called once the layout has been fully computed, and should return the internal height of the element, which will be used to compute the scroll box.
-
-        // For example, a text editor would probably want to return the total amount of lines in the text buffer, soft wraps included.
 
         return 0;
 

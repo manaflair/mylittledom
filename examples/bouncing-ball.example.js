@@ -15,7 +15,7 @@ let dy = +1;
 
 let animate = () => {
 
-    setImmediate(animate);
+    setTimeout(animate, 1000 / 60);
 
     if (ball.style.left + dx >= screen.elementRect.width - ball.elementRect.width) {
         ball.style.left = screen.elementRect.width - ball.elementRect.width;

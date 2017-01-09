@@ -106,7 +106,7 @@ describe(`AbsoluteLayout`, () => {
 
     });
 
-    it(`should ignore parent borders and padding when computing an element's rects`, () => {
+    it(`should ignore a parent padding when computing an element's rects`, () => {
 
         let screen = new Screen();
         screen.style.width = 800;
@@ -131,8 +131,8 @@ describe(`AbsoluteLayout`, () => {
         expect(element.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 22 });
         expect(element.contentRect).to.deep.equal({ x: 11, y: 11, width: 778, height: 0 });
 
-        expect(inner.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 22 });
-        expect(inner.contentRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 22 });
+        expect(inner.elementRect).to.deep.equal({ x: 1, y: 1, width: 798, height: 20 });
+        expect(inner.contentRect).to.deep.equal({ x: 0, y: 0, width: 798, height: 20 });
 
     });
 

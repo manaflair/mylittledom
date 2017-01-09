@@ -9,7 +9,7 @@ import { Event, Point }                    from '../../core';
 import { TermElement }                     from './TermElement';
 
 // We will iterate through those colors when rendering if the debugPaintRects option is set
-let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta` ], currentDebugColorIndex = 0;
+let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta`, `yellow` ], currentDebugColorIndex = 0;
 
 export class TermScreen extends TermElement {
 

@@ -28,6 +28,20 @@ export class Rect {
 
     }
 
+    equals(other) {
+
+        return (
+
+            other.x === this.x &&
+            other.y === this.y &&
+
+            other.width === this.width &&
+            other.height === this.height
+
+        );
+
+    }
+
     doesContain(other) {
 
         return (

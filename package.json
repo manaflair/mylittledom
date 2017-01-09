@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
+    "testx": "mocha --compilers js:babel-register -r core-js sources/**/TermText.test.js",
+   "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "demo": "node -r babel-register -r core-js -r ./examples/setup --",
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
@@ -9,7 +10,7 @@
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.3.0",
-    "@manaflair/text-layout": "^0.3.0",
+    "@manaflair/text-layout": "^0.4.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",
     "immutable": "^3.8.1",

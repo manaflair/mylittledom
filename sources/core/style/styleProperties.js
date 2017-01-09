@@ -1,16 +1,17 @@
-import { pick }                                                                                          from 'lodash';
+import { identity, pick }                                                                                                  from 'lodash';
+import Yoga                                                                                                                from 'yoga-layout';
 
-import { display, position, overflow, repeat, length, character, color, number, weight, list, optional } from './styleParsers';
-import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList }                   from './styleTriggers';
-import { onNullSwitch }                                                                                  from './styleTriggers';
-import { StyleAlignment }                                                                                from './types/StyleAlignment';
-import { StyleDecoration }                                                                               from './types/StyleDecoration';
-import { StyleDisplay }                                                                                  from './types/StyleDisplay';
-import { StyleOverflowWrap }                                                                             from './types/StyleOverflowWrap';
-import { StyleOverflow }                                                                                 from './types/StyleOverflow';
-import { StylePosition }                                                                                 from './types/StylePosition';
-import { StyleWeight }                                                                                   from './types/StyleWeight';
-import { StyleWhiteSpace }                                                                               from './types/StyleWhiteSpace';
+import { display, position, overflow, repeat, length, character, color, number, weight, list, optional }                   from './styleParsers';
+import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList, forwardToYoga, forwardToTextLayout } from './styleTriggers';
+import { onNullSwitch }                                                                                                    from './styleTriggers';
+import { StyleAlignment }                                                                                                  from './types/StyleAlignment';
+import { StyleDecoration }                                                                                                 from './types/StyleDecoration';
+import { StyleDisplay }                                                                                                    from './types/StyleDisplay';
+import { StyleOverflowWrap }                                                                                               from './types/StyleOverflowWrap';
+import { StyleOverflow }                                                                                                   from './types/StyleOverflow';
+import { StylePosition }                                                                                                   from './types/StylePosition';
+import { StyleWeight }                                                                                                     from './types/StyleWeight';
+import { StyleWhiteSpace }                                                                                                 from './types/StyleWhiteSpace';
 
 let simple = [ `+`, `+`, `+`, `+`, `-`, `|` ];
 let modern = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
@@ -25,32 +26,32 @@ export let styleProperties = {
     },
 
     position: {
-        parsers: [ pick(StylePosition, `static`, `relative`, `absolute`, `fixed`) ],
-        triggers: [ dirtyLayout ],
-        initial: `static`
+        parsers: [ pick(StylePosition, `relative`, `absolute`, `fixed`) ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPositionType`, forwardToYoga.value) ],
+        initial: `relative`
     },
 
     left: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_LEFT, forwardToYoga.value) ],
         initial: `auto`
     },
 
     right: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_RIGHT, forwardToYoga.value) ],
         initial: `auto`
     },
 
     top: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_TOP, forwardToYoga.value) ],
         initial: `auto`
     },
 
     bottom: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_BOTTOM, forwardToYoga.value) ],
         initial: `auto`
     },
 
@@ -68,25 +69,25 @@ export let styleProperties = {
 
     marginLeft: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMargin`, Yoga.EDGE_LEFT, forwardToYoga.value) ],
         initial: 0
     },
 
     marginRight: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMargin`, Yoga.EDGE_RIGHT, forwardToYoga.value) ],
         initial: 0
     },
 
     marginTop: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMargin`, Yoga.EDGE_TOP, forwardToYoga.value) ],
         initial: 0
     },
 
     marginBottom: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMargin`, Yoga.EDGE_BOTTOM, forwardToYoga.value) ],
         initial: 0
     },
 
@@ -98,55 +99,55 @@ export let styleProperties = {
 
     flexGrow: {
         parsers: [ number ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setFlexGrow`, identity) ],
         initial: 0
     },
 
     flexShrink: {
         parsers: [ number ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setFlexShrink`, identity) ],
         initial: 0
     },
 
     flexBasis: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setFlexBasis`, forwardToYoga.value) ],
         initial: `auto`
     },
 
     width: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setWidth`, forwardToYoga.value) ],
         initial: `auto`
     },
 
     height: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setHeight`, forwardToYoga.value) ],
         initial: `auto`
     },
 
     minWidth: {
         parsers: [ length, length.rel ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMinWidth`, forwardToYoga.value) ],
         initial: 0
     },
 
     minHeight: {
         parsers: [ length, length.rel, length.auto ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMinHeight`, forwardToYoga.value) ],
         initial: 0
     },
 
     maxWidth: {
         parsers: [ length, length.rel, length.infinity ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMaxWidth`, forwardToYoga.value) ],
         initial: Infinity
     },
 
     maxHeight: {
         parsers: [ length, length.rel, length.infinity ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setMaxHeight`, forwardToYoga.value) ],
         initial: Infinity
     },
 
@@ -170,25 +171,25 @@ export let styleProperties = {
 
     borderLeftCharacter: {
         parsers: [ character, null ],
-        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering ],
+        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering, forwardToYoga(`setBorder`, Yoga.EDGE_LEFT, value => value !== null ? 1 : 0) ],
         initial: null
     },
 
     borderRightCharacter: {
         parsers: [ character, null ],
-        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering ],
+        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering, forwardToYoga(`setBorder`, Yoga.EDGE_RIGHT, value => value !== null ? 1 : 0) ],
         initial: null
     },
 
     borderTopCharacter: {
         parsers: [ character, null ],
-        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering ],
+        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering, forwardToYoga(`setBorder`, Yoga.EDGE_TOP, value => value !== null ? 1 : 0) ],
         initial: null
     },
 
     borderBottomCharacter: {
         parsers: [ character, null ],
-        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering ],
+        triggers: [ onNullSwitch(dirtyLayout), dirtyRendering, forwardToYoga(`setBorder`, Yoga.EDGE_BOTTOM, value => value !== null ? 1 : 0) ],
         initial: null
     },
 
@@ -224,25 +225,25 @@ export let styleProperties = {
 
     paddingLeft: {
         parsers: [ length, length.rel ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPadding`, Yoga.EDGE_LEFT, forwardToYoga.value) ],
         initial: 0
     },
 
     paddingRight: {
         parsers: [ length, length.rel ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPadding`, Yoga.EDGE_RIGHT, forwardToYoga.value) ],
         initial: 0
     },
 
     paddingTop: {
         parsers: [ length, length.rel ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPadding`, Yoga.EDGE_TOP, forwardToYoga.value) ],
         initial: 0
     },
 
     paddingBottom: {
         parsers: [ length, length.rel ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToYoga(`setPadding`, Yoga.EDGE_BOTTOM, forwardToYoga.value) ],
         initial: 0
     },
 
@@ -254,7 +255,7 @@ export let styleProperties = {
 
     textAlign: {
         parsers: [ pick(StyleAlignment, `left`, `center`, `right`, `justify`) ],
-        triggers: [ dirtyRendering ],
+        triggers: [ dirtyRendering, forwardToTextLayout(`justifyText`, value => value.isJustified) ],
         initial: `left`
     },
 
@@ -266,13 +267,13 @@ export let styleProperties = {
 
     whiteSpace: {
         parsers: [ pick(StyleWhiteSpace, `normal`, `noWrap`, `pre`, `preWrap`, `preLine`) ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToTextLayout(`collapseWhitespaces`, value => value.doesCollapse), forwardToTextLayout(`demoteNewlines`, value => value.doesDemoteNewlines) ],
         initial: `normal`
     },
 
     overflowWrap: {
         parsers: [ pick(StyleOverflowWrap, `normal`, `breakWord`) ],
-        triggers: [ dirtyLayout ],
+        triggers: [ dirtyLayout, forwardToTextLayout(`allowWordBreaks`, value => value.doesBreakWord) ],
         initial: `normal`
     },
 

@@ -10,5 +10,5 @@ let stdout = Object.create(process.stdout);
 //stdout.write = str => console.log(JSON.stringify(str));
 //stdout.write = () => {};
 
-global.screen = new TermScreen({ debugPaintRects: true });
+global.screen = new TermScreen({ debugPaintRects: false });
 global.screen.attachScreen({ stdout });

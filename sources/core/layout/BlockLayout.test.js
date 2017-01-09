@@ -67,7 +67,7 @@ describe(`BlockLayout`, () => {
 
     });
 
-    it(`should correctly compute margin-left: auto`, () => {
+    it(`should correctly compute margin-right: auto`, () => {
 
         let screen = new Screen();
         screen.style.width = 800;

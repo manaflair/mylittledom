@@ -1,4 +1,5 @@
 import { isNull } from 'lodash';
+import Yoga       from 'yoga-layout';
 
 export function dirtyLayout(node) {
 
@@ -38,6 +39,52 @@ export function onNullSwitch(trigger) {
             return;
 
         trigger(node, newValue, oldValue);
+
+    };
+
+}
+
+export function forwardToYoga(fnName, ... args) {
+
+    if (!Yoga.Node.prototype[fnName])
+        throw new Error(`Invalid Yoga method "${fnName}"`);
+
+    return function (node, newValue) {
+
+        node.yogaNode[fnName](... args.map(arg => {
+
+            if (typeof arg === `function`) {
+                return arg(newValue);
+            } else {
+                return arg;
+            }
+
+        }));
+
+    };
+
+}
+
+forwardToYoga.value = function (value) {
+
+    if (value != null) {
+        return value.toYoga();
+    } else {
+        return value;
+    }
+
+};
+
+export function forwardToTextLayout(optName, cb) {
+
+    return function (node, newValue) {
+
+        if (!node.textLayout)
+            return;
+
+        node.textLayout.setOptions({
+            [optName]: cb(newValue)
+        });
 
     };
 

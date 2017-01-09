@@ -27,6 +27,12 @@ export class StyleLength {
 
     }
 
+    toYoga() {
+
+        return this.serialize();
+
+    }
+
     valueOf() {
 
         return this.size;

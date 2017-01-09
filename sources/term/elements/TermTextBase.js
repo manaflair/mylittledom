@@ -1,4 +1,4 @@
-import { TextLayout }   from '@manaflair/text-layout';
+import { TextLayout }   from '@manaflair/text-layout/sources/entry-browser';
 import TextBuffer       from 'text-buffer';
 
 import { Event, Point } from '../../core';
@@ -18,6 +18,26 @@ export class TermTextBase extends TermElement {
         this.textBuffer = textBuffer;
         this.textLayout = new TextLayout();
         this.textLines = [ `` ];
+
+        this.yogaNode.setMeasureFunc(maxWidth => {
+
+            if (this.textLayout.setOptions({ columns: maxWidth }))
+                this.textLayout.reset().apply(this.textLines);
+
+            let width = this.textLayout.getColumnCount();
+            let height = this.textLayout.getRowCount();
+
+            return { width, height };
+
+        });
+
+        this.on(`relayout`, () => {
+
+            if (this.textLayout.setOptions({ columns: this.contentRect.width })) {
+                this.textLayout.reset().apply(this.textLines);
+            }
+
+        });
 
         this.textLayout.setCharacterGetter(offset => {
 
@@ -275,8 +295,6 @@ export class TermTextBase extends TermElement {
 
         });
 
-        this.textLayout.reset().apply(this.textLines);
-
     }
 
     appendChild(node) {
@@ -294,52 +312,6 @@ export class TermTextBase extends TermElement {
     removeChild(node) {
 
         throw new Error(`Failed to execute 'removeChild': This node does not support this method.`);
-
-    }
-
-    prepareForLayout() {
-
-        let needsReset = this.textLayout.setOptions({
-            allowWordBreaks: this.style.$.overflowWrap.doesBreakWords,
-            collapseWhitespaces: this.style.$.whiteSpace.doesCollapse,
-            demoteNewlines: this.style.$.whiteSpace.doesDemoteNewlines,
-            justifyText: this.style.$.textAlign.isJustified
-        });
-
-        if (needsReset) {
-            this.textLayout.reset().apply(this.textLines);
-        }
-
-    }
-
-    getPreferredContentWidth() {
-
-        let needsReset = this.textLayout.setOptions({
-            columns: 1000000
-        });
-
-        if (needsReset)
-            this.textLayout.reset().apply(this.textLines);
-
-        return this.textLayout.getColumnCount();
-
-    }
-
-    finalizeHorizontalLayout() {
-
-        let needsReset = this.textLayout.setOptions({
-            columns: this.style.$.whiteSpace.doesWrap ? this.contentRect.width : Infinity
-        });
-
-        if (needsReset) {
-            this.textLayout.reset().apply(this.textLines);
-        }
-
-    }
-
-    getPreferredContentHeight() {
-
-        return this.textLayout.getRowCount();
 
     }
 

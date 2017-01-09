@@ -10,9 +10,9 @@
     color-diff "^1.0.0"
     core-js "^2.4.1"
 
-"@manaflair/text-layout@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@manaflair/text-layout/-/text-layout-0.3.0.tgz#8286ec0c801b69fd46fcf0001cf2baa1fab72af6"
+"@manaflair/text-layout@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@manaflair/text-layout/-/text-layout-0.4.0.tgz#b63e1df5fa1a48ca5735cf765e18d39fe4cb6fa0"
   dependencies:
     autogypi "^0.2.2"
     nbind "^0.3.6"
