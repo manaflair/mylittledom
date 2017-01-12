@@ -8,6 +8,10 @@ export class TermRadio extends TermElement {
 
         super(props);
 
+        this.yogaNode.setMeasureFunc(maxWidth => {
+            return { width: Math.min(maxWidth, 3), height: 1 };
+        });
+
         this.setPropertyTrigger(`checked`, () => {
             this.setDirtyRenderingFlag();
             this.dispatchEvent(new Event(`change`));
@@ -16,18 +20,6 @@ export class TermRadio extends TermElement {
         this.addEventListener(`mousedown`, () => {
             this.checked = true;
         });
-
-    }
-
-    getPreferredContentWidth() {
-
-        return 3;
-
-    }
-
-    getPreferredContentHeight() {
-
-        return 1;
 
     }
 

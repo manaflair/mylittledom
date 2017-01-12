@@ -146,6 +146,9 @@ export class Rect {
         if (!this.doesIntersect(other))
             return null;
 
+        if (other === this)
+            return this.clone();
+
         let rect = new Rect();
 
         rect.x = Math.max(this.x, other.x);

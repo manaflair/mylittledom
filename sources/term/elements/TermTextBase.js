@@ -61,25 +61,42 @@ export class TermTextBase extends TermElement {
             let offset = this.textBuffer.characterIndexForPosition(oldRange.start);
             let start = this.textLayout.getPositionForCharacterIndex(offset);
 
+            let oldColumnCount = this.textLayout.getColumnCount();
+            let oldRowCount = this.textLayout.getRowCount();
+
             let oldEnd = this.textLayout.getPositionForCharacterIndex(offset + oldText.length);
             let patch = this.textLayout.update(offset, oldText.length, newText.length);
             let newEnd = this.textLayout.getPositionForCharacterIndex(offset + newText.length);
 
+            let newColumnCount = this.textLayout.getColumnCount();
+            let newRowCount = this.textLayout.getRowCount();
+
             patch.apply(this.textLines);
 
-            if (oldEnd.y !== newEnd.y) {
+            if (newColumnCount !== oldColumnCount || newRowCount !== oldRowCount) {
 
-                if (!this.layoutContext || !this.style.$.display.layout.isBlockWidthFixed(this) || !this.style.$.display.layout.isBlockHeightFixed(this)) {
-                    this.setDirtyLayoutFlag();
-                } else {
-                    this.setDirtyClippingFlag();
-                }
+                this.yogaNode.markDirty();
+
+                this.setDirtyLayoutFlag();
+
+            } else if (oldEnd.y === newEnd.y) {
+
+                let dirtyRect = this.contentWorldRect.clone();
+
+                dirtyRect.x += start.x;
+                dirtyRect.y += start.y;
+
+                dirtyRect.height = 1;
+
+                this.queueDirtyRect(dirtyRect);
 
             } else {
 
                 let dirtyRect = this.contentWorldRect.clone();
-                dirtyRect.height = Math.max(oldEnd.y, newEnd.y) - start.y + 1;
+
                 dirtyRect.y += start.y;
+
+                dirtyRect.height = Math.max(oldEnd.y, newEnd.y) - start.y + 1;
 
                 this.queueDirtyRect(dirtyRect);
 
@@ -92,7 +109,7 @@ export class TermTextBase extends TermElement {
             if (value !== null && typeof value !== `function`)
                 throw new Error(`Failed to set "transformPass": Value has to be null or a function.`);
 
-            this.setDirtyRenderingFlag();
+            this.queueDirtyRect();
 
         }, { initial: null });
 
@@ -147,7 +164,7 @@ export class TermTextBase extends TermElement {
         this.addShortcutListener(`pgup`, () => {
 
             this.caret.x = this.caretMaxColumn;
-            this.caret = new Point(this.textLayout.getPositionAbove(this.caret, { amount: this.elementRect.height }));
+            this.caret = new Point(this.textLayout.getPositionAbove(this.caret, this.elementRect.height));
             this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
 
             this.scrollCellIntoView(this.caret);
@@ -159,7 +176,7 @@ export class TermTextBase extends TermElement {
         this.addShortcutListener(`pgdown`, () => {
 
             this.caret.x = this.caretMaxColumn;
-            this.caret = new Point(this.textLayout.getPositionBelow(this.caret, { amount: this.elementRect.height }));
+            this.caret = new Point(this.textLayout.getPositionBelow(this.caret, this.elementRect.height));
             this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
 
             this.scrollCellIntoView(this.caret);

@@ -8,7 +8,6 @@ export class TermInput extends TermTextBase {
 
         super({ ... props, textBuffer });
 
-        this.style.element.minHeight = 1;
         this.style.element.whiteSpace = `pre`;
         this.style.element.backgroundCharacter = `.`;
         this.style.element.focusEvents = true;

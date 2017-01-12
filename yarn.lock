@@ -1906,7 +1906,7 @@ faye-websocket@~0.11.0:
   dependencies:
     websocket-driver ">=0.5.1"
 
-fbjs@^0.8.1, fbjs@^0.8.4:
+fbjs@^0.8.4:
   version "0.8.6"
   resolved "https://registry.yarnpkg.com/fbjs/-/fbjs-0.8.6.tgz#7eb67d6986b2d5007a9b6e92e0e7cb6f75cad290"
   dependencies:
@@ -2776,13 +2776,13 @@ mime-db@~1.25.0:
   version "1.25.0"
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.25.0.tgz#c18dbd7c73a5dbf6f44a024dc0d165a1e7b1c392"
 
-mime-types@^2.1.12, mime-types@~2.1.13, mime-types@~2.1.7:
+mime-types@^2.1.12, mime-types@~2.1.13:
   version "2.1.13"
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.13.tgz#e07aaa9c6c6b9a7ca3012c69003ad25a39e92a88"
   dependencies:
     mime-db "~1.25.0"
 
-mime-types@~2.1.11:
+mime-types@~2.1.11, mime-types@~2.1.7:
   version "2.1.12"
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.12.tgz#152ba256777020dd4663f54c2e7bc26381e71729"
   dependencies:
@@ -3585,11 +3585,11 @@ react-codemirror@^0.3.0:
     codemirror "^5.18.2"
     lodash.debounce "^4.0.8"
 
-react-dom@^15.4.1:
-  version "15.4.1"
-  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-15.4.1.tgz#d54c913261aaedb17adc20410d029dcc18a1344a"
+react-dom@next:
+  version "16.0.0-alpha"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.0.0-alpha.tgz#51c7e7c0d34342a29614e3a91f3905625fc134af"
   dependencies:
-    fbjs "^0.8.1"
+    fbjs "^0.8.4"
     loose-envify "^1.1.0"
     object-assign "^4.1.0"
 
@@ -3600,9 +3600,9 @@ react-measure@^1.4.2:
     get-node-dimensions "^1.2.0"
     resize-observer-polyfill "^1.2.1"
 
-react@^15.4.1:
-  version "15.4.1"
-  resolved "https://registry.yarnpkg.com/react/-/react-15.4.1.tgz#498e918602677a3983cd0fd206dfe700389a0dd6"
+react@next:
+  version "16.0.0-alpha"
+  resolved "https://registry.yarnpkg.com/react/-/react-16.0.0-alpha.tgz#bd24eb7e44a4989874dbb68e46dc918c48a3c6f1"
   dependencies:
     fbjs "^0.8.4"
     loose-envify "^1.1.0"

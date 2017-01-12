@@ -51,8 +51,8 @@ export class TermScreen extends TermElement {
         this.addEventListener(`dirty`, () => this.scheduleUpdate(), { capture: true });
 
         // Bind the listeners that will notify us when the caret position changes
-        this.addEventListener(`focus`, () => this.scheduleRender(), { capture: true });
-        this.addEventListener(`caret`, () => this.scheduleRender(), { capture: true });
+        this.addEventListener(`focus`, () => this.scheduleUpdate(), { capture: true });
+        this.addEventListener(`caret`, () => this.scheduleUpdate(), { capture: true });
 
         // Bind the listeners that enable navigating between focused elements
         this.addShortcutListener(`S-tab`, e => e.setDefault(() => this.focusPreviousElement()), { capture: true });
@@ -139,7 +139,7 @@ export class TermScreen extends TermElement {
 
     queueDirtyRect(... args) {
 
-        this.scheduleRender();
+        this.scheduleUpdate();
 
         return super.queueDirtyRect(... args);
 
@@ -155,25 +155,12 @@ export class TermScreen extends TermElement {
             if (!this.ready)
                 return;
 
-            this.updateTimer = null;
-            this.triggerUpdates();
-
-        });
-
-    }
-
-    scheduleRender() {
-
-        if (this.renderTimer)
-            return;
-
-        this.renderTimer = setImmediate(() => {
-
-            if (!this.ready)
-                return;
-
+            clearImmediate(this.renderTimer);
             this.renderTimer = null;
-            this.renderScreen(this.flushDirtyRects());
+
+            this.updateTimer = null;
+            this.renderScreen();
+
 
         });
 
@@ -204,9 +191,15 @@ export class TermScreen extends TermElement {
 
     }
 
-    renderScreen(dirtyRects = [ this.elementClipRect ]) {
+    renderScreen() {
 
         this.triggerUpdates();
+
+        this.renderScreenImpl(this.flushDirtyRects());
+
+    }
+
+    renderScreenImpl(dirtyRects = [ this.elementClipRect ]) {
 
         let buffer = cursor.hidden;
 

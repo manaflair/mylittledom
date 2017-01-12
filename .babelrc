@@ -1,4 +1,4 @@
 {
-    "presets": [ "latest" ],
-    "plugins": [ "transform-class-properties", "transform-decorators-legacy", "transform-object-rest-spread", [ "module-resolver", { "alias": { "ohui": "./sources" } } ] ]
+    "presets": [ "react", "latest" ],
+    "plugins": [ "transform-class-properties", "transform-decorators-legacy", "transform-object-rest-spread", "react-require", [ "module-resolver", { "alias": { "ohui": "./sources" } } ] ]
 }

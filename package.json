@@ -1,7 +1,7 @@
 {
   "scripts": {
     "testx": "mocha --compilers js:babel-register -r core-js sources/**/TermText.test.js",
-   "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
+    "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "demo": "node -r babel-register -r core-js -r ./examples/setup --",
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
@@ -43,9 +43,9 @@
     "html-webpack-plugin": "^2.24.1",
     "json-loader": "^0.5.4",
     "mocha": "^3.1.2",
-    "react": "^15.4.1",
+    "react": "next",
     "react-codemirror": "^0.3.0",
-    "react-dom": "^15.4.1",
+    "react-dom": "next",
     "react-measure": "^1.4.2",
     "resize-observer-polyfill": "^1.2.1",
     "segfault-handler": "^1.0.0",

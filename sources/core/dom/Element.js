@@ -266,7 +266,6 @@ export class Element extends Node {
 
         this.setDirtyLayoutFlag();
         this.setDirtyClippingFlag();
-        this.setDirtyRenderingFlag();
 
         this.rootNode.setDirtyNodeListFlag();
         this.rootNode.setDirtyRenderListFlag();
@@ -287,14 +286,12 @@ export class Element extends Node {
 
         this.setDirtyLayoutFlag();
         this.setDirtyClippingFlag();
-        this.setDirtyRenderingFlag();
 
         this.rootNode.setDirtyNodeListFlag();
         this.rootNode.setDirtyRenderListFlag();
 
         node.setDirtyLayoutFlag();
         node.setDirtyClippingFlag();
-        node.setDirtyRenderingFlag();
 
         node.setDirtyNodeListFlag();
         node.setDirtyRenderListFlag();
@@ -437,15 +434,15 @@ export class Element extends Node {
 
     }
 
-    setDirtyLayoutFlag() {
+    setDirtyLayoutFlag({ silent = false } = {}) {
 
         let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
         this.flags |= flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        if (this.parentNode)
-            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN);
+        if (this.parentNode) // TODO: We're not yet smart enough to avoid triggering a relayout on the whole tree :(
+            this.parentNode.setDirtyLayoutFlag({ silent });
 
-        if (!wasDirty) {
+        if (!wasDirty && !silent) {
             this.dispatchEvent(new Event(`dirty`));
         }
 
@@ -457,15 +454,15 @@ export class Element extends Node {
 
     }
 
-    setDirtyClippingFlag() {
+    setDirtyClippingFlag({ silent = false } = {}) {
 
         let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
         this.flags |= flags.ELEMENT_HAS_DIRTY_CLIPPING;
 
         if (this.parentNode)
-            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN);
+            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN, { silent });
 
-        if (!wasDirty) {
+        if (!wasDirty && !silent) {
             this.dispatchEvent(new Event(`dirty`));
         }
 
@@ -477,27 +474,7 @@ export class Element extends Node {
 
     }
 
-    setDirtyRenderingFlag() {
-
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flags.ELEMENT_HAS_DIRTY_RENDERING;
-
-        if (this.parentNode)
-            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_RENDERING_CHILDREN);
-
-        if (!wasDirty) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
-
-    }
-
-    clearDirtyRenderingFlag() {
-
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_RENDERING;
-
-    }
-
-    setDirtyChildrenFlag(flag) {
+    setDirtyChildrenFlag(flag, { silent = false } = {}) {
 
         if (this.flags & flag)
             return;
@@ -508,7 +485,7 @@ export class Element extends Node {
         if (this.parentNode)
             this.parentNode.setDirtyChildrenFlag(flag);
 
-        if (!wasDirty) {
+        if (!wasDirty && !silent) {
             this.dispatchEvent(new Event(`dirty`));
         }
 
@@ -526,21 +503,13 @@ export class Element extends Node {
 
     }
 
-    clearDirtyRenderingChildrenFlag() {
-
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_RENDERING_CHILDREN;
-
-    }
-
-    queueDirtyRect(dirtyRect, checkIntersectionFrom = 0) {
+    queueDirtyRect(dirtyRect = this.elementClipRect, checkIntersectionFrom = 0) {
 
         if (!dirtyRect)
             return;
 
-        if (this.rootNode !== this) {
-            this.rootNode.queueDirtyRect(dirtyRect, checkIntersectionFrom);
-            return;
-        }
+        if (this.rootNode !== this)
+            return this.rootNode.queueDirtyRect(dirtyRect.intersect(this.elementClipRect), checkIntersectionFrom);
 
         let intersectorIndex = this.dirtyRects.findIndex(other => {
             return dirtyRect.doesIntersect(other);
@@ -556,8 +525,11 @@ export class Element extends Node {
 
     queueDirtyRects(dirtyRects, checkIntersectionFrom = 0) {
 
+        if (!dirtyRects)
+            return;
+
         if (this.rootNode !== this)
-            this.rootNode.queueDirtyRects(dirtyRects, checkIntersectionFrom);
+            return this.rootNode.queueDirtyRects(dirtyRects, checkIntersectionFrom);
 
         for (let dirtyRect of dirtyRects) {
             this.queueDirtyRect(dirtyRect, checkIntersectionFrom);
@@ -604,13 +576,13 @@ export class Element extends Node {
             this.clearDirtyRenderListFlag();
         }
 
-        let dirtyLayoutNodes = this.findDirtyLayoutNodes();
+        let dirtyLayoutNodes = [];
+        let dirtyScrollNodes = [];
 
         this.yogaNode.calculateLayout();
 
-        this.cascadeLayout();
-        this.cascadeClipping();
-        this.cascadeRendering();
+        this.cascadeLayout({ dirtyLayoutNodes });
+        this.cascadeClipping({ dirtyScrollNodes });
 
         if (needFullRerender && this.elementClipRect)
             this.rootNode.queueDirtyRect(this.elementClipRect);
@@ -620,6 +592,9 @@ export class Element extends Node {
 
         for (let dirtyLayoutNode of dirtyLayoutNodes)
             dirtyLayoutNode.dispatchEvent(new Event(`relayout`));
+
+        for (let dirtyScrollNode of dirtyScrollNodes)
+            dirtyScrollNode.dispatchEvent(new Event(`scroll`));
 
         if (this.flags & flags.ELEMENT_IS_DIRTY) {
             if (maxDepth < 1) {
@@ -671,6 +646,9 @@ export class Element extends Node {
             let stackingContext = stackingContexts.shift();
             renderList.push(stackingContext);
 
+            let staticRenderList = [];
+            let absoluteRenderList = [];
+
             let childNodes = stackingContext.childNodes.slice();
             let subContexts = [];
 
@@ -679,13 +657,24 @@ export class Element extends Node {
                 let child = childNodes.shift();
 
                 if (!isNull(child.style.$.zIndex)) {
+
                     subContexts.push(child);
+
                 } else {
-                    renderList.push(child);
+
+                    if (child.style.$.position.isAbsolutelyPositioned) {
+                        absoluteRenderList.push(child);
+                    } else {
+                        staticRenderList.push(child);
+                    }
+
                     childNodes.splice(0, 0, ... child.childNodes);
+
                 }
 
             }
+
+            renderList = renderList.concat(staticRenderList, absoluteRenderList);
 
             stackingContexts.splice(0, 0, ... subContexts.sort((a, b) => {
                 return a.style.$.zIndex - b.style.$.zIndex;
@@ -697,39 +686,47 @@ export class Element extends Node {
 
     }
 
-    cascadeLayout(force) {
+    cascadeLayout({ dirtyLayoutNodes, force = false } = {}) {
 
-        if (force)
-            this.flags |= flags.ELEMENT_HAS_DIRTY_LAYOUT;
+        if (force || this.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN)) {
 
-        force = flags.ELEMENT_HAS_DIRTY_LAYOUT;
+            if (force || this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT) {
 
-        if (this.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN)) {
+                let nextElementRect = new Rect();
 
-            let nextElementRect = new Rect();
+                nextElementRect.x = this.yogaNode.getComputedLeft();
+                nextElementRect.y = this.yogaNode.getComputedTop();
 
-            nextElementRect.x = this.yogaNode.getComputedLeft();
-            nextElementRect.y = this.yogaNode.getComputedTop();
+                nextElementRect.width = this.yogaNode.getComputedWidth();
+                nextElementRect.height = this.yogaNode.getComputedHeight();
 
-            nextElementRect.width = this.yogaNode.getComputedWidth();
-            nextElementRect.height = this.yogaNode.getComputedHeight();
+                let nextContentRect = new Rect();
 
-            let nextContentRect = new Rect();
+                nextContentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
+                nextContentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
 
-            nextContentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
-            nextContentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
+                nextContentRect.width = nextElementRect.width - nextContentRect.x - this.yogaNode.getComputedBorder(Yoga.EDGE_RIGHT) - this.yogaNode.getComputedPadding(Yoga.EDGE_RIGHT);
+                nextContentRect.height = nextElementRect.height - nextContentRect.y - this.yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM) - this.yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM);
 
-            nextContentRect.width = nextElementRect.width - this.yogaNode.getComputedBorder(Yoga.EDGE_HORIZONTAL) - this.yogaNode.getComputedPadding(Yoga.EDGE_HORIZONTAL);
-            nextContentRect.height = nextElementRect.height - this.yogaNode.getComputedBorder(Yoga.EDGE_VERTICAL) - this.yogaNode.getComputedPadding(Yoga.EDGE_VERTICAL);
+                let doesChange = !nextElementRect.equals(this.elementRect) || !nextContentRect.equals(this.contentRect);
 
-            if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT || !nextElementRect.equals(this.elementRect) || !nextContentRect.equals(this.contentRect))
-                this.setDirtyClippingFlag();
+                this.elementRect = nextElementRect;
+                this.contentRect = nextContentRect;
 
-            this.elementRect = nextElementRect;
-            this.contentRect = nextContentRect;
+                if (doesChange || this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT)
+                    for (let child of this.childNodes)
+                        child.cascadeLayout({ dirtyLayoutNodes, force: true });
 
-            for (let child of this.childNodes)
-                child.cascadeLayout(force);
+                if (doesChange)
+                    dirtyLayoutNodes.push(this);
+
+                this.setDirtyClippingFlag({ silent: true });
+
+            } else for (let child of this.childNodes) {
+
+                child.cascadeLayout({ dirtyLayoutNodes, force: true });
+
+            }
 
             this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
                 return child.elementRect.x + child.elementRect.width;
@@ -746,21 +743,22 @@ export class Element extends Node {
 
     }
 
-    cascadeClipping(force) {
+    cascadeClipping({ dirtyScrollNodes, force = false } = {}) {
 
-        if (force)
-            this.flags |= flags.ELEMENT_HAS_DIRTY_CLIPPING;
+        if (force || this.flags & (flags.ELEMENT_HAS_DIRTY_CLIPPING | flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN)) {
 
-        force = flags.ELEMENT_HAS_DIRTY_LAYOUT;
-
-        if (this.flags & (flags.ELEMENT_HAS_DIRTY_CLIPPING | flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN)) {
-
-            if (this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING) {
+            if (force || this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING) {
 
                 this.rootNode.queueDirtyRect(this.elementClipRect);
 
-                this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
-                this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+                let nextScrollX = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
+                let nextScrollY = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+
+                if (nextScrollX !== this.scrollRect.x || nextScrollY !== this.scrollRect.y)
+                    dirtyScrollNodes.push(this);
+
+                this.scrollRect.x = nextScrollX;
+                this.scrollRect.y = nextScrollY;
 
                 if (!this.parentNode) {
 
@@ -805,32 +803,10 @@ export class Element extends Node {
             }
 
             for (let child of this.childNodes)
-                child.cascadeClipping(force);
+                child.cascadeClipping({ dirtyScrollNodes, force: force || this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING });
 
             this.clearDirtyClippingFlag();
             this.clearDirtyClippingChildrenFlag();
-
-        }
-
-    }
-
-    cascadeRendering(force) {
-
-        if (force)
-            this.flags |= flags.ELEMENT_HAS_DIRTY_CLIPPING;
-
-        force = flags.ELEMENT_HAS_DIRTY_LAYOUT;
-
-        if (this.flags & (flags.ELEMENT_HAS_DIRTY_RENDERING | flags.ELEMENT_HAS_DIRTY_RENDERING_CHILDREN)) {
-
-            if (this.flags & flags.ELEMENT_HAS_DIRTY_RENDERING)
-                this.queueDirtyRect(this.elementClipRect);
-
-            for (let child of this.childNodes)
-                child.cascadeRendering(force);
-
-            this.clearDirtyRenderingFlag();
-            this.clearDirtyRenderingChildrenFlag();
 
         }
 

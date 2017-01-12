@@ -23,14 +23,14 @@ export class StylePosition {
 
 }
 
-StylePosition.relative = new StylePosition(`relative`, { isPositioned: true });
+StylePosition.relative = new StylePosition({ isPositioned: true });
 StylePosition.relative.serialize = () => `relative`;
 StylePosition.relative.toYoga = () => Yoga.POSITION_TYPE_RELATIVE;
 
-StylePosition.absolute = new StylePosition(`absolute`, { isPositioned: true, isAbsolutelyPositioned: true });
+StylePosition.absolute = new StylePosition({ isPositioned: true, isAbsolutelyPositioned: true });
 StylePosition.absolute.serialize = () => `absolute`;
 StylePosition.absolute.toYoga = () => Yoga.POSITION_TYPE_ABSOLUTE;
 
-StylePosition.fixed = new StylePosition(`fixed`, { isPositioned: true, isAbsolutelyPositioned: true });
+StylePosition.fixed = new StylePosition({ isPositioned: true, isAbsolutelyPositioned: true });
 StylePosition.fixed.serialize = () => `fixed`;
 StylePosition.fixed.toYoga = () => Yoga.POSITION_TYPE_ABSOLUTE;

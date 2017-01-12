@@ -37,6 +37,8 @@ export class EventSource {
 
         this.getParentInstance = getParentInstance;
 
+        this.declareEvent(`*`);
+
     }
 
     getParentEventSource() {
@@ -114,7 +116,7 @@ export class EventSource {
         if (!(event instanceof Event))
             throw new Error(`Failed to execute 'dispatchEvent': Parameter 2 is not of type 'Event'.`);
 
-        if (!this.listeners.has(event.name))
+        if (!this.listeners.has(event.name) || event.name === `*`)
             throw new Error(`Failed to execute 'dispatchEvent': '${event.name}' is not a valid event name.`);
 
         let eventSources = [];
@@ -132,9 +134,9 @@ export class EventSource {
             let eventSource = eventSources[t];
 
             let listeners = eventSource.listeners.get(event.name);
-            let callbacks = listeners ? listeners.capture : new Map();
+            let allListeners = eventSource.listeners.get(`*`);
 
-            for (let [ callback, { once } ] of callbacks) {
+            for (let [ callback, { once } ] of [ ... listeners.capture, ... allListeners.capture ]) {
 
                 if (event.immediatlyCanceled)
                     break;
@@ -154,9 +156,9 @@ export class EventSource {
             let eventSource = eventSources[eventSources.length - t - 1];
 
             let listeners = eventSource.listeners.get(event.name);
-            let callbacks = listeners ? listeners.bubble : new Map();
+            let allListeners = eventSource.listeners.get(`*`);
 
-            for (let [ callback, { once } ] of callbacks) {
+            for (let [ callback, { once } ] of [ ... listeners.bubble, ... allListeners.bubble ]) {
 
                 if (event.immediatlyCanceled)
                     break;

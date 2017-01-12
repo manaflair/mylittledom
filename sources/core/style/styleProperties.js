@@ -20,9 +20,9 @@ let strong = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
 export let styleProperties = {
 
     display: {
-        parsers: [ pick(StyleDisplay, `block`, `flex`), null ],
+        parsers: [ pick(StyleDisplay, `flex`), null ],
         triggers: [ dirtyLayout, onNullSwitch(dirtyRenderList) ],
-        initial: `block`
+        initial: `flex`
     },
 
     position: {

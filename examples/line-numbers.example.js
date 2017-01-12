@@ -6,10 +6,10 @@ container.style.position = `relative`;
 container.style.paddingLeft = 4;
 screen.appendChild(container);
 
-let input = new TermInput({ allowNewlines: true });
+let input = new TermInput({ multiline: true });
 input.style.backgroundCharacter = ` `;
 input.style.backgroundColor = null;
-input.style.height = `auto`;
+input.style.minHeight = 1;
 input.style.maxHeight = `100%`;
 input.value = lorem.paragraphs(5);
 container.appendChild(input);
@@ -20,7 +20,6 @@ lines.style.left = 0;
 lines.style.top = 0;
 lines.style.bottom = 0;
 lines.style.width = 4;
-lines.style.backgroundColor = `red`;
 lines.renderContent = (x, y, l) => `${y + input.scrollTop}`.padEnd(4).substr(x, l);
 container.appendChild(lines);
 

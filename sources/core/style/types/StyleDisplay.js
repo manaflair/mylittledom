@@ -1,19 +1,14 @@
 import { BlockLayout } from '../../layout/BlockLayout';
-import { FlexLayout }  from '../../layout/FlexLayout';
 
 export class StyleDisplay {
 
-    constructor(name, layout = null) {
-
-        this.name = name;
-
-        this.layout = layout;
+    constructor() {
 
     }
 
     serialize() {
 
-        return this.name;
+        return null;
 
     }
 
@@ -25,5 +20,5 @@ export class StyleDisplay {
 
 }
 
-StyleDisplay.block = new StyleDisplay(`block`, BlockLayout);
-StyleDisplay.flex = new StyleDisplay(`flex`, FlexLayout);
+StyleDisplay.flex = new StyleDisplay(`flex`);
+StyleDisplay.flex.serialize = () => `flex`;

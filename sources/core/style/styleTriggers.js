@@ -15,7 +15,7 @@ export function dirtyClipping(node) {
 
 export function dirtyRendering(node) {
 
-    node.setDirtyRenderingFlag();
+    node.queueDirtyRect();
 
 }
 

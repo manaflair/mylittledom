@@ -110,7 +110,7 @@ describe(`Element`, () => {
 
             let element = new Element();
 
-            expect(element.style.$.display).to.equal(StyleDisplay.block);
+            expect(element.style.$.display).to.equal(StyleDisplay.flex);
 
         });
 
@@ -121,8 +121,8 @@ describe(`Element`, () => {
             element.style.display = null;
             expect(element.style.display).to.equal(null);
 
-            element.style.display = `block`;
-            expect(element.style.display).to.equal(`block`);
+            element.style.display = `flex`;
+            expect(element.style.display).to.equal(`flex`);
 
             element.style.left = 100;
             expect(element.style.left).to.equal(100);
@@ -155,7 +155,7 @@ describe(`Element`, () => {
             let element = new Element();
 
             expect(() => { element.style.display = `lolno` }).to.throw(Error);
-            expect(element.style.$.display).to.equal(StyleDisplay.block);
+            expect(element.style.$.display).to.equal(StyleDisplay.flex);
 
             expect(() => { element.style.color = 42 }).to.throw(Error);
             expect(element.style.$.color).to.equal(null);
@@ -175,8 +175,8 @@ describe(`Element`, () => {
             element.style.display = null;
             expect(element.style.$.display).to.equal(null);
 
-            element.style.display = `block`;
-            expect(element.style.$.display).to.equal(StyleDisplay.block);
+            element.style.display = `flex`;
+            expect(element.style.$.display).to.equal(StyleDisplay.flex);
 
             element.style.position = `fixed`;
             expect(element.style.$.position).to.equal(StylePosition.fixed);
