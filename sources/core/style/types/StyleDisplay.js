@@ -1,10 +1,4 @@
-import { BlockLayout } from '../../layout/BlockLayout';
-
 export class StyleDisplay {
-
-    constructor() {
-
-    }
 
     serialize() {
 
@@ -20,5 +14,5 @@ export class StyleDisplay {
 
 }
 
-StyleDisplay.flex = new StyleDisplay(`flex`);
+StyleDisplay.flex = new StyleDisplay();
 StyleDisplay.flex.serialize = () => `flex`;

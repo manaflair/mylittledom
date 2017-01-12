@@ -1,21 +1,57 @@
-import { lorem }                            from 'faker';
-import { TermElement, TermRadio, TermText } from 'ohui/term';
+import { autobind } from 'core-decorators';
+import { lorem }    from 'faker';
+import { render }   from 'ohui/term/react';
 
-let controls = new TermElement();
-controls.style.position = `absolute`;
-controls.style.left = 2;
-controls.style.bottom = 1;
-controls.style.border = `modern`;
-controls.appendTo(screen);
+class ControlPanel extends React.PureComponent {
 
-let label = new TermText();
-label.textContent = `Some text`;
-label.style.background = `green`;
-label.appendTo(controls);
+    static styles = {
 
-let radio = new TermRadio();
-radio.appendTo(controls);
+        position: `absolute`,
 
-let text = new TermText();
-text.textContent = lorem.paragraphs(5);
-text.appendTo(screen);
+        left: 4,
+        bottom: 2,
+
+        border: `modern`
+
+    };
+
+    render() {
+
+        return <div style={ControlPanel.styles}>
+
+            <div style={{``}}>
+                Test
+            </div>
+
+        </div>;
+
+    }
+
+}
+
+class Example extends React.PureComponent {
+
+    static styles = {
+
+        position: `relative`,
+
+        width: `100%`,
+        height: `100%`
+
+    };
+
+    render() {
+
+        return <div style={Example.styles}>
+
+            <ControlPanel />
+
+            {lorem.paragraphs(25)}
+
+        </div>;
+
+    }
+
+}
+
+render(<Example />, screen);

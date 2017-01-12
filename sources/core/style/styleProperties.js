@@ -7,6 +7,8 @@ import { onNullSwitch }                                                         
 import { StyleAlignment }                                                                                                  from './types/StyleAlignment';
 import { StyleDecoration }                                                                                                 from './types/StyleDecoration';
 import { StyleDisplay }                                                                                                    from './types/StyleDisplay';
+import { StyleFlexAlignment }                                                                                              from './types/StyleFlexAlignment';
+import { StyleFlexDirection }                                                                                              from './types/StyleFlexDirection';
 import { StyleOverflowWrap }                                                                                               from './types/StyleOverflowWrap';
 import { StyleOverflow }                                                                                                   from './types/StyleOverflow';
 import { StylePosition }                                                                                                   from './types/StylePosition';
@@ -23,6 +25,30 @@ export let styleProperties = {
         parsers: [ pick(StyleDisplay, `flex`), null ],
         triggers: [ dirtyLayout, onNullSwitch(dirtyRenderList) ],
         initial: `flex`
+    },
+
+    alignContent: {
+        parsers: [ pick(StyleFlexAlignment, `flexStart`, `flexEnd`, `center`, `spaceBetween`, `spaceAround`, `stretch` ) ],
+        triggers: [ dirtyLayout, forwardToYoga(`setAlignContent`, forwardToYoga.value) ],
+        initial: `stretch`
+    },
+
+    alignItems: {
+        parsers: [ pick(StyleFlexAlignment, `flexStart`, `flexEnd`, `center`, `baseline`, `stretch`) ],
+        triggers: [ dirtyLayout, forwardToYoga(`setAlignItems`, forwardToYoga.value) ],
+        initial: `stretch`
+    },
+
+    alignSelf: {
+        parsers: [ pick(StyleFlexAlignment, `auto`, `flexStart`, `flexEnd`, `center`, `baseline`, `stretch`) ],
+        triggers: [ dirtyLayout, forwardToYoga(`setAlignSelf`, forwardToYoga.value) ],
+        initial: `auto`
+    },
+
+    flexDirection: {
+        parsers: [ pick(StyleFlexDirection, `row`, `column`, `rowReverse`, `columnReverse`) ],
+        triggers: [ dirtyLayout, forwardToYoga(`setFlexDirection`, forwardToYoga.value) ],
+        initial: `column`
     },
 
     position: {

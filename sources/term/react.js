@@ -119,7 +119,7 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // Create a text instance. It will get called for each text node in your React tree, except if their parent is returning a truthy value when invoked through the `shouldSetTextContent` hook.
 
-        return new TermText({ textContent: text });
+        return new (TermElements.TermText)({ textContent: text });
 
     }
 

@@ -646,9 +646,6 @@ export class Element extends Node {
             let stackingContext = stackingContexts.shift();
             renderList.push(stackingContext);
 
-            let staticRenderList = [];
-            let absoluteRenderList = [];
-
             let childNodes = stackingContext.childNodes.slice();
             let subContexts = [];
 
@@ -657,24 +654,15 @@ export class Element extends Node {
                 let child = childNodes.shift();
 
                 if (!isNull(child.style.$.zIndex)) {
-
                     subContexts.push(child);
-
+                } else if (child.style.$.position.isAbsolutelyPositioned) {
+                    subContexts.push(child);
                 } else {
-
-                    if (child.style.$.position.isAbsolutelyPositioned) {
-                        absoluteRenderList.push(child);
-                    } else {
-                        staticRenderList.push(child);
-                    }
-
+                    renderList.push(child);
                     childNodes.splice(0, 0, ... child.childNodes);
-
                 }
 
             }
-
-            renderList = renderList.concat(staticRenderList, absoluteRenderList);
 
             stackingContexts.splice(0, 0, ... subContexts.sort((a, b) => {
                 return a.style.$.zIndex - b.style.$.zIndex;
@@ -682,7 +670,9 @@ export class Element extends Node {
 
         }
 
-        return renderList.reverse();
+        renderList.reverse();
+
+        return renderList;
 
     }
 

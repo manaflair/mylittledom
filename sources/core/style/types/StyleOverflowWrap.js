@@ -1,8 +1,6 @@
 export class StyleOverflowWrap {
 
-    constructor(name, { doesBreakWords = false } = {}) {
-
-        this.name = name;
+    constructor({ doesBreakWords = false } = {}) {
 
         this.doesBreakWords = doesBreakWords;
 
@@ -10,7 +8,7 @@ export class StyleOverflowWrap {
 
     serialize() {
 
-        return this.name;
+        return null;
 
     }
 
@@ -22,5 +20,8 @@ export class StyleOverflowWrap {
 
 }
 
-StyleOverflowWrap.normal = new StyleOverflowWrap(`normal`);
-StyleOverflowWrap.breakWord = new StyleOverflowWrap(`breakWord`, { doesBreakWords: true });
+StyleOverflowWrap.normal = new StyleOverflowWrap();
+StyleOverflowWrap.normal.serialize = () => `normal`;
+
+StyleOverflowWrap.breakWord = new StyleOverflowWrap({ doesBreakWords: true });
+StyleOverflowWrap.breakWord.serialize = () => `breakWord`;

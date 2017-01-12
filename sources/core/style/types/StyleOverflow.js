@@ -1,14 +1,8 @@
 export class StyleOverflow {
 
-    constructor(name) {
-
-        this.name = name;
-
-    }
-
     serialize() {
 
-        return this.name;
+        return null;
 
     }
 
@@ -20,5 +14,8 @@ export class StyleOverflow {
 
 }
 
-StyleOverflow.visible = new StyleOverflow(`visible`);
-StyleOverflow.hidden = new StyleOverflow(`hidden`);
+StyleOverflow.visible = new StyleOverflow();
+StyleOverflow.visible.serialize = () => `visible`;
+
+StyleOverflow.hidden = new StyleOverflow();
+StyleOverflow.hidden.serialize = () => `hidden`;

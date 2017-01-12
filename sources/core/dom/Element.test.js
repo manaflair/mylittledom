@@ -49,6 +49,8 @@ describe(`Element`, () => {
 
             let renderList = elementA.generateRenderList();
 
+            console.log(renderList);
+
             expect(renderList).to.have.length(4);
 
             expect(renderList).to.have.property(0, elementC);
