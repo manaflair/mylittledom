@@ -1,10 +1,12 @@
+const emptyObject = {};
+
 let Renderer = ReactFiberReconcilier(new class {
 
     getRootHostContext() {
 
         // TODO: ???
 
-        return {};
+        return emptyObject;
 
     }
 
@@ -12,7 +14,7 @@ let Renderer = ReactFiberReconcilier(new class {
 
         // TODO: ???
 
-        return {};
+        return emptyObject;
 
     }
 
