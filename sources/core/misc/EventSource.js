@@ -141,8 +141,8 @@ export class EventSource {
                 if (event.immediatlyCanceled)
                     break;
 
-                event.currentTarget = this.instance;
-                callback.call(this.instance, event);
+                event.currentTarget = eventSource.instance;
+                callback.call(event.currentTarget, event);
 
             }
 
@@ -163,8 +163,8 @@ export class EventSource {
                 if (event.immediatlyCanceled)
                     break;
 
-                event.currentTarget = this.instance;
-                callback.call(this.instance, event);
+                event.currentTarget = eventSource.instance;
+                callback.call(event.currentTarget, event);
 
             }
 

@@ -67,20 +67,24 @@ export class TermElement extends Element {
 
     }
 
-    addShortcutListener(descriptor, callback) {
+    addShortcutListener(descriptors, callback) {
 
-        let sequence = new KeySequence(descriptor);
+        for (let descriptor of descriptors.split(/,/g)) {
 
-        this.addEventListener(`keypress`, e => {
+            let sequence = new KeySequence(descriptor);
 
-            if (!e.key)
-                return;
+            this.addEventListener(`keypress`, e => {
 
-            if (sequence.add(e.key)) {
-                callback.call(this, e);
-            }
+                if (!e.key)
+                    return;
 
-        });
+                if (sequence.add(e.key)) {
+                    callback.call(this, e);
+                }
+
+            });
+
+        }
 
     }
 

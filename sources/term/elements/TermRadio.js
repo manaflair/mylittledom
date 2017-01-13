@@ -1,24 +1,153 @@
-import { Event }       from '../../core';
+import { isBoolean, isNull, isString }                                from 'lodash';
 
-import { TermElement } from './TermElement';
+import { Event, findAncestorByPredicate, findDescendantsByPredicate } from './../../core';
+
+import { TermElement }                                                from './TermElement';
+import { TermForm }                                                   from './TermForm';
 
 export class TermRadio extends TermElement {
 
-    constructor({ checked = false, ... props } = {}) {
+    constructor({ checked = false, name = null, ... props } = {}) {
 
         super(props);
 
-        this.yogaNode.setMeasureFunc(maxWidth => {
-            return { width: Math.min(maxWidth, 3), height: 1 };
+        this.style.element.focusEvents = true;
+
+        this.style.element.focused.color = `yellow`;
+
+        this.yogaNode.setMeasureFunc((maxWidth, widthMode, maxHeight, heightMode) => {
+
+            let width = Math.min(maxWidth, 3);
+            let height = Math.min(maxHeight, 1);
+
+            return { width, height };
+
         });
 
-        this.setPropertyTrigger(`checked`, () => {
-            this.setDirtyRenderingFlag();
-            this.dispatchEvent(new Event(`change`));
-        }, { initial: checked });
+        this.addShortcutListener(`enter`, () => {
+
+            this.checked = true;
+
+        });
+
+        this.addShortcutListener(`left, up`, () => {
+
+            if (isNull(this.name))
+                return;
+
+            let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+            if (!form)
+                return;
+
+            let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
+
+            let index = radios.indexOf(this);
+            let prev = (index === 0 ? radios.length : index) - 1;
+
+            radios[prev].focus();
+
+        });
+
+        this.addShortcutListener(`down, right`, () => {
+
+            if (isNull(this.name))
+                return;
+
+            let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+            if (!form)
+                return;
+
+            let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
+
+            let index = radios.indexOf(this);
+            let next = (index === radios.length - 1 ? -1 : index) + 1;
+
+            radios[next].focus();
+
+        });
+
+        this.setPropertyTrigger(`name`, name, {
+
+            validate: value => {
+
+                return isNull(value) || isString(value);
+
+            },
+
+            trigger: value => {
+
+                if (!isNull(value)) {
+
+                    let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+                    if (form) {
+
+                        let uncheck = false;
+
+                        for (let radio of findDescendantsByPredicate(form, node => node instanceof TermRadio)) {
+
+                            if (uncheck)
+                                radio.checked = false;
+
+                            if (radio.checked) {
+                                uncheck = true;
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+        this.setPropertyTrigger(`checked`, checked, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: value => {
+
+                if (!isNull(this.name)) {
+
+                    if (value) {
+
+                        let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+                        for (let radio of findDescendantsByPredicate(form, node => node instanceof TermRadio)) {
+
+                            if (radio === this)
+                                continue;
+
+                            if (radio.name !== this.name)
+                                continue;
+
+                            radio.checked = false;
+
+                        }
+
+                    }
+
+                }
+
+                this.queueDirtyRect();
+                this.dispatchEvent(new Event(`change`));
+
+            }
+
+        });
 
         this.addEventListener(`mousedown`, () => {
+
             this.checked = true;
+
         });
 
     }

@@ -299,7 +299,7 @@ export let styleProperties = {
 
     overflowWrap: {
         parsers: [ pick(StyleOverflowWrap, `normal`, `breakWord`) ],
-        triggers: [ dirtyLayout, forwardToTextLayout(`allowWordBreaks`, value => value.doesBreakWord) ],
+        triggers: [ dirtyLayout, forwardToTextLayout(`allowWordBreaks`, value => value.doesBreakWords) ],
         initial: `normal`
     },
 

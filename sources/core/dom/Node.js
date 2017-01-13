@@ -159,7 +159,30 @@ export class Node {
 
     }
 
-    setPropertyTrigger(name, fn, { initial } = {}) {
+    setPropertyAccessor(name, { validate = () => true, get = null, set = null }) {
+
+        Reflect.defineProperty(this, name, {
+
+            get() {
+
+                return get();
+
+            },
+
+            set(newValue) {
+
+                if (!validate(newValue))
+                    throw new Error(`Failed to set "${name}": The value to be set does not pass the property's validation routine.`);
+
+                return set(newValue);
+
+            }
+
+        });
+
+    }
+
+    setPropertyTrigger(name, initial, { validate = () => true, trigger = () => {} }) {
 
         let value;
 
@@ -176,8 +199,11 @@ export class Node {
                 if (newValue === value)
                     return;
 
-                fn(newValue);
+                if (!validate(newValue))
+                    throw new Error(`Failed to set "${name}": The value to be set does not pass the property's validation routine.`);
+
                 value = newValue;
+                trigger(newValue);
 
             }
 

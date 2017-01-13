@@ -1,3 +1,4 @@
+import { isString }     from 'lodash';
 import TextBuffer       from 'text-buffer';
 
 import { TermTextBase } from './TermTextBase';
@@ -8,17 +9,27 @@ export class TermText extends TermTextBase {
 
         super({ ... props, textBuffer, enterIsNewline: true });
 
-    }
+        this.setPropertyAccessor(`textContent`, {
 
-    get textContent() {
+            validate: value => {
 
-        return this.textBuffer.getText();
+                return isString(value);
 
-    }
+            },
 
-    set textContent(textContent) {
+            get: () => {
 
-        this.textBuffer.setText(textContent);
+                return this.textBuffer.getText();
+
+            },
+
+            set: value => {
+
+                this.textBuffer.setText(value);
+
+            }
+
+        });
 
     }
 

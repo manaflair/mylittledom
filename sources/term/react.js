@@ -195,7 +195,9 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
     prepareUpdate(instance, type, oldProps, newProps, hostContext) {
 
-        //
+        // This function needs to check if an update is actually required, and return true in such a case. If you don't, the commitUpdate hook will not get called.
+
+        return true;
 
     }
 

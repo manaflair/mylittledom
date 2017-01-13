@@ -63,7 +63,7 @@ OhUI does not aim to be a perfect HTML renderer and, as such, will not attempt t
 
   - Perfect HTML compatibility
   - Floating positioning
-  - Inline display
+  - Block / Inline display
   - Font size
 
 ### Major changes

@@ -1,3 +1,4 @@
+import { isString }     from 'lodash';
 import TextBuffer       from 'text-buffer';
 
 import { TermTextBase } from './TermTextBase';
@@ -14,22 +15,44 @@ export class TermInput extends TermTextBase {
 
         this.style.element.focused.backgroundColor = `#000088`;
 
-        this.setPropertyTrigger(`multiline`, value => {
-            this.style.element.minHeight = value ? 10 : 1;
-            this.enterIsNewline = multiline ? true : false;
-        }, { initial: multiline });
+        this.setPropertyAccessor(`value`, {
 
-    }
+            validate: value => {
 
-    get value() {
+                return isString(value);
 
-        return this.textBuffer.getText();
+            },
 
-    }
+            get: () => {
 
-    set value(value) {
+                return this.textBuffer.getText();
 
-        this.textBuffer.setText(value);
+            },
+
+            set: value => {
+
+                this.textBuffer.setText(value);
+
+            }
+
+        });
+
+        this.setPropertyTrigger(`multiline`, multiline, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: value => {
+
+                this.style.element.minHeight = value ? 10 : 1;
+                this.enterIsNewline = multiline ? true : false;
+
+            }
+
+        });
 
     }
 

@@ -1,9 +1,10 @@
-import { TextLayout }   from '@manaflair/text-layout/sources/entry-browser';
-import TextBuffer       from 'text-buffer';
+import { TextLayout }         from '@manaflair/text-layout/sources/entry-browser';
+import { isFunction, isNull } from 'lodash';
+import TextBuffer             from 'text-buffer';
 
-import { Event, Point } from '../../core';
+import { Event, Point }       from '../../core';
 
-import { TermElement }  from './TermElement';
+import { TermElement }        from './TermElement';
 
 export class TermTextBase extends TermElement {
 
@@ -31,7 +32,7 @@ export class TermTextBase extends TermElement {
 
         });
 
-        this.on(`relayout`, () => {
+        this.addEventListener(`relayout`, () => {
 
             if (this.textLayout.setOptions({ columns: this.contentRect.width })) {
                 this.textLayout.reset().apply(this.textLines);
@@ -103,15 +104,6 @@ export class TermTextBase extends TermElement {
             }
 
         });
-
-        this.setPropertyTrigger(`transformPass`, value => {
-
-            if (value !== null && typeof value !== `function`)
-                throw new Error(`Failed to set "transformPass": Value has to be null or a function.`);
-
-            this.queueDirtyRect();
-
-        }, { initial: null });
 
         this.addShortcutListener(`left`, () => {
 
@@ -312,6 +304,22 @@ export class TermTextBase extends TermElement {
 
         });
 
+        this.setPropertyTrigger(`transformPass`, null, {
+
+            validate: value => {
+
+                return isNull(value) || isFunction(value);
+
+            },
+
+            trigger: value => {
+
+                this.queueDirtyRect();
+
+            }
+
+        });
+
     }
 
     appendChild(node) {
@@ -365,7 +373,7 @@ export class TermTextBase extends TermElement {
 
         let prefixLength = Math.max(0, Math.min(fullLineStart - x, l));
         let lineStart = Math.max(0, x - fullLineStart);
-        let lineLength = Math.max(0, Math.min(fullLineLength - lineStart, l));
+        let lineLength = Math.max(0, Math.min(l + x - fullLineStart, l, fullLineLength - lineStart));
         let suffixLength = Math.max(0, l - prefixLength - lineLength);
 
         let prefix = this.renderBackground(prefixLength);
