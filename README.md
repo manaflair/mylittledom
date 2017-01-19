@@ -164,13 +164,15 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
   - `new TermForm()`
 
+    - Forms are used to wrap various input elements.
+
   - `new TermInput({ value, textBuffer, allowNewlines })`
 
     - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `value` option.
 
     - The `value` property contains the actual value of the element. You can also access it directly from the `textBuffer` property.
 
-    - When enabled, `multiline` will make <kbd>enter</kdb> insert newline characters inside the element content. When disabled, <kbd>enter</kbd> keystrokes will be forwarded to the nearest `TermForm` ancestor, or ignored if there's none to be found.
+    - When enabled, `multiline` will make <kbd>enter</kbd> insert newline characters inside the element content. When disabled, <kbd>enter</kbd> keystrokes will be forwarded to the nearest `TermForm` ancestor, or ignored if there's none to be found.
 
   - `new TermLabel()`
 
@@ -186,13 +188,13 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
 ### How to render elements
 
-MyLittleDom uses lines as first-class citizens. When part of the screen need to be redrawn, it will ask your elements to render the lines they own, and will print the resulting strings on screen. You can use your own render implementation by overriding a few methods, detailed below.
+The MyLittleDom renderer units of work are lines. When it detects that some part of the screen needs to be redrawn, it will forward the calls to the affected elements, asking them to re-render the lines they own. The various results obtained this way will be merged together before being printed on screen. You can easily setup your elements to use your own rendering implementation by overriding a few methods, detailed below.
 
 #### `Element.prototype.render(x, y, l)`
 
-MyLittleDom will call this method every time it needs to redraw part of an element, once for each line that needs to be redrawn. You can't make any assumption about the coordinates, nor about the length (MyLittleDom will sometimes ask your to render only a small part of a line instead of all of it).
+The engine will call this method every time some part of an element needs to be redrawn, exactly once for each line that needs to be redrawn. You can't make any assumption about the coordinates, nor about the requested length (MyLittleDom will sometimes ask your element to render only a small part of a line instead of its entirety).
 
-The default implementation includes all the logic required to support borders and paddings, and we don't advise you to alter it. Consider overriding `renderContent` instead.
+The default implementation includes all the logic required to support borders and paddings, and we don't advise you to override it. Consider overriding `renderContent` instead.
 
 #### `Element.prototype.renderContent(x, y, l)`
 
@@ -202,15 +204,15 @@ The default implementation doesn't render anything else than the background, so 
 
 #### `element.renderText(text)`
 
-You can call this function by passing it a string as parameter. It will return the same string, except that it will account for the `fontWeight`, `textDecoration`, `backgroundColor` and `color` style properties by adding the required terminal sequences.
+You can call this function by passing it a string as parameter. It will return the same string wrapped into each terminal sequences required to match the `fontWeight`, `textDecoration`, `backgroundColor` and `color` style properties of the element.
 
-Note that the `length` property of the returned string cannot be trusted to be equal to the `length` property of the input string, since the string might contain additional invisible characters used for terminal sequences.
+Note that the `length` property of the returned string cannot be trusted to be equal to the `length` property of the input string, since the string might also contain additional invisible characters used for terminal sequences.
 
 #### `element.renderBackground(l)`
 
 You can call this function by passing it a number as parameter. It will return a string of the given length, using `backgroundColor` and `backgroundCharacter` style properties to generate the right sequence.
 
-Just like for `renderText`, you can't trust the `length` property of the returned string to be equal to the requested size, since the string might contain additional invisible characters used for terminal sequences.
+Just like for `renderText`, you can't trust the `length` property of the returned string to be equal to the requested size, since it might contain additional invisible characters used for terminal sequences.
 
 ### Tips & Tricks
 
