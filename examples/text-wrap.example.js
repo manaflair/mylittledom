@@ -1,17 +1,21 @@
+import { render }   from '@manaflair/mylittledom/term/react';
 import { autobind } from 'core-decorators';
 import { lorem }    from 'faker';
 import { pick }     from 'lodash';
-import { render }   from 'ohui/term/react';
 
 class ControlPanel extends React.PureComponent {
 
     static propTypes = {
+
+        values: React.PropTypes.object,
 
         onChange: React.PropTypes.func
 
     };
 
     static defaultProps = {
+
+        values: {},
 
         onChange: () => {}
 
@@ -32,10 +36,8 @@ class ControlPanel extends React.PureComponent {
 
     static properties = {
 
-        overflowWrap: [ `normal`, `breakWord` ],
-
         textAlign: [ `left`, `center`, `right`, `justify` ],
-
+        overflowWrap: [ `normal`, `breakWord` ],
         whiteSpace: [ `normal`, `noWrap`, `pre`, `preWrap`, `preLine` ]
 
     };
@@ -59,7 +61,7 @@ class ControlPanel extends React.PureComponent {
                     {ControlPanel.properties[property].map(value =>
 
                         <label key={value} style={{ flexDirection: `row` }}>
-                            <radio name={property} style={{ marginRight: 1, flex: null }} onChange={() => this.handleChange(property, value)} />
+                            <radio name={property} style={{ marginRight: 1, flex: null }} onChange={() => this.handleChange(property, value)} checked={this.props.values[property] === value} />
                             {value}
                         </label>
 
@@ -88,11 +90,11 @@ class Example extends React.PureComponent {
 
     state = {
 
-        text: lorem.paragraphs(60),
+        text: [ ... Array(60) ].map(() => lorem.paragraph(15) + `\n`).join(`\n`),
 
+        textAlign: `left`,
         overflowWrap: `normal`,
-        textAlign: `right`,
-        whiteSpace: `normal`
+        whiteSpace: `preWrap`
 
     };
 
@@ -106,7 +108,7 @@ class Example extends React.PureComponent {
 
         return <div style={Example.styles}>
 
-            <ControlPanel onChange={this.handleStyleChange} />
+            <ControlPanel onChange={this.handleStyleChange} values={pick(this.state, `overflowWrap`, `textAlign`, `whiteSpace`)} />
 
             <text textContent={this.state.text} style={pick(this.state, `overflowWrap`, `textAlign`, `whiteSpace`)} />
 

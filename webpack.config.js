@@ -1,5 +1,7 @@
 module.exports = {
 
+    devtool: `cheap-eval-source-map`,
+
     entry: {
 
         main: [
@@ -22,9 +24,20 @@ module.exports = {
         rules: [ {
 
             test: /\.js$/,
+            loader: `source-map-loader`,
+            enforce: `pre`
+
+        }, {
+
+            test: /\.map$/,
+            loader: `ignore-loader`
+
+        }, {
+
+            test: /\.js$/,
             loader: `babel-loader`,
             include: [ `${__dirname}/demo` ],
-            options: { babelrc: false, presets: [ `es2015`, `react` ], plugins: [ `react-require`, `transform-decorators-legacy`, `transform-class-properties` ] }
+            options: { babelrc: false, presets: [ `es2015`, `react` ], plugins: [ `react-require`, `transform-decorators-legacy`, `transform-class-properties` ] },
 
         }, {
 
@@ -63,7 +76,7 @@ module.exports = {
         ],
 
         alias: {
-            ohui: `${__dirname}/sources`
+            [`@manaflair/mylittledom`]: `${__dirname}/sources`
         },
 
     },
@@ -77,7 +90,7 @@ module.exports = {
 
     plugins: [
 
-        new (require(`webpack`).DefinePlugin)({ [`process.env.TERM_FEATURES`]: JSON.stringify(`true-colors`) }),
+        new (require(`webpack`).DefinePlugin)({ [`process.env.TERM_FEATURES`]: JSON.stringify(`true-colors`), [`ENVIRONMENT_IS_WEB`]: `true` }),
         new (require(`extract-text-webpack-plugin`))(`style.css`),
         new (require(`html-webpack-plugin`))()
 

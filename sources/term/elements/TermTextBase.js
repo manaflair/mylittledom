@@ -20,40 +20,36 @@ export class TermTextBase extends TermElement {
         this.textLayout = new TextLayout();
         this.textLines = [ `` ];
 
-        this.yogaNode.setMeasureFunc(maxWidth => {
-
-            if (this.textLayout.setOptions({ columns: maxWidth }))
-                this.textLayout.reset().apply(this.textLines);
-
-            let width = this.textLayout.getColumnCount();
-            let height = this.textLayout.getRowCount();
-
-            return { width, height };
-
-        });
-
-        this.addEventListener(`relayout`, () => {
-
-            if (this.textLayout.setOptions({ columns: this.contentRect.width })) {
-                this.textLayout.reset().apply(this.textLines);
-            }
-
-        });
-
         this.textLayout.setCharacterGetter(offset => {
 
             let position = this.textBuffer.positionForCharacterIndex(offset);
 
             if (position.column == this.textBuffer.lineLengthForRow(position.row))
-                return this.textBuffer.lineEndingForRow(position.row).charCodeAt(0);
+                return this.textBuffer.lineEndingForRow(position.row);
 
-            return this.textBuffer.lineForRow(position.row).charCodeAt(position.column);
+            return this.textBuffer.lineForRow(position.row)[position.column];
 
         });
 
         this.textLayout.setCharacterCountGetter(() => {
 
             return this.textBuffer.getMaxCharacterIndex();
+
+        });
+
+        this.textLayout.setSoftWrap(this.style.$.whiteSpace.doesWrap);
+        this.textLayout.setDemoteNewlines(this.style.$.whiteSpace.doesDemoteNewlines);
+        this.textLayout.setCollapseWhitespaces(this.style.$.whiteSpace.doesCollapse);
+        this.textLayout.setJustifyText(this.style.$.textAlign.isJustified);
+        this.textLayout.setAllowWordBreaks(this.style.$.overflowWrap.doesBreakWords);
+
+        this.textLayout.reset().apply(this.textLines);
+
+        this.addEventListener(`layout`, () => {
+
+            if (this.textLayout.setOptions({ columns: this.contentRect.width })) {
+                this.textLayout.reset().apply(this.textLines);
+            }
 
         });
 
@@ -337,6 +333,18 @@ export class TermTextBase extends TermElement {
     removeChild(node) {
 
         throw new Error(`Failed to execute 'removeChild': This node does not support this method.`);
+
+    }
+
+    getPreferredSize(maxWidth) {
+
+        if (this.textLayout.setOptions({ columns: maxWidth }))
+            this.textLayout.reset().apply(this.textLines);
+
+        let width = this.textLayout.getColumnCount();
+        let height = this.textLayout.getRowCount();
+
+        return { width, height };
 
     }
 

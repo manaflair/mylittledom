@@ -1,5 +1,5 @@
+import { TermElement, TermText, TermInput } from '@manaflair/mylittledom/term';
 import { lorem }                            from 'faker';
-import { TermElement, TermText, TermInput } from 'ohui/term';
 
 for (let t = 0; t < 10; ++t) {
 

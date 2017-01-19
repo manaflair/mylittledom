@@ -1,4 +1,4 @@
 {
     "presets": [ "react", "latest" ],
-    "plugins": [ "transform-class-properties", "transform-decorators-legacy", "transform-object-rest-spread", "react-require", [ "module-resolver", { "alias": { "ohui": "./sources" } } ] ]
+    "plugins": [ "transform-class-properties", "transform-decorators-legacy", "transform-object-rest-spread", "react-require", [ "module-resolver", { "alias": { "@manaflair/mylittledom": "./sources" } } ] ]
 }

@@ -1,5 +1,5 @@
+import { TermElement, TermText, TermInput } from '@manaflair/mylittledom/term';
 import { lorem }                            from 'faker';
-import { TermElement, TermText, TermInput } from 'ohui/term';
 
 let container = new TermElement();
 container.style.position = `relative`;
@@ -11,6 +11,7 @@ input.style.backgroundCharacter = ` `;
 input.style.backgroundColor = null;
 input.style.minHeight = 1;
 input.style.maxHeight = `100%`;
+input.style.whiteSpace = `preWrap`;
 input.value = lorem.paragraphs(5);
 container.appendChild(input);
 

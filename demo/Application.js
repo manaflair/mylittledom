@@ -1,11 +1,10 @@
 import './Application.css';
 
+import { TermScreen }             from '@manaflair/mylittledom/term';
 import { transform }              from 'babel-standalone';
 import { autobind }               from 'core-decorators';
-import faker                      from 'faker';
-import * as OhUICore              from 'ohui/core';
-import * as OhUITerm              from 'ohui/term';
-import { TermScreen }             from 'ohui/term';
+import * as Lodash                from 'lodash';
+
 import { Editor }                 from './Editor';
 import { Terminal }               from './Terminal';
 import { makeAnimationFunctions } from './tools';
@@ -14,6 +13,18 @@ let getPreset = require.context(`../examples/`, false, /^\.\/.*\.example\.js$/);
 let getPresetName = moduleName => moduleName.replace(/^.*\/|\.[^\/]*$/g, ``);
 
 export class Application extends React.PureComponent {
+
+    static exposedModules = new Map([
+
+        [ `@manaflair/mylittledom/core`, require(`@manaflair/mylittledom/core`) ],
+        [ `@manaflair/mylittledom/term/react`, require(`@manaflair/mylittledom/term/react`) ],
+        [ `@manaflair/mylittledom/term`, require(`@manaflair/mylittledom/term`) ],
+
+        [ `core-decorators`, require(`core-decorators`) ],
+        [ `faker`, require(`faker`) ],
+        [ `lodash`, require(`lodash`) ]
+
+    ]);
 
     constructor(props) {
 
@@ -30,6 +41,8 @@ export class Application extends React.PureComponent {
             // Choose a demo from the picker above or just roll your own code to
             // try out OhUI! If you think you've found a bug, just share the URL
             // on a Github issue and we'll look into it. Have fun!
+
+            import { TermText } from '@manaflair/mylittledom/term';
 
             let element = new TermText();
             element.contentText = \`Hello world! :)\`;
@@ -76,20 +89,17 @@ export class Application extends React.PureComponent {
 
         try {
 
-            let screen = new TermScreen({ debugPaintRects: true });
+            let screen = new TermScreen({ debugPaintRects: false });
             screen.addShortcutListener(`C-r`, () => window.location.reload());
 
             let raf = makeAnimationFunctions();
 
-            let transpiled = `(function (env) { with(env) {${transform(code, { presets: [ `es2015` ] }).code}\n} })`;
+            let transpiled = `(function (env) { with(env) {${transform(code, { presets: [ `es2015`, `stage-0`, `react` ], plugins: [ `transform-decorators-legacy` ] }).code}\n} })`;
             let compiled = window.eval(transpiled);
 
-            let modules = { [`faker`]: faker, [`ohui`]: OhUICore, [`ohui/term`]: OhUITerm };
-            let require = name => modules[name];
+            compiled(Object.assign(Object.create(null), {
 
-            compiled(Object.assign(Object.create(null), OhUICore, OhUITerm, {
-
-                require,
+                require: name => Application.exposedModules.get(name),
 
                 requestAnimationFrame: raf.requestAnimationFrame,
                 cancelAnimationFrame: raf.cancelAnimationFrame,

@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "testx": "mocha --compilers js:babel-register -r core-js sources/**/TermText.test.js",
+    "env": "env",
+    "install": "npm-git install",
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "demo": "node -r babel-register -r core-js -r ./examples/setup --",
@@ -10,12 +11,12 @@
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.3.0",
-    "@manaflair/text-layout": "^0.4.0",
+    "@manaflair/text-layout": "^0.5.4",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",
     "immutable": "^3.8.1",
     "lodash": "^4.16.4",
-    "text-buffer": "^9.4.2"
+    "npm-git-install": "^0.2.0"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
@@ -41,6 +42,7 @@
     "extract-text-webpack-plugin": "^2.0.0-beta",
     "faker": "^3.1.0",
     "html-webpack-plugin": "^2.24.1",
+    "ignore-loader": "^0.1.2",
     "json-loader": "^0.5.4",
     "mocha": "^3.1.2",
     "react": "next",
@@ -49,10 +51,14 @@
     "react-measure": "^1.4.2",
     "resize-observer-polyfill": "^1.2.1",
     "segfault-handler": "^1.0.0",
+    "source-map-loader": "^0.1.6",
     "style-loader": "^0.13.1",
     "text-loader": "^0.0.1",
-    "webpack": "^2.1.0-beta",
-    "webpack-dev-server": "^1.16.2",
+    "webpack": "^2.2.0",
+    "webpack-dev-server": "^2.2.0",
     "xterm": "^2.1.0"
+  },
+  "gitDependencies": {
+    "text-buffer": "git@github.com:arcanis/text-buffer"
   }
 }

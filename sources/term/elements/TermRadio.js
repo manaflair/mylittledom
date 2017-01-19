@@ -1,9 +1,9 @@
-import { isBoolean, isNull, isString }                                from 'lodash';
+import { isBoolean, isNull, isString }                                                           from 'lodash';
 
-import { Event, findAncestorByPredicate, findDescendantsByPredicate } from './../../core';
+import { Event, findAncestorByPredicate, findDescendantsByPredicate, findDescendantByPredicate } from './../../core';
 
-import { TermElement }                                                from './TermElement';
-import { TermForm }                                                   from './TermForm';
+import { TermElement }                                                                           from './TermElement';
+import { TermForm }                                                                              from './TermForm';
 
 export class TermRadio extends TermElement {
 
@@ -13,7 +13,7 @@ export class TermRadio extends TermElement {
 
         this.style.element.focusEvents = true;
 
-        this.style.element.focused.color = `yellow`;
+        this.style.element.focused.color = `red`;
 
         this.yogaNode.setMeasureFunc((maxWidth, widthMode, maxHeight, heightMode) => {
 
@@ -46,6 +46,7 @@ export class TermRadio extends TermElement {
             let prev = (index === 0 ? radios.length : index) - 1;
 
             radios[prev].focus();
+            radios[prev].checked = true;
 
         });
 
@@ -65,6 +66,7 @@ export class TermRadio extends TermElement {
             let next = (index === radios.length - 1 ? -1 : index) + 1;
 
             radios[next].focus();
+            radios[next].checked = true;
 
         });
 
@@ -155,6 +157,31 @@ export class TermRadio extends TermElement {
     getInternalContentWidth() {
 
         return 3;
+
+    }
+
+    validateRelativeFocusTargetSelf(node) {
+
+        if (this.name === null || this.checked)
+            return true;
+
+        let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+        if (!form)
+            return true;
+
+        let checked = findDescendantByPredicate(form, node => node instanceof TermRadio && node.name === this.name && node.checked);
+
+        if (!checked)
+            return true;
+
+        return false;
+
+    }
+
+    validateRelativeFocusTarget(node) {
+
+        return !(node instanceof TermRadio) || this.name === null || this.name !== node.name;
 
     }
 

@@ -1,7 +1,7 @@
-import { isString }     from 'lodash';
-import TextBuffer       from 'text-buffer';
+import { isBoolean, isString } from 'lodash';
+import TextBuffer              from 'text-buffer';
 
-import { TermTextBase } from './TermTextBase';
+import { TermTextBase }        from './TermTextBase';
 
 export class TermInput extends TermTextBase {
 

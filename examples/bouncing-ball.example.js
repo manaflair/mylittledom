@@ -1,4 +1,4 @@
-import { TermElement } from 'ohui/term';
+import { TermElement } from '@manaflair/mylittledom/term';
 
 let ball = new TermElement();
 ball.style.position = 'absolute';

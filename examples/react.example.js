@@ -1,6 +1,6 @@
+import { render }   from '@manaflair/mylittledom/term/react';
 import { autobind } from 'core-decorators';
 import { lorem }    from 'faker';
-import { render }   from 'ohui/term/react';
 
 class LineNumber extends React.Component {
 

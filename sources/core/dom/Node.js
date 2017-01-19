@@ -62,6 +62,8 @@ export class Node {
         if (wouldContainItself(this, node))
             throw new Error(`Failed to execute 'appendTo': The new child element contains the parent.`);
 
+        this.remove();
+
         node.appendChild(this);
 
     }
@@ -77,7 +79,9 @@ export class Node {
         if (wouldContainItself(node, this))
             throw new Error(`Failed to execute 'appendChild': The new child element contains the parent.`);
 
-        this.insertBefore(node, null);
+        node.remove();
+
+        this.linkBefore(node, null);
 
     }
 
@@ -97,6 +101,14 @@ export class Node {
 
         if (referenceNode && referenceNode.parentNode !== this)
             throw new Error(`Failed to execute 'insertBefore': The node before which the new node is to be inserted is not a child of this node.`);
+
+        node.remove();
+
+        this.linkBefore(node, referenceNode);
+
+    }
+
+    linkBefore(node, referenceNode) {
 
         let index = referenceNode ? this.childNodes.indexOf(referenceNode) : this.childNodes.length;
 

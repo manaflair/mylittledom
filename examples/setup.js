@@ -1,5 +1,5 @@
+import { TermScreen }      from '@manaflair/mylittledom/term';
 import faker               from 'faker';
-import { TermScreen }      from 'ohui/term';
 import { registerHandler } from 'segfault-handler';
 
 registerHandler();
@@ -10,5 +10,5 @@ let stdout = Object.create(process.stdout);
 //stdout.write = str => console.log(JSON.stringify(str));
 //stdout.write = () => {};
 
-global.screen = new TermScreen({ debugPaintRects: false });
+global.screen = new TermScreen({ debugPaintRects: true });
 global.screen.attachScreen({ stdout });

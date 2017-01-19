@@ -5,7 +5,7 @@ import { autobind }    from 'core-decorators';
 import EventEmitter    from 'eventemitter3';
 import Measure         from 'react-measure';
 import { PassThrough } from 'stream';
-import { fit }         from 'xterm/addons/fit/fit';
+import { fit }         from 'xterm/lib/addons/fit/fit';
 import XTerm           from 'xterm';
 
 export class Terminal extends React.PureComponent {

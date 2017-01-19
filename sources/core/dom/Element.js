@@ -1,5 +1,5 @@
 import { flatten, groupBy, isEmpty, isNull } from 'lodash';
-import Yoga                                  from 'yoga-layout';
+import Yoga                                  from 'yoga-layout/sources/entry-browser';
 
 import { EventSource }                       from '../misc/EventSource';
 import { Event }                             from '../misc/Event';
@@ -15,6 +15,12 @@ import { StyleOverflow }                     from '../style/types/StyleOverflow'
 import { Node }                              from './Node';
 import { flags }                             from './flags';
 
+function getPreferredSize(node, ... args) {
+
+    return node.getPreferredSize(... args);
+
+}
+
 export class Element extends Node {
 
     constructor({ style } = {}) {
@@ -24,6 +30,7 @@ export class Element extends Node {
         EventSource.setup(this, { getParentInstance: () => this.parentNode });
 
         this.yogaNode = Yoga.Node.create();
+        this.yogaNode.setMeasureFunc(getPreferredSize.bind(null, this));
 
         this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
@@ -55,14 +62,14 @@ export class Element extends Node {
         this.elementClipRect = new Rect(); // Position & size of the actual visible box inside the element
         this.contentClipRect = new Rect(); // Position & size of the actual visible box inside the element
 
-        this.declareEvent(`dirty`);
-        this.declareEvent(`relayout`);
+        this.declareEvent(`dirty`); // After the node rects have became dirty and a call to triggerUpdates needs to be done. Usually only caught by the renderer.
+        this.declareEvent(`layout`); // When the node layout is being computed. Element box and content box have been recomputed, but the scroll box hasn't yet.
 
-        this.declareEvent(`focus`);
-        this.declareEvent(`blur`);
+        this.declareEvent(`focus`); // After the element has got the focus.
+        this.declareEvent(`blur`); // After the element has lost the focus.
 
-        this.declareEvent(`scroll`);
-        this.declareEvent(`caret`);
+        this.declareEvent(`scroll`); // After the element scroll position has changed.
+        this.declareEvent(`caret`); // After the element caret position has changed.
 
     }
 
@@ -217,7 +224,7 @@ export class Element extends Node {
 
                 let nextIndex = getNextIndex(activeIndex);
 
-                while (nextIndex !== activeIndex && !this.focusList[nextIndex].style.$.focusEvents)
+                while (nextIndex !== activeIndex && (!this.focusList[nextIndex].style.$.focusEvents || !this.activeElement.validateRelativeFocusTarget(this.focusList[nextIndex]) || !this.focusList[nextIndex].validateRelativeFocusTargetSelf(this.activeElement)))
                     nextIndex = getNextIndex(nextIndex);
 
                 if (nextIndex !== activeIndex) {
@@ -231,6 +238,18 @@ export class Element extends Node {
             this.focusList[activeIndex].focus();
 
         }
+
+    }
+
+    validateRelativeFocusTargetSelf(source) {
+
+        return true;
+
+    }
+
+    validateRelativeFocusTarget(target) {
+
+        return true;
 
     }
 
@@ -253,6 +272,18 @@ export class Element extends Node {
 
         super.appendChild(node);
 
+        this.yogaNode.unsetMeasureFunc();
+        this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
+
+        this.setDirtyLayoutFlag();
+        this.setDirtyClippingFlag();
+
+        this.rootNode.setDirtyNodeListFlag();
+        this.rootNode.setDirtyRenderListFlag();
+
+        node.clearDirtyNodeListFlag();
+        node.clearDirtyRenderListFlag();
+
     }
 
     insertBefore(node, referenceNode) {
@@ -262,6 +293,7 @@ export class Element extends Node {
 
         super.insertBefore(node, referenceNode);
 
+        this.yogaNode.unsetMeasureFunc();
         this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
 
         this.setDirtyLayoutFlag();
@@ -283,6 +315,9 @@ export class Element extends Node {
         super.removeChild(node);
 
         this.yogaNode.removeChild(node.yogaNode);
+
+        if (this.childNodes.length === 0)
+            this.yogaNode.setMeasureFunc(getPreferredSize.bind(null, this));
 
         this.setDirtyLayoutFlag();
         this.setDirtyClippingFlag();
@@ -439,8 +474,8 @@ export class Element extends Node {
         let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
         this.flags |= flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        if (this.parentNode) // TODO: We're not yet smart enough to avoid triggering a relayout on the whole tree :(
-            this.parentNode.setDirtyLayoutFlag({ silent });
+        if (this.parentNode)
+            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN, { silent });
 
         if (!wasDirty && !silent) {
             this.dispatchEvent(new Event(`dirty`));
@@ -591,7 +626,7 @@ export class Element extends Node {
             throw new Error(`Aborted 'triggerUpdates' execution: Flags have not been correctly reset at some point (${(this.flags & flags.ELEMENT_IS_DIRTY).toString(2)}).`);
 
         for (let dirtyLayoutNode of dirtyLayoutNodes)
-            dirtyLayoutNode.dispatchEvent(new Event(`relayout`));
+            dirtyLayoutNode.dispatchEvent(new Event(`layout`));
 
         for (let dirtyScrollNode of dirtyScrollNodes)
             dirtyScrollNode.dispatchEvent(new Event(`scroll`));
@@ -680,51 +715,62 @@ export class Element extends Node {
 
         if (force || this.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN)) {
 
+            let doesLayoutChange = false;
+            let doesScrollChange = false;
+
             if (force || this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT) {
 
-                let nextElementRect = new Rect();
+                let prevElementRect = this.elementRect.clone();
+                let prevContentRect = this.contentRect.clone();
 
-                nextElementRect.x = this.yogaNode.getComputedLeft();
-                nextElementRect.y = this.yogaNode.getComputedTop();
+                this.elementRect.x = this.yogaNode.getComputedLeft();
+                this.elementRect.y = this.yogaNode.getComputedTop();
 
-                nextElementRect.width = this.yogaNode.getComputedWidth();
-                nextElementRect.height = this.yogaNode.getComputedHeight();
+                this.elementRect.width = this.yogaNode.getComputedWidth();
+                this.elementRect.height = this.yogaNode.getComputedHeight();
 
-                let nextContentRect = new Rect();
+                this.contentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
+                this.contentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
 
-                nextContentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
-                nextContentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
+                this.contentRect.width = this.elementRect.width - this.contentRect.x - this.yogaNode.getComputedBorder(Yoga.EDGE_RIGHT) - this.yogaNode.getComputedPadding(Yoga.EDGE_RIGHT);
+                this.contentRect.height = this.elementRect.height - this.contentRect.y - this.yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM) - this.yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM);
 
-                nextContentRect.width = nextElementRect.width - nextContentRect.x - this.yogaNode.getComputedBorder(Yoga.EDGE_RIGHT) - this.yogaNode.getComputedPadding(Yoga.EDGE_RIGHT);
-                nextContentRect.height = nextElementRect.height - nextContentRect.y - this.yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM) - this.yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM);
-
-                let doesChange = !nextElementRect.equals(this.elementRect) || !nextContentRect.equals(this.contentRect);
-
-                this.elementRect = nextElementRect;
-                this.contentRect = nextContentRect;
-
-                if (doesChange || this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT)
-                    for (let child of this.childNodes)
-                        child.cascadeLayout({ dirtyLayoutNodes, force: true });
-
-                if (doesChange)
-                    dirtyLayoutNodes.push(this);
-
-                this.setDirtyClippingFlag({ silent: true });
-
-            } else for (let child of this.childNodes) {
-
-                child.cascadeLayout({ dirtyLayoutNodes, force: true });
+                // We try to optimize away the iterations inside elements that haven't changed and aren't marked as dirty, because we know their children's layouts won't change either
+                doesLayoutChange = (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT) !== 0 || !this.elementRect.equals(prevElementRect) || !this.contentRect.equals(prevContentRect);
 
             }
 
-            this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
-                return child.elementRect.x + child.elementRect.width;
-            }));
+            if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN || doesLayoutChange) {
 
-            this.scrollRect.height = Math.max(this.contentRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
-                return child.elementRect.y + child.elementRect.height;
-            }));
+                for (let child of this.childNodes)
+                    child.cascadeLayout({ dirtyLayoutNodes, force: true });
+
+                let prevScrollWidth = this.scrollRect.width;
+                let prevScrollHeight = this.scrollRect.height;
+
+                this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
+                    return child.elementRect.x + child.elementRect.width;
+                }));
+
+                this.scrollRect.height = Math.max(this.contentRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
+                    return child.elementRect.y + child.elementRect.height;
+                }));
+
+                doesScrollChange = this.scrollRect.width !== prevScrollWidth && this.scrollRect.height !== prevScrollHeight;
+
+            }
+
+            if (doesLayoutChange || doesScrollChange) {
+
+                this.rootNode.queueDirtyRect(this.elementClipRect);
+
+                // We register this node so that we can emit the "postlayout" event once the layout process has been completed
+                dirtyLayoutNodes.push(this);
+
+                // We need to use the silent option because otherwise we could end up triggering a new "dirty" event that would schedule a useless new update that would itself trigger a new update, etc.
+                this.setDirtyClippingFlag({ silent: true });
+
+            }
 
             this.clearDirtyLayoutFlag();
             this.clearDirtyLayoutChildrenFlag();
@@ -739,16 +785,19 @@ export class Element extends Node {
 
             if (force || this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING) {
 
-                this.rootNode.queueDirtyRect(this.elementClipRect);
+                let doesClippingChange = false;
+                let doesScrollChange = false;
 
-                let nextScrollX = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
-                let nextScrollY = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+                let prevScrollX = this.scrollRect.x;
+                let prevScrollY = this.scrollRect.y;
 
-                if (nextScrollX !== this.scrollRect.x || nextScrollY !== this.scrollRect.y)
+                this.scrollX = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
+                this.scrollY = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+
+                doesScrollChange = this.scrollRect.x !== prevScrollX || this.scrollRect.y !== prevScrollY;
+
+                if (doesClippingChange)
                     dirtyScrollNodes.push(this);
-
-                this.scrollRect.x = nextScrollX;
-                this.scrollRect.y = nextScrollY;
 
                 if (!this.parentNode) {
 
@@ -774,6 +823,8 @@ export class Element extends Node {
                 this.contentWorldRect.width = this.contentRect.width;
                 this.contentWorldRect.height = this.contentRect.height;
 
+                let prevElementClipRect = this.elementClipRect ? this.elementClipRect.clone() : null;
+
                 if (this.parentNode) {
 
                     let relativeClipRect = this.style.$.position.isAbsolutelyPositioned ? this.parentNode.elementClipRect : this.parentNode.contentClipRect;
@@ -788,7 +839,16 @@ export class Element extends Node {
 
                 }
 
-                this.rootNode.queueDirtyRect(this.elementClipRect);
+                doesClippingChange = isNull(this.elementClipRect) ? !isNull(prevElementClipRect) : isNull(prevElementClipRect) || !this.elementClipRect.equals(prevElementClipRect);
+
+                if (doesClippingChange || doesScrollChange) {
+
+                    if (doesClippingChange)
+                        this.rootNode.queueDirtyRect(prevElementClipRect);
+
+                    this.rootNode.queueDirtyRect(this.elementClipRect);
+
+                }
 
             }
 
@@ -821,6 +881,12 @@ export class Element extends Node {
         }
 
         return dirtyNodes;
+
+    }
+
+    getPreferredSize(maxWidth, widthMode, maxHeight, heightMode) {
+
+        return { width: maxWidth, height: 0 };
 
     }
 
