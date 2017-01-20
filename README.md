@@ -1,6 +1,6 @@
 # [![MyLittleDom](/logo.png?raw=true)](https://github.com/manaflair/mylittledom)
 
-> High-level DOM-like terminal interface library, complete with native React support
+> High-level DOM-like terminal interface library
 
 [![](https://img.shields.io/npm/v/@manaflair/mylittledom.svg)]() [![](https://img.shields.io/npm/l/@manaflair/mylittledom.svg)]()
 
