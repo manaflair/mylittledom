@@ -8,7 +8,7 @@ import { TermElement }        from './TermElement';
 
 export class TermTextBase extends TermElement {
 
-    constructor({ textBuffer = new TextBuffer(), enterIsNewline = true, readOnly = false, ... props } = {}) {
+    constructor({ textBuffer = new TextBuffer(), textLayout = new TextLayout(), enterIsNewline = true, readOnly = false, ... props } = {}) {
 
         super(props);
 
@@ -17,7 +17,7 @@ export class TermTextBase extends TermElement {
         this.caretMaxColumn = 0;
 
         this.textBuffer = textBuffer;
-        this.textLayout = new TextLayout();
+        this.textLayout = textLayout;
         this.textLines = [ `` ];
 
         this.textLayout.setCharacterGetter(offset => {
@@ -80,7 +80,7 @@ export class TermTextBase extends TermElement {
 
                 let dirtyRect = this.contentWorldRect.clone();
 
-                dirtyRect.x += start.x;
+              //dirtyRect.x += start.x; // We can't do this because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the previous ones are displayed
                 dirtyRect.y += start.y;
 
                 dirtyRect.height = 1;
@@ -98,6 +98,8 @@ export class TermTextBase extends TermElement {
                 this.queueDirtyRect(dirtyRect);
 
             }
+
+            this.dispatchEvent(new Event(`change`));
 
         });
 
@@ -300,22 +302,6 @@ export class TermTextBase extends TermElement {
 
         });
 
-        this.setPropertyTrigger(`transformPass`, null, {
-
-            validate: value => {
-
-                return isNull(value) || isFunction(value);
-
-            },
-
-            trigger: value => {
-
-                this.queueDirtyRect();
-
-            }
-
-        });
-
     }
 
     appendChild(node) {
@@ -367,9 +353,6 @@ export class TermTextBase extends TermElement {
 
         let fullLine = y < this.textLines.length ? this.textLines[y] : ``;
         let fullLineLength = fullLine.length;
-
-        if (this.transformPass)
-            fullLine = this.transformPass(fullLine, y);
 
         let fullLineStart = 0;
 

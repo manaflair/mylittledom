@@ -1,19 +1,20 @@
-import { flatten, groupBy, isEmpty, isNull } from 'lodash';
-import Yoga                                  from 'yoga-layout/sources/entry-browser';
+import { flatten, groupBy, isEmpty, isNull, pick } from 'lodash';
+import Yoga                                        from 'yoga-layout/sources/entry-browser';
 
-import { EventSource }                       from '../misc/EventSource';
-import { Event }                             from '../misc/Event';
-import { Point }                             from '../misc/Point';
-import { Rect }                              from '../misc/Rect';
+import { EventSource }                             from '../misc/EventSource';
+import { Event }                                   from '../misc/Event';
+import { Point }                                   from '../misc/Point';
+import { Rect }                                    from '../misc/Rect';
 
-import { StyleDeclaration }                  from '../style/StyleDeclaration';
-import { StyleSet }                          from '../style/StyleSet';
-import { initialStyleSet }                   from '../style/initialStyleSet';
-import { StyleLength }                       from '../style/types/StyleLength';
-import { StyleOverflow }                     from '../style/types/StyleOverflow';
+import { StyleDeclaration }                        from '../style/StyleDeclaration';
+import { StyleSet }                                from '../style/StyleSet';
+import { StyleLength }                             from '../style/types/StyleLength';
+import { StyleOverflow }                           from '../style/types/StyleOverflow';
 
-import { Node }                              from './Node';
-import { flags }                             from './flags';
+import { Node }                                    from './Node';
+import { flags }                                   from './flags';
+
+Yoga.setExperimentalFeatureEnabled(Yoga.FEATURE_ROUNDING, true);
 
 function getPreferredSize(node, ... args) {
 
@@ -35,10 +36,8 @@ export class Element extends Node {
         this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
         this.styleDeclaration = new StyleDeclaration(this);
-        this.styleDeclaration.add(`initial`, initialStyleSet);
-        this.styleDeclaration.add(`element`, new StyleSet());
-        this.styleDeclaration.add(`local`, new StyleSet());
-        this.styleDeclaration.add(`focused`, new StyleSet(), false);
+        this.styleDeclaration.addStates([ `element`, `local` ], true);
+        this.styleDeclaration.addStates([ `focus`, `hover` ], false);
         this.style = Object.assign(this.styleDeclaration.makeProxy(), style);
 
         this.caret = null;
@@ -91,7 +90,9 @@ export class Element extends Node {
         if (previousScrollLeft !== newScrollLeft) {
 
             this.scrollRect.x = newScrollLeft;
+
             this.setDirtyClippingFlag();
+            this.queueDirtyRect();
 
             this.dispatchEvent(new Event(`scroll`));
 
@@ -117,7 +118,9 @@ export class Element extends Node {
         if (previousScrollTop !== newScrollTop) {
 
             this.scrollRect.y = newScrollTop;
+
             this.setDirtyClippingFlag();
+            this.queueDirtyRect();
 
             this.dispatchEvent(new Event(`scroll`));
 
@@ -544,7 +547,7 @@ export class Element extends Node {
             return;
 
         if (this.rootNode !== this)
-            return this.rootNode.queueDirtyRect(dirtyRect.intersect(this.elementClipRect), checkIntersectionFrom);
+            return this.rootNode.queueDirtyRect(this.elementClipRect ? dirtyRect.intersect(this.elementClipRect) : null, checkIntersectionFrom);
 
         let intersectorIndex = this.dirtyRects.findIndex(other => {
             return dirtyRect.doesIntersect(other);
@@ -791,31 +794,23 @@ export class Element extends Node {
                 let prevScrollX = this.scrollRect.x;
                 let prevScrollY = this.scrollRect.y;
 
-                this.scrollX = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
-                this.scrollY = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+                this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
+                this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
 
                 doesScrollChange = this.scrollRect.x !== prevScrollX || this.scrollRect.y !== prevScrollY;
 
-                if (doesClippingChange)
+                if (doesScrollChange)
                     dirtyScrollNodes.push(this);
 
-                if (!this.parentNode) {
+                let prevElementWorldRect = this.elementWorldRect.clone();
 
-                    this.elementWorldRect.x = 0;
-                    this.elementWorldRect.y = 0;
+                this.elementWorldRect.x = this.parentNode ? this.parentNode.elementWorldRect.x + this.elementRect.x - this.parentNode.scrollRect.x : 0;
+                this.elementWorldRect.y = this.parentNode ? this.parentNode.elementWorldRect.y + this.elementRect.y - this.parentNode.scrollRect.y : 0;
 
-                    this.elementWorldRect.width = this.elementRect.width;
-                    this.elementWorldRect.height = this.elementRect.height;
+                this.elementWorldRect.width = this.elementRect.width;
+                this.elementWorldRect.height = this.elementRect.height;
 
-                } else {
-
-                    this.elementWorldRect.x = this.parentNode.elementWorldRect.x + this.elementRect.x - this.parentNode.scrollRect.x;
-                    this.elementWorldRect.y = this.parentNode.elementWorldRect.y + this.elementRect.y - this.parentNode.scrollRect.y;
-
-                    this.elementWorldRect.width = this.elementRect.width;
-                    this.elementWorldRect.height = this.elementRect.height;
-
-                }
+                let prevContentWorldRect = this.contentWorldRect.clone();
 
                 this.contentWorldRect.x = this.elementWorldRect.x + this.contentRect.x;
                 this.contentWorldRect.y = this.elementWorldRect.y + this.contentRect.y;
@@ -825,21 +820,10 @@ export class Element extends Node {
 
                 let prevElementClipRect = this.elementClipRect ? this.elementClipRect.clone() : null;
 
-                if (this.parentNode) {
+                this.elementClipRect = this.parentNode ? this.elementWorldRect.intersect(this.parentNode.elementClipRect) : this.elementWorldRect;
+                this.contentClipRect = this.parentNode ? this.contentWorldRect.intersect(this.parentNode.elementClipRect) : this.contentWorldRect;
 
-                    let relativeClipRect = this.style.$.position.isAbsolutelyPositioned ? this.parentNode.elementClipRect : this.parentNode.contentClipRect;
-
-                    this.elementClipRect = relativeClipRect ? relativeClipRect.intersect(this.elementWorldRect) : null;
-                    this.contentClipRect = relativeClipRect ? relativeClipRect.intersect(this.contentWorldRect) : null;
-
-                } else {
-
-                    this.elementClipRect = this.elementWorldRect;
-                    this.contentClipRect = this.contentWorldRect;
-
-                }
-
-                doesClippingChange = isNull(this.elementClipRect) ? !isNull(prevElementClipRect) : isNull(prevElementClipRect) || !this.elementClipRect.equals(prevElementClipRect);
+                doesClippingChange = !Rect.areEqual(prevElementWorldRect, this.elementWorldRect) || !Rect.areEqual(prevContentWorldRect, this.contentWorldRect) || !Rect.areEqual(prevElementClipRect, this.elementClipRect);
 
                 if (doesClippingChange || doesScrollChange) {
 
@@ -859,6 +843,25 @@ export class Element extends Node {
             this.clearDirtyClippingChildrenFlag();
 
         }
+
+    }
+
+    getElementRects() {
+
+        return pick(this, [
+
+            `elementRect`,
+            `contentRect`,
+
+            `elementWorldRect`,
+            `contentWorldRect`,
+
+            `elementClipRect`,
+            `contentClipRect`,
+
+            `scrollRect`
+
+        ]);
 
     }
 

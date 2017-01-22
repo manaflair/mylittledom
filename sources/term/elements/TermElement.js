@@ -11,12 +11,15 @@ export class TermElement extends Element {
 
         this.declareEvent(`keypress`);
 
+        this.declareEvent(`mousewheel`);
         this.declareEvent(`mousedown`);
         this.declareEvent(`mousemove`);
         this.declareEvent(`mouseup`);
 
         this.declareEvent(`mouseenter`);
         this.declareEvent(`mouseleave`);
+
+        this.declareEvent(`click`);
 
         this.declareEvent(`change`);
         this.declareEvent(`submit`);
@@ -35,7 +38,18 @@ export class TermElement extends Element {
                 this.focus();
             });
 
-        }, { capture: true });
+        });
+
+        this.addEventListener(`mouseup`, e => {
+
+            if (e.mouse.name !== `left`)
+                return;
+
+            e.setDefault(() => {
+                this.dispatchEvent(Object.assign(new Event(`click`), { mouse: e.mouse }));
+            });
+
+        });
 
     }
 
@@ -111,13 +125,13 @@ export class TermElement extends Element {
 
                 let data = prepend + this.style.$.borderTopCharacter.repeat(contentL) + append;
 
-                if (this.style.$.backgroundColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor)
                     data = this.style.$.backgroundColor.back + data;
 
-                if (this.style.$.borderColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.borderColor)
                     data = this.style.$.borderColor.front + data;
 
-                if (this.style.$.backgroundColor || this.style.borderColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor || this.style.borderColor)
                     data += style.clear;
 
                 return data;
@@ -138,13 +152,13 @@ export class TermElement extends Element {
 
                 let data = prepend + this.style.$.borderBottomCharacter.repeat(contentL) + append;
 
-                if (this.style.$.backgroundColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor)
                     data = this.style.$.backgroundColor.back + data;
 
-                if (this.style.$.borderColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.borderColor)
                     data = this.style.$.borderColor.front + data;
 
-                if (this.style.$.backgroundColor || this.style.borderColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor || this.style.borderColor)
                     data += style.clear;
 
                 return data;
@@ -257,6 +271,9 @@ export class TermElement extends Element {
 
     renderBackground(l) {
 
+        if (this.rootNode.debugPaintRects)
+            return this.style.$.backgroundCharacter.repeat(l);
+
         let background = ``;
 
         if (this.style.$.backgroundColor)
@@ -275,6 +292,9 @@ export class TermElement extends Element {
     }
 
     renderText(text) {
+
+        if (this.rootNode.debugPaintRects)
+            return text;
 
         let prefix = ``;
         let suffix = ``;

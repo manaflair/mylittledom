@@ -7,7 +7,7 @@ import { parseRawValue }   from './parseRawValue';
 export function parsePropertyValue(propertyName, rawValue) {
 
     if (!Object.prototype.hasOwnProperty.call(styleProperties, propertyName))
-        throw new Error(`Failed to parse a style property: '${propertyName}' is not a valid style property propertyName.`);
+        throw new Error(`Failed to parse a style property: '${propertyName}' is not a valid style property.`);
 
     let property = styleProperties[propertyName];
 

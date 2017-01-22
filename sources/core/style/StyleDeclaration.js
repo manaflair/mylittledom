@@ -1,10 +1,11 @@
-import { isEqual, isUndefined }    from 'lodash';
-import { inspect }                 from 'util';
+import { has, isEqual, isUndefined } from 'lodash';
+import { inspect }                   from 'util';
 
-import { styleProperties }         from './styleProperties';
-import { parsePropertyValue }      from './tools/parsePropertyValue';
-import { runPropertyTriggers }     from './tools/runPropertyTriggers';
-import { serializePropertyValue }  from './tools/serializePropertyValue';
+import { initialStyles }             from './initialStyles';
+import { styleProperties }           from './styleProperties';
+import { parsePropertyValue }        from './tools/parsePropertyValue';
+import { runPropertyTriggers }       from './tools/runPropertyTriggers';
+import { serializePropertyValue }    from './tools/serializePropertyValue';
 
 export class StyleDeclaration {
 
@@ -12,73 +13,89 @@ export class StyleDeclaration {
 
         this.element = element;
 
-        this.styleSets = new Map();
-        this.enabledSets = new WeakSet();
+        this.states = new Set();
+        this.enabled = new Set();
+
+        this.stateStyles = [];
 
         this.computed = {};
 
+        this.refresh(initialStyles.keys());
+
     }
 
-    add(name, styleSet, enabled = true) {
+    addStates(names, enabled = true) {
 
-        this.styleSets.set(name, styleSet);
+        for (let name of names) {
 
-        if (enabled) {
-            this.enable(name);
+            this.states.add(name);
+
+            if (enabled) {
+                this.enabled.add(name);
+            }
+
         }
 
     }
 
     enable(name) {
 
-        let styleSet = this.styleSets.get(name);
+        this.enabled.add(name);
 
-        if (!styleSet)
-            return;
+        let dirtyStyles = new Set();
 
-        this.enabledSets.add(styleSet);
-        this.refresh(styleSet.keys());
+        for (let { states, styles } of this.stateStyles)
+            if (states.has(name))
+                for (let style of styles.keys())
+                    dirtyStyles.add(style);
+
+        this.refresh(dirtyStyles);
 
     }
 
     disable(name) {
 
-        let styleSet = this.styleSets.get(name);
+        this.enabled.delete(name);
 
-        if (!styleSet)
-            return;
+        let dirtyStyles = new Set();
 
-        this.enabledSets.delete(styleSet);
-        this.refresh(styleSet.keys());
+        for (let { states, styles } of this.stateStyles)
+            if (states.has(name))
+                for (let style of styles.keys())
+                    dirtyStyles.add(style);
+
+        this.refresh(dirtyStyles);
 
     }
 
-    refresh(propertyNames) {
+    refresh(styles) {
 
-        for (let propertyName of propertyNames) {
+        for (let style of styles) {
 
-            let oldValue = this.computed[propertyName];
+            let oldValue = this.computed[style];
             let newValue = undefined;
 
-            for (let styleSet of this.styleSets.values()) {
+            for (let { states, styles } of this.stateStyles) {
 
-                if (!this.enabledSets.has(styleSet))
+                if (!styles.has(style))
                     continue;
 
-                let setValue = styleSet.get(propertyName);
+                for (let state of states)
+                    if (!this.enabled.has(state))
+                        continue;
 
-                if (isUndefined(setValue))
-                    continue;
-
-                newValue = setValue;
+                newValue = styles.get(style);
 
             }
+
+            if (isUndefined(newValue) && initialStyles.has(style))
+                newValue = initialStyles.get(style);
 
             if (newValue === oldValue || isEqual(serializePropertyValue(newValue), serializePropertyValue(oldValue)))
                 continue;
 
-            this.computed[propertyName] = newValue;
-            runPropertyTriggers(propertyName, this.element, newValue, oldValue);
+            this.computed[style] = newValue;
+            runPropertyTriggers(style, this.element, newValue, oldValue);
 
         }
 
@@ -86,24 +103,20 @@ export class StyleDeclaration {
 
     makeProxy() {
 
-        let proxies = { $: this.computed };
+        let localStyles = new Map();
 
-        for (let [ name, styleSet ] of this.styleSets) {
+        this.stateStyles.push({
 
-            let proxy = proxies[name] = new Proxy({
+            states: new Set([ `local` ]),
+            styles: localStyles
 
-                [inspect.custom](depth, opts) {
+        });
 
-                    let serialized = {};
+        let makeProxy = (base, styles) => {
 
-                    for (let propertyName of Reflect.ownKeys(styleProperties))
-                        serialized[propertyName] = serializePropertyValue(styleSet.get(propertyName));
+            let proxy;
 
-                    return serialized;
-
-                }
-
-            }, {
+            return proxy = new Proxy(Object.create(null), {
 
                 ownKeys: (target) => {
 
@@ -113,69 +126,41 @@ export class StyleDeclaration {
 
                 get: (target, key) => {
 
-                    if (key in target)
-                        return target[key];
+                    if (!has(styleProperties, key))
+                        return base[key];
 
-                    if (Object.prototype.hasOwnProperty.call(proxies, key))
-                        return proxies[key];
-
-                    if (!Object.prototype.hasOwnProperty.call(styleProperties, key))
-                        throw new Error(`Invalid property access: '${key}' is not a valid style property name.`);
-
-                    let property = styleProperties[key];
-
-                    if (property.getter) {
-
-                        return property.getter(proxy);
-
+                    if (has(styleProperties[key], `getter`)) {
+                        return serializePropertyValue(styleProperties[key].getter(proxy));
                     } else {
-
-                        return serializePropertyValue(styleSet.get(key));
-
+                        return serializePropertyValue(styles.get(key));
                     }
 
                 },
 
-                set: (target, key, value) => {
+                set: (target, key, rawValue) => {
 
-                    if (!Object.prototype.hasOwnProperty.call(styleProperties, key))
-                        throw new Error(`Invalid property access: '${key}' is not a valid style property name.`);
+                    if (!has(styleProperties, key))
+                        throw new Error(`Failed to set: '${key}' is not a valid style property.`);
 
-                    let property = styleProperties[key];
+                    if (has(styleProperties[key], `setter`))
+                        styleProperties[key].setter(proxy, parsePropertyValue(key, rawValue));
+                    else if (!isUndefined(rawValue))
+                        styles.set(key, parsePropertyValue(key, rawValue));
+                    else
+                        styles.delete(key);
 
-                    if (property.setter) {
+                    this.refresh([ key ]);
 
-                        property.setter(proxy, parsePropertyValue(key, value));
-
-                        return true;
-
-                    } else {
-
-                        if (!isUndefined(value))
-                            styleSet.set(key, parsePropertyValue(key, value));
-                        else
-                            styleSet.delete(key);
-
-                        if (this.enabledSets.has(styleSet))
-                            this.refresh([ key ]);
-
-                        return true;
-
-                    }
+                    return true;
 
                 },
 
                 deleteProperty: (target, key) => {
 
-                    if (!Object.prototype.hasOwnProperty.call(styleProperties, key))
-                        throw new Error(`Invalid property access: '${key}' is not a valid style property name.`);
+                    if (!has(styleProperties, key))
+                        throw new Error(`Failed to delete: '${key}' is not a valid style property.`);
 
-                    styleSet.delete(key);
-
-                    if (this.enabledSets.has(styleSet))
-                        this.refresh([ key ]);
-
-                    return true;
+                    proxy[key] = undefined;
 
                 }
 
@@ -183,7 +168,34 @@ export class StyleDeclaration {
 
         }
 
-        return proxies.local;
+        return makeProxy({
+
+            $: this.computed,
+
+            when: selector => {
+
+                if (!selector.match(/^(:[a-z]+(-[a-z]+)*)+$/))
+                    throw new Error(`Failed to execute 'when': Parameter 1 is not a valid selector.`);
+
+                let states = new Set(selector.match(/[a-z-]+/g));
+                let entry = this.stateStyles.find(stateSet => isEqual(states, stateSet.states));
+
+                if (isUndefined(entry)) {
+                    entry = { states, styles: new Map() };
+                    this.stateStyles.push(entry);
+                }
+
+                let next = makeProxy({
+
+                    then: properties => Object.assign(next, properties)
+
+                }, entry.styles);
+
+                return next;
+
+            }
+
+        }, localStyles);
 
     }
 

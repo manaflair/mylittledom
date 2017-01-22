@@ -166,21 +166,25 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - Forms are used to wrap various input elements.
 
-  - `new TermInput({ value, textBuffer, allowNewlines })`
+  - `new TermInput({ value, textBuffer, decored, multiline })`
 
     - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `value` option.
 
-    - The `value` property contains the actual value of the element. You can also access it directly from the `textBuffer` property.
+    - The `value` property contains the actual value of the element. You can also access it directly from the `textBuffer` property. Setting this property will replace the text inside the buffer.
 
-    - When enabled, `multiline` will make <kbd>enter</kbd> insert newline characters inside the element content. When disabled, <kbd>enter</kbd> keystrokes will be forwarded to the nearest `TermForm` ancestor, or ignored if there's none to be found.
+    - You can instruct the TermInput to not add any particular style to the element by setting the `decored` option to `false`.
+
+    - When enabled, the `multiline` option will make <kbd>enter</kbd> insert newline characters inside the element content. When disabled, <kbd>enter</kbd> keystrokes will be forwarded to the nearest `TermForm` ancestor, or ignored if there's none to be found.
+
+    - A `change` event will be emitted when the text buffer gets updated.
 
   - `new TermLabel()`
 
-    - A component that forwards clicks to the nearest focusable child.
+    - This component will forward any click directed to it directly to the nearest focusable child.
 
   - `new TermRadio({ checked })`
 
-    - Display a radio button.
+    - Display a radio button. The status of the button (checked / unchecked) can be altered through the `checked` option. When a radio button becomes checked, all other radio buttons sharing the same name (excepting `null`) and *located inside the same form element* will be automatically unchecked.
 
 ---
 

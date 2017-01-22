@@ -1,5 +1,17 @@
 export class Rect {
 
+    static areEqual(a, b) {
+
+        if (a === b)
+            return true;
+
+        if (a === null || b === null)
+            return false;
+
+        return a.equals(b);
+
+    }
+
     constructor({ x = 0, y = 0, width = 0, height = 0 } = {}) {
 
         this.x = x;
@@ -32,6 +44,8 @@ export class Rect {
 
         return (
 
+            other !== null &&
+
             other.x === this.x &&
             other.y === this.y &&
 
@@ -46,6 +60,8 @@ export class Rect {
 
         return (
 
+            other !== null &&
+
             other.x >= this.x &&
             other.y >= this.y &&
 
@@ -59,6 +75,8 @@ export class Rect {
     doesIntersect(other) {
 
         return (
+
+            other !== null &&
 
             other.x < this.x + this.width &&
             other.x + other.width > this.x &&

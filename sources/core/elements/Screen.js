@@ -6,13 +6,17 @@ export class Screen extends Element {
 
         super(props);
 
-        Object.assign(this.style.element, {
+        this.style.when(`:element`).then({
+
             position: `relative`
+
         });
 
         Reflect.defineProperty(this, `parentNode`, {
+
             value: null,
             writable: false
+
         });
 
     }

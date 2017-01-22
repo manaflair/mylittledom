@@ -1,0 +1,1 @@
+export { SyntaxHighlighter } from './SyntaxHighlighter';

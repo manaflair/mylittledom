@@ -9,6 +9,28 @@ export class TermText extends TermTextBase {
 
         super({ ... props, textBuffer, enterIsNewline: true });
 
+        this.setPropertyAccessor(`contentText`, {
+
+            validate: value => {
+
+                return true;
+
+            },
+
+            get: () => {
+
+                throw new Error(`Failed to read 'contentText': Use 'textContent' instead.`);
+
+            },
+
+            set: () => {
+
+                throw new Error(`Failed to write 'contentText': Use 'textContent' instead.`);
+
+            }
+
+        });
+
         this.setPropertyAccessor(`textContent`, {
 
             validate: value => {

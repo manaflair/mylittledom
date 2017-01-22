@@ -293,7 +293,7 @@ export let styleProperties = {
 
     whiteSpace: {
         parsers: [ pick(StyleWhiteSpace, `normal`, `noWrap`, `pre`, `preWrap`, `preLine`) ],
-        triggers: [ dirtyLayout, forwardToTextLayout(`collapseWhitespaces`, value => value.doesCollapse), forwardToTextLayout(`demoteNewlines`, value => value.doesDemoteNewlines), forwardToTextLayout(`softWrap`, value => value.doesWrap) ],
+        triggers: [ dirtyLayout, forwardToTextLayout(`collapseWhitespaces`, value => value.doesCollapse), forwardToTextLayout(`demoteNewlines`, value => value.doesDemoteNewlines), forwardToTextLayout(`preserveLeadingSpaces`, value => !value.doesCollapse), forwardToTextLayout(`preserveTrailingSpaces`, value => !value.doesCollapse), forwardToTextLayout(`softWrap`, value => value.doesWrap) ],
         initial: `normal`
     },
 

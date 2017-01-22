@@ -1,12 +1,12 @@
-import { Key, Mouse, parseTerminalInputs } from '@manaflair/term-strings/parse';
-import { cursor, feature, screen, style }  from '@manaflair/term-strings';
-import { autobind }                        from 'core-decorators';
-import { isEmpty, isUndefined, merge }     from 'lodash';
-import { Readable, Writable }              from 'stream';
+import { Key, Mouse, parseTerminalInputs }        from '@manaflair/term-strings/parse';
+import { cursor, feature, screen, style }         from '@manaflair/term-strings';
+import { autobind }                               from 'core-decorators';
+import { isBoolean, isEmpty, isUndefined, merge } from 'lodash';
+import { Readable, Writable }                     from 'stream';
 
-import { Event, Point }                    from '../../core';
+import { Event, Point }                           from '../../core';
 
-import { TermElement }                     from './TermElement';
+import { TermElement }                            from './TermElement';
 
 // We will iterate through those colors when rendering if the debugPaintRects option is set
 let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta`, `yellow` ], currentDebugColorIndex = 0;
@@ -17,8 +17,7 @@ export class TermScreen extends TermElement {
 
         super(attributes);
 
-        // We set the default style properties of every TermScreen instance
-        Object.assign(this.style.element, {
+        this.style.when(`:element`, {
             position: `relative`
         });
 
@@ -28,7 +27,7 @@ export class TermScreen extends TermElement {
             writable: false
         });
 
-        // We keep track of whether the screen is setup or not (has stdin/stdout)
+        // We keep track of whether the screen is fully setup or not (has stdin/stdout)
         this.ready = false;
 
         // Input/output streams
@@ -37,9 +36,6 @@ export class TermScreen extends TermElement {
 
         // Our subscription to the input events
         this.subscription = null;
-
-        // When enabled, each repaint will use a different background color
-        this.debugPaintRects = debugPaintRects;
 
         // A timer used to trigger layout / clipping / render updates after a node becomes dirty
         this.updateTimer = null;
@@ -60,6 +56,22 @@ export class TermScreen extends TermElement {
 
         // Bind the listener that exit the application on C-c
         this.addShortcutListener(`C-c`, e => this.terminate(), { capture: true });
+
+        this.setPropertyTrigger(`debugPaintRects`, debugPaintRects, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: value => {
+
+                this.queueDirtyRect();
+
+            }
+
+        });
 
     }
 
@@ -87,8 +99,10 @@ export class TermScreen extends TermElement {
 
         process.on(`exit`, this.handleExit);
 
-        this.style.element.width = this.stdout.columns;
-        this.style.element.height = this.stdout.rows;
+        this.style.when(`:element`).then({
+            width: this.stdout.columns,
+            height: this.stdout.rows
+        });
 
         if (this.stdin.setRawMode)
             this.stdin.setRawMode(true);
@@ -110,8 +124,10 @@ export class TermScreen extends TermElement {
 
         this.stdout.write(screen.reset);
 
-        this.style.element.width = 0;
-        this.style.element.height = 0;
+        this.style.when(`:element`).then({
+            width: 0,
+            height: 0
+        });
 
         process.removeListener(`exit`, this.handleExit);
 
@@ -338,8 +354,12 @@ export class TermScreen extends TermElement {
 
     @autobind handleStdoutResize() {
 
-        this.style.element.width = this.stdout.columns;
-        this.style.element.height = this.stdout.rows;
+        this.style.when(`:element`).then({
+
+            width: this.stdout.columns,
+            height: this.stdout.rows
+
+        });
 
     }
 

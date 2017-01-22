@@ -5,15 +5,15 @@ import { TermTextBase }        from './TermTextBase';
 
 export class TermInput extends TermTextBase {
 
-    constructor({ value = ``, textBuffer = new TextBuffer(value), multiline = false, ... props } = {}) {
+    constructor({ value = ``, textBuffer = new TextBuffer(value), decored = true, multiline = false, ... props } = {}) {
 
         super({ ... props, textBuffer });
 
-        this.style.element.whiteSpace = `pre`;
-        this.style.element.backgroundCharacter = `.`;
-        this.style.element.focusEvents = true;
+        this.style.when(`:element`).then({
 
-        this.style.element.focused.backgroundColor = `#000088`;
+            focusEvents: true
+
+        });
 
         this.setPropertyAccessor(`value`, {
 
@@ -37,6 +37,31 @@ export class TermInput extends TermTextBase {
 
         });
 
+        this.setPropertyTrigger(`decored`, decored, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: value => {
+
+                this.style.when(`:element`).then({
+
+                    whiteSpace: value ? `pre` : undefined,
+
+                    backgroundCharacter: value ? `.` : undefined,
+                    backgroundColor: value ? `#000088` : undefined,
+
+                    minHeight: value ? this.multiline ? 10 : 1 : undefined
+
+                });
+
+            }
+
+        });
+
         this.setPropertyTrigger(`multiline`, multiline, {
 
             validate: value => {
@@ -47,8 +72,13 @@ export class TermInput extends TermTextBase {
 
             trigger: value => {
 
-                this.style.element.minHeight = value ? 10 : 1;
                 this.enterIsNewline = multiline ? true : false;
+
+                this.decored && this.style.when(`element`).then({
+
+                    minHeight: value ? 10 : 1
+
+                });
 
             }
 

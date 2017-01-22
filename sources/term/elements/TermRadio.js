@@ -11,9 +11,17 @@ export class TermRadio extends TermElement {
 
         super(props);
 
-        this.style.element.focusEvents = true;
+        this.style.when(`:element`).then({
 
-        this.style.element.focused.color = `red`;
+            focusEvents: true
+
+        });
+
+        this.style.when(`:element:focused`).then({
+
+            color: `red`
+
+        });
 
         this.yogaNode.setMeasureFunc((maxWidth, widthMode, maxHeight, heightMode) => {
 
