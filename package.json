@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "license": "MIT",
   "main": "./dist/core/index",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "install": "npm-git install",
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
