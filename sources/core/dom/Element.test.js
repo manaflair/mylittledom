@@ -8,28 +8,6 @@ import { Element }       from './Element';
 
 describe(`Element`, () => {
 
-    describe(`#elementClipRect`, () => {
-
-        it(`should be computed relative to the element's parent content clip if the element is not absolutely positioned`, () => {
-
-            let root = new Element();
-            root.style.padding = 1;
-            root.style.width = 100;
-            root.style.height = 100;
-
-            let element = new Element();
-            root.appendChild(element);
-            element.style.height = 200;
-
-            root.triggerUpdates();
-
-            expect(element.elementRect).to.deep.equal({ x: 1, y: 1, width: 98, height: 200 });
-            expect(element.elementClipRect).to.deep.equal({ x: 1, y: 1, width: 98, height: 98 });
-
-        });
-
-    });
-
     describe(`#generateRenderList`, () => {
 
         it(`should correctly resolve a set of mixed elements (small test)`, () => {
