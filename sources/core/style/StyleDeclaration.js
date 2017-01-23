@@ -75,14 +75,16 @@ export class StyleDeclaration {
             let oldValue = this.computed[style];
             let newValue = undefined;
 
-            for (let { states, styles } of this.stateStyles) {
+            stateStyleLoop: for (let { states, styles } of this.stateStyles) {
 
                 if (!styles.has(style))
                     continue;
 
+                let active = true;
+
                 for (let state of states)
                     if (!this.enabled.has(state))
-                        continue;
+                        continue stateStyleLoop;
 
                 newValue = styles.get(style);
 

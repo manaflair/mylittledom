@@ -1,6 +1,8 @@
 module.exports = {
 
-    devtool: `cheap-eval-source-map`,
+    devtool: process.env.NODE_ENV === `production`
+       ? `source-map`
+       : `cheap-eval-source-map`,
 
     entry: {
 
@@ -14,7 +16,7 @@ module.exports = {
 
     output: {
 
-        path: `${__dirname}/build/demo`,
+        path: `${__dirname}/docs/demo`,
         filename: `main.js`
 
     },
@@ -36,8 +38,7 @@ module.exports = {
 
             test: /\.js$/,
             loader: `babel-loader`,
-            include: [ `${__dirname}/demo` ],
-            options: { babelrc: false, presets: [ `es2015`, `react` ], plugins: [ `react-require`, `transform-decorators-legacy`, `transform-class-properties` ] },
+            include: [ `${__dirname}/demo` ]
 
         }, {
 
@@ -90,7 +91,7 @@ module.exports = {
 
     plugins: [
 
-        new (require(`webpack`).DefinePlugin)({ [`process.env.TERM_FEATURES`]: JSON.stringify(`true-colors`), [`ENVIRONMENT_IS_WEB`]: `true` }),
+        new (require(`webpack`).DefinePlugin)({ [`process.env.NODE_ENV`]: JSON.stringify(process.env.NODE_ENV), [`process.env.TERM_FEATURES`]: JSON.stringify(`true-colors`), [`ENVIRONMENT_IS_WEB`]: `true` }),
         new (require(`extract-text-webpack-plugin`))(`style.css`),
         new (require(`html-webpack-plugin`))()
 

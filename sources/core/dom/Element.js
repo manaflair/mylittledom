@@ -172,7 +172,7 @@ export class Element extends Node {
             this.rootNode.activeElement.blur();
 
         this.rootNode.activeElement = this;
-        this.styleDeclaration.enable(`focused`);
+        this.styleDeclaration.enable(`focus`);
 
         this.scrollIntoView();
 
@@ -186,7 +186,7 @@ export class Element extends Node {
             return;
 
         this.rootNode.activeElement = null;
-        this.styleDeclaration.disable(`focused`);
+        this.styleDeclaration.disable(`focus`);
 
         this.dispatchEvent(new Event(`blur`));
 

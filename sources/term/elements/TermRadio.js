@@ -11,15 +11,29 @@ export class TermRadio extends TermElement {
 
         super(props);
 
+        this.styleDeclaration.addStates([ `checked` ], checked);
+
         this.style.when(`:element`).then({
 
             focusEvents: true
 
         });
 
-        this.style.when(`:element:focused`).then({
+        this.style.when(`:element:focus`).then({
 
-            color: `red`
+            color: `darkblue`
+
+        });
+
+        this.style.when(`:element:checked`).then({
+
+            color: `darkcyan`
+
+        });
+
+        this.style.when(`:element:focus:checked`).then({
+
+            color: `cyan`
 
         });
 
@@ -125,6 +139,12 @@ export class TermRadio extends TermElement {
 
             trigger: value => {
 
+                if (value) {
+                    this.styleDeclaration.enable(`checked`);
+                } else {
+                    this.styleDeclaration.disable(`checked`);
+                }
+
                 if (!isNull(this.name)) {
 
                     if (value) {
@@ -154,7 +174,7 @@ export class TermRadio extends TermElement {
 
         });
 
-        this.addEventListener(`mousedown`, () => {
+        this.addEventListener(`click`, () => {
 
             this.checked = true;
 

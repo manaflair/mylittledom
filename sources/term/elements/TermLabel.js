@@ -1,6 +1,6 @@
-import { Event, findDescendantByPredicate } from './../../core';
+import { Event, findDescendantByPredicate, isChildOf } from './../../core';
 
-import { TermElement }                      from './TermElement';
+import { TermElement }                                 from './TermElement';
 
 export class TermLabel extends TermElement {
 
@@ -8,21 +8,24 @@ export class TermLabel extends TermElement {
 
         super(props);
 
-        this.addEventListener(`mousedown`, e => {
+        this.addEventListener(`click`, e => {
 
             e.setDefault(() => {
 
-                let target = findDescendantByPredicate(e.currentTarget, node => node.style.$.focusEvents);
+                let labelTarget = findDescendantByPredicate(e.currentTarget, node => node.style.$.focusEvents);
 
-                if (!target)
+                if (!labelTarget)
                     return;
 
-                target.dispatchEvent(Object.assign(new Event(`mousedown`), { mouse: { name: `left` } }));
-                target.dispatchEvent(Object.assign(new Event(`mouseup`), { mouse: { name: `left` } }));
+                if (e.target === labelTarget || isChildOf(e.target, labelTarget))
+                    return;
+
+                labelTarget.focus();
+                labelTarget.click(e.mouse);
 
             });
 
-        });
+        }, { capture: true });
 
     }
 

@@ -9,6 +9,8 @@ import { Editor }                 from './Editor';
 import { Terminal }               from './Terminal';
 import { makeAnimationFunctions } from './tools';
 
+let rawFiles = require.context("raw-loader!../examples/", true, /$/);
+
 let getPreset = require.context(`../examples/`, false, /^\.\/.*\.example\.js$/);
 let getPresetName = moduleName => moduleName.replace(/^.*\/|\.[^\/]*$/g, ``);
 
@@ -16,13 +18,13 @@ export class Application extends React.PureComponent {
 
     static exposedModules = new Map([
 
-        [ `@manaflair/mylittledom/core`, require(`@manaflair/mylittledom/core`) ],
+        [ `@manaflair/mylittledom/core`,       require(`@manaflair/mylittledom/core`) ],
         [ `@manaflair/mylittledom/term/react`, require(`@manaflair/mylittledom/term/react`) ],
-        [ `@manaflair/mylittledom/term`, require(`@manaflair/mylittledom/term`) ],
+        [ `@manaflair/mylittledom/term`,       require(`@manaflair/mylittledom/term`) ],
 
-        [ `core-decorators`, require(`core-decorators`) ],
-        [ `faker`, require(`faker`) ],
-        [ `lodash`, require(`lodash`) ]
+        [ `core-decorators`,                   require(`core-decorators`) ],
+        [ `faker`,                             require(`faker`) ],
+        [ `lodash`,                            require(`lodash`) ]
 
     ]);
 
@@ -45,7 +47,7 @@ export class Application extends React.PureComponent {
             import { TermText } from '@manaflair/mylittledom/term';
 
             let element = new TermText();
-            element.contentText = \`Hello world! :)\`;
+            element.textContent = \`Hello world! :)\`;
             element.appendTo(screen);
 
         `.replace(/^ +| +$/gm, ``).replace(/^\n+/, ``).replace(/\n+$/, `\n`)
@@ -100,6 +102,7 @@ export class Application extends React.PureComponent {
             compiled(Object.assign(Object.create(null), {
 
                 require: name => Application.exposedModules.get(name),
+                readFileSync: path => rawFiles(path),
 
                 requestAnimationFrame: raf.requestAnimationFrame,
                 cancelAnimationFrame: raf.cancelAnimationFrame,

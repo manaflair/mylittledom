@@ -114,7 +114,7 @@ export class EventSource {
     dispatchEvent(event) {
 
         if (!(event instanceof Event))
-            throw new Error(`Failed to execute 'dispatchEvent': Parameter 2 is not of type 'Event'.`);
+            throw new Error(`Failed to execute 'dispatchEvent': Parameter 1 is not of type 'Event'.`);
 
         if (!this.listeners.has(event.name) || event.name === `*`)
             throw new Error(`Failed to execute 'dispatchEvent': '${event.name}' is not a valid event name.`);

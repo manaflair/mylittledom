@@ -7,23 +7,24 @@
     "dist"
   ],
   "scripts": {
-    "install": "npm-git install",
+    "install": "npm-git install --verbose",
+    "docs": "npm run build:demo",
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "demo": "node -r babel-register -r core-js -r ./examples/setup --",
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
-    "build:demo": "webpack",
+    "build:demo": "NODE_ENV=production webpack",
     "serve:demo": "webpack-dev-server"
   },
   "dependencies": {
+    "@arcanis/npm-git-install": "^0.2.1",
     "@manaflair/term-strings": "^0.3.0",
-    "@manaflair/text-layout": "^0.5.4",
+    "@manaflair/text-layout": "^0.6.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",
     "first-mate": "^6.2.1",
     "immutable": "^3.8.1",
     "lodash": "^4.16.4",
-    "npm-git-install": "^0.2.0",
     "plist": "^2.0.1"
   },
   "devDependencies": {
@@ -52,6 +53,7 @@
     "ignore-loader": "^0.1.2",
     "json-loader": "^0.5.4",
     "mocha": "^3.1.2",
+    "raw-loader": "^0.5.1",
     "react": "next",
     "react-codemirror": "^0.3.0",
     "react-dom": "next",
@@ -67,6 +69,7 @@
     "yargs": "^6.6.0"
   },
   "gitDependencies": {
-    "text-buffer": "git@github.com:arcanis/text-buffer"
+    "text-buffer": "git@github.com:arcanis/text-buffer",
+    "yoga-layout": "git@github.com:arcanis/yoga#get-border?/javascript"
   }
 }

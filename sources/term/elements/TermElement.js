@@ -1,7 +1,7 @@
-import { style }       from '@manaflair/term-strings';
+import { style }          from '@manaflair/term-strings';
 
-import { Element }     from '../../core';
-import { KeySequence } from '../misc/KeySequence';
+import { Element, Event } from '../../core';
+import { KeySequence }    from '../misc/KeySequence';
 
 export class TermElement extends Element {
 
@@ -38,7 +38,7 @@ export class TermElement extends Element {
                 this.focus();
             });
 
-        });
+        }, { capture: true });
 
         this.addEventListener(`mouseup`, e => {
 
@@ -46,10 +46,11 @@ export class TermElement extends Element {
                 return;
 
             e.setDefault(() => {
-                this.dispatchEvent(Object.assign(new Event(`click`), { mouse: e.mouse }));
+                let clickEvent = Object.assign(new Event(`click`), { mouse: e.mouse });
+                this.dispatchEvent(clickEvent);
             });
 
-        });
+        }, { capture: true });
 
     }
 
@@ -99,6 +100,12 @@ export class TermElement extends Element {
             });
 
         }
+
+    }
+
+    click(mouse) {
+
+        this.dispatchEvent(Object.assign(new Event(`click`), { mouse }));
 
     }
 

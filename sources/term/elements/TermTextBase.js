@@ -40,6 +40,8 @@ export class TermTextBase extends TermElement {
         this.textLayout.setSoftWrap(this.style.$.whiteSpace.doesWrap);
         this.textLayout.setDemoteNewlines(this.style.$.whiteSpace.doesDemoteNewlines);
         this.textLayout.setCollapseWhitespaces(this.style.$.whiteSpace.doesCollapse);
+        this.textLayout.setPreserveLeadingSpaces(!this.style.$.whiteSpace.doesCollapse);
+        this.textLayout.setPreserveTrailingSpaces(!this.style.$.whiteSpace.doesCollapse);
         this.textLayout.setJustifyText(this.style.$.textAlign.isJustified);
         this.textLayout.setAllowWordBreaks(this.style.$.overflowWrap.doesBreakWords);
 

@@ -25,5 +25,5 @@ lines.renderContent = (x, y, l) => `${y + input.scrollTop}`.padEnd(4).substr(x, 
 container.appendChild(lines);
 
 input.addEventListener(`scroll`, () => {
-    lines.setDirtyRenderingFlag();
+    lines.queueDirtyRect();
 });

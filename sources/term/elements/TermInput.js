@@ -74,7 +74,7 @@ export class TermInput extends TermTextBase {
 
                 this.enterIsNewline = multiline ? true : false;
 
-                this.decored && this.style.when(`element`).then({
+                this.decored && this.style.when(`:element`).then({
 
                     minHeight: value ? 10 : 1
 
