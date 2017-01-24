@@ -1,24 +1,58 @@
-import { TextLayout }         from '@manaflair/text-layout/sources/entry-browser';
-import { isFunction, isNull } from 'lodash';
-import TextBuffer             from 'text-buffer';
+import { TextLayout }   from '@manaflair/text-layout/sources/entry-browser';
+import { isBoolean }    from 'lodash';
+import TextBuffer       from 'text-buffer';
 
-import { Event, Point }       from '../../core';
+import { Event, Point } from '../../core';
 
-import { TermElement }        from './TermElement';
+import { TermElement }  from './TermElement';
 
 export class TermTextBase extends TermElement {
 
-    constructor({ textBuffer = new TextBuffer(), textLayout = new TextLayout(), enterIsNewline = true, readOnly = false, ... props } = {}) {
+    constructor({ textBuffer = new TextBuffer(), textLayout = new TextLayout(), enterIsNewline = true, readOnly = false, disabled = false, ... props } = {}) {
 
         super(props);
-
-        this.caretIndex = 0;
-        this.caret = new Point(0, 0);
-        this.caretMaxColumn = 0;
 
         this.textBuffer = textBuffer;
         this.textLayout = textLayout;
         this.textLines = [ `` ];
+
+        this.setPropertyTrigger(`readOnly`, readOnly, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            }
+
+        });
+
+        this.setPropertyTrigger(`disabled`, disabled, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: value => {
+
+                if (value) {
+
+                    this.caretIndex = null;
+                    this.caret = null;
+                    this.caretMaxColumn = null;
+
+                } else {
+
+                    this.caretIndex = 0;
+                    this.caret = new Point(0, 0);
+                    this.caretMaxColumn = 0;
+
+                }
+
+            }
+
+        });
 
         this.textLayout.setCharacterGetter(offset => {
 
@@ -77,6 +111,7 @@ export class TermTextBase extends TermElement {
                 this.yogaNode.markDirty();
 
                 this.setDirtyLayoutFlag();
+                this.queueDirtyRect();
 
             } else if (oldEnd.y === newEnd.y) {
 
@@ -107,6 +142,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`left`, () => {
 
+            if (!this.caret)
+                return;
+
             this.caretIndex = Math.max(0, this.caretIndex - 1);
             this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
             this.caretMaxColumn = this.caret.x;
@@ -118,6 +156,9 @@ export class TermTextBase extends TermElement {
         });
 
         this.addShortcutListener(`right`, () => {
+
+            if (!this.caret)
+                return;
 
             this.caretIndex = Math.min(this.caretIndex + 1, this.textBuffer.getMaxCharacterIndex());
             this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
@@ -131,6 +172,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`up`, () => {
 
+            if (!this.caret)
+                return;
+
             this.caret.x = this.caretMaxColumn;
             this.caret = new Point(this.textLayout.getPositionAbove(this.caret));
             this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
@@ -142,6 +186,9 @@ export class TermTextBase extends TermElement {
         });
 
         this.addShortcutListener(`down`, () => {
+
+            if (!this.caret)
+                return;
 
             this.caret.x = this.caretMaxColumn;
             this.caret = new Point(this.textLayout.getPositionBelow(this.caret));
@@ -155,6 +202,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`pgup`, () => {
 
+            if (!this.caret)
+                return;
+
             this.caret.x = this.caretMaxColumn;
             this.caret = new Point(this.textLayout.getPositionAbove(this.caret, this.elementRect.height));
             this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
@@ -166,6 +216,9 @@ export class TermTextBase extends TermElement {
         });
 
         this.addShortcutListener(`pgdown`, () => {
+
+            if (!this.caret)
+                return;
 
             this.caret.x = this.caretMaxColumn;
             this.caret = new Point(this.textLayout.getPositionBelow(this.caret, this.elementRect.height));
@@ -179,6 +232,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`home`, () => {
 
+            if (!this.caret)
+                return;
+
             this.caret = new Point();
             this.caretIndex = 0;
             this.caretMaxColumn = 0;
@@ -191,6 +247,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`end`, () => {
 
+            if (!this.caret)
+                return;
+
             this.caretIndex = this.textBuffer.getMaxCharacterIndex();
             this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
             this.caretMaxColumn = this.caret.x;
@@ -202,6 +261,9 @@ export class TermTextBase extends TermElement {
         });
 
         this.addShortcutListener(`enter`, () => {
+
+            if (!this.caret)
+                return;
 
             if (this.enterIsNewline) {
 
@@ -228,6 +290,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`backspace`, () => {
 
+            if (!this.caret)
+                return;
+
             if (this.readOnly)
                 return;
 
@@ -251,6 +316,9 @@ export class TermTextBase extends TermElement {
 
         this.addShortcutListener(`delete`, () => {
 
+            if (!this.caret)
+                return;
+
             if (this.readOnly)
                 return;
 
@@ -264,6 +332,9 @@ export class TermTextBase extends TermElement {
         });
 
         this.addEventListener(`data`, ({ buffer }) => {
+
+            if (!this.caret)
+                return;
 
             if (this.readOnly)
                 return;
@@ -285,6 +356,9 @@ export class TermTextBase extends TermElement {
         this.addEventListener(`mousedown`, e => {
 
             if (e.mouse.name !== `left`)
+                return;
+
+            if (!this.caret)
                 return;
 
             if (!this.style.$.focusEvents)

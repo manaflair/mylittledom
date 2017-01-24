@@ -592,11 +592,6 @@ export class Element extends Node {
         if (this.rootNode !== this)
             return this.rootNode.triggerUpdates();
 
-        let needFullRerender = this.flags & (
-            flags.ELEMENT_HAS_DIRTY_NODE_LIST |
-            flags.ELEMENT_HAS_DIRTY_RENDER_LIST
-        );
-
         if (this.flags & flags.ELEMENT_HAS_DIRTY_NODE_LIST) {
             this.nodeList = this.generateNodeList();
             this.clearDirtyNodeListFlag();
@@ -621,9 +616,6 @@ export class Element extends Node {
 
         this.cascadeLayout({ dirtyLayoutNodes });
         this.cascadeClipping({ dirtyScrollNodes });
-
-        if (needFullRerender && this.elementClipRect)
-            this.rootNode.queueDirtyRect(this.elementClipRect);
 
         if (this.flags & flags.ELEMENT_IS_DIRTY)
             throw new Error(`Aborted 'triggerUpdates' execution: Flags have not been correctly reset at some point (${(this.flags & flags.ELEMENT_IS_DIRTY).toString(2)}).`);
@@ -739,11 +731,11 @@ export class Element extends Node {
                 this.contentRect.height = this.elementRect.height - this.contentRect.y - this.yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM) - this.yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM);
 
                 // We try to optimize away the iterations inside elements that haven't changed and aren't marked as dirty, because we know their children's layouts won't change either
-                doesLayoutChange = (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT) !== 0 || !this.elementRect.equals(prevElementRect) || !this.contentRect.equals(prevContentRect);
+                doesLayoutChange = !this.elementRect.equals(prevElementRect) || !this.contentRect.equals(prevContentRect);
 
             }
 
-            if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN || doesLayoutChange) {
+            if (this.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN) || doesLayoutChange) {
 
                 for (let child of this.childNodes)
                     child.cascadeLayout({ dirtyLayoutNodes, force: true });
@@ -759,7 +751,7 @@ export class Element extends Node {
                     return child.elementRect.y + child.elementRect.height;
                 }));
 
-                doesScrollChange = this.scrollRect.width !== prevScrollWidth && this.scrollRect.height !== prevScrollHeight;
+                doesScrollChange = this.scrollRect.width !== prevScrollWidth || this.scrollRect.height !== prevScrollHeight;
 
             }
 
@@ -862,28 +854,6 @@ export class Element extends Node {
             `scrollRect`
 
         ]);
-
-    }
-
-    findDirtyLayoutNodes() {
-
-        let dirtyNodes = [];
-        let pendingQueue = [ this ];
-
-        while (pendingQueue.length > 0) {
-
-            let node = pendingQueue.shift();
-
-            if (node.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN))
-                pendingQueue = pendingQueue.concat(node.childNodes);
-
-            if (node.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT)) {
-                node.traverse(traversedNode => dirtyNodes.push(traversedNode));
-            }
-
-        }
-
-        return dirtyNodes;
 
     }
 

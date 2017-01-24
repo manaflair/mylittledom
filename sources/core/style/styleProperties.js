@@ -118,9 +118,9 @@ export let styleProperties = {
     },
 
     flex: {
-        parsers: [ list([ number, optional(number), optional([ length.rel ]) ]), list([ optional(number), optional(number), [ length, length.rel ] ]), new Map([ [ null, [ 0, 0, `auto` ] ] ]) ],
+        parsers: [ list([ number, optional(number), optional([ length, length.rel, length.auto ]) ]), list([ optional(number), optional(number), [ length, length.rel, length.auto ] ]), new Map([ [ null, [ 0, 0, `auto` ] ] ]) ],
         getter: (style) => [ style.flexGrow, style.flexShrink, style.flexBasis ],
-        setter: (style, [ flexGrow, flexShrink, flexBasis ]) => Object.assign(style, { flexGrow, flexShrink, flexBasis })
+        setter: (style, [ flexGrow = 1, flexShrink = 1, flexBasis = 0 ]) => Object.assign(style, { flexGrow, flexShrink, flexBasis })
     },
 
     flexGrow: {

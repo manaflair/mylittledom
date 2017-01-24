@@ -7,7 +7,7 @@ export class TermText extends TermTextBase {
 
     constructor({ textContent = ``, textBuffer = new TextBuffer(textContent), ... props } = {}) {
 
-        super({ ... props, textBuffer, enterIsNewline: true });
+        super({ ... props, textBuffer, enterIsNewline: true, disabled: true });
 
         this.setPropertyAccessor(`contentText`, {
 

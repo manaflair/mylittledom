@@ -43,12 +43,20 @@ export class TermScreen extends TermElement {
         // Another timer, this time used to render the dirty part of the screen after they have been computed
         this.renderTimer = null;
 
+        //
+        this.mouseOverElement = null;
+        this.mouseEnterElements = [];
+
         // Bind the listener that will notify us when a node becomes dirty
         this.addEventListener(`dirty`, () => this.scheduleUpdate(), { capture: true });
 
         // Bind the listeners that will notify us when the caret position changes
         this.addEventListener(`focus`, () => this.scheduleUpdate(), { capture: true });
         this.addEventListener(`caret`, () => this.scheduleUpdate(), { capture: true });
+
+        //
+        this.addEventListener(`mousemove`, e => this.dispatchMouseOverEvents(e), { capture: true });
+        this.addEventListener(`mousemove`, e => this.dispatchMouseEnterEvents(e), { capture: true });
 
         // Bind the listeners that enable navigating between focused elements
         this.addShortcutListener(`S-tab`, e => e.setDefault(() => this.focusPreviousElement()), { capture: true });
@@ -111,6 +119,7 @@ export class TermScreen extends TermElement {
         this.stdout.write(cursor.hidden);
 
         this.stdout.write(feature.enableMouseHoldTracking.in);
+        this.stdout.write(feature.enableMouseMoveTracking.in);
         this.stdout.write(feature.enableExtendedCoordinates.in);
 
         this.scheduleUpdate();
@@ -179,6 +188,104 @@ export class TermScreen extends TermElement {
 
 
         });
+
+    }
+
+    dispatchMouseOverEvents(e) {
+
+        let targetElement = this.getElementAt(e.worldCoordinates);
+
+        if (targetElement === this.mouseOverElement)
+            return;
+
+        if (this.mouseOverElement) {
+
+            let event = new Event(`mouseout`);
+            event.mouse = e.mouse;
+
+            event.worldCoordinates = e.worldCoordinates;
+            event.contentCoordinates = e.contentCoordinates;
+
+            this.mouseOverElement.dispatchEvent(event);
+
+        }
+
+        this.mouseOverElement = targetElement;
+
+        if (this.mouseOverElement) {
+
+            let event = new Event(`mouseover`);
+            event.mouse = e.mouse;
+
+            event.worldCoordinates = e.worldCoordinates;
+            event.contentCoordinates = e.contentCoordinates;
+
+            this.mouseOverElement.dispatchEvent(event);
+
+        }
+
+    }
+
+    dispatchMouseEnterEvents(e) {
+
+        let targetElement = this.getElementAt(e.worldCoordinates);
+
+        let index = this.mouseEnterElements.indexOf(targetElement);
+
+        let removedElements = [];
+        let addedElements = [];
+
+        if (index !== -1) {
+
+            removedElements = this.mouseEnterElements.splice(index + 1, this.mouseEnterElements.length);
+
+        } else {
+
+            let currentElement = targetElement;
+            let currentIndex = index;
+
+            while (currentElement && currentIndex === -1) {
+
+                addedElements.unshift(currentElement);
+
+                currentElement = currentElement.parentNode;
+                currentIndex = this.mouseEnterElements.indexOf(currentElement);
+
+            }
+
+            if (currentElement) {
+                removedElements = this.mouseEnterElements.splice(currentIndex + 1, this.mouseEnterElements.length);
+            } else {
+                removedElements = this.mouseEnterElements.splice(0, this.mouseEnterElements.length);
+            }
+
+        }
+
+        this.mouseEnterElements = this.mouseEnterElements.concat(addedElements);
+
+        for (let t = removedElements.length - 1; t >= 0; --t) {
+
+            let event = new Event(`mouseleave`, { bubbles: false });
+            event.mouse = e.mouse;
+
+            event.worldCoordinates = e.worldCoordinates;
+            event.contentCoordinates = e.contentCoordinates;
+
+            removedElements[t].dispatchEvent(event);
+
+        }
+
+        for (let t = 0; t < addedElements.length; ++t) {
+
+            let event = new Event(`mouseenter`, { bubbles: false });
+            event.mouse = e.mouse;
+
+            event.worldCoordinates = e.worldCoordinates;
+            event.contentCoordinates = e.contentCoordinates;
+
+            addedElements[t].dispatchEvent(event);
+
+        }
 
     }
 
@@ -300,6 +407,9 @@ export class TermScreen extends TermElement {
             let worldCoordinates = new Point({ x: input.x, y: input.y });
 
             let targetElement = this.getElementAt(worldCoordinates);
+
+            if (!targetElement)
+                return; // Some envs (xterm.js) sometimes send mouse coordinates outside of the possible range
 
             let contentCoordinates = new Point({ x: worldCoordinates.x - targetElement.contentWorldRect.x, y: worldCoordinates.y - targetElement.contentWorldRect.y + targetElement.scrollTop });
 

@@ -52,9 +52,14 @@ export class TermInput extends TermTextBase {
                     whiteSpace: value ? `pre` : undefined,
 
                     backgroundCharacter: value ? `.` : undefined,
-                    backgroundColor: value ? `#000088` : undefined,
 
                     minHeight: value ? this.multiline ? 10 : 1 : undefined
+
+                });
+
+                this.style.when(`:element:focus`).then({
+
+                    backgroundColor: value ? `#000088` : undefined
 
                 });
 

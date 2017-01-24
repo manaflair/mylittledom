@@ -12,7 +12,7 @@ input.style.backgroundColor = null;
 input.style.minHeight = 1;
 input.style.maxHeight = `100%`;
 input.style.whiteSpace = `preWrap`;
-input.value = lorem.paragraphs(5);
+input.value = lorem.paragraphs(5).replace(/\n \r/g, `\n`);
 container.appendChild(input);
 
 let lines = new TermElement();

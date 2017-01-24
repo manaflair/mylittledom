@@ -26,10 +26,10 @@ export function list(parserList) {
         if (rawValues.length === 0 && parserList.length === 0)
             return [];
 
-        if (rawValues.length > 0 && parserList.length === 0)
+        if (rawValues.length < minSize && parserList.length === 0)
             return undefined;
 
-        if (parserList.length > 0 && rawValues.length === 0)
+        if (parserList.length < minSize && rawValues.length === 0)
             return undefined;
 
         let rawValue = rawValues[0];

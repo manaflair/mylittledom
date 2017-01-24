@@ -9,7 +9,7 @@ let eventSymbol = Symbol();
 
 function toEventName(key) {
 
-    return lowerFirst(key.replace(/^on/g, ``));
+    return key.replace(/^on/g, ``).toLowerCase();
 
 }
 
@@ -219,7 +219,7 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // This function is called whenever
 
-        instance.textContent = newText;
+        textInstance.textContent = newText;
 
     }
 

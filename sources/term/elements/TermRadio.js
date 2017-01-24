@@ -57,9 +57,9 @@ export class TermRadio extends TermElement {
             if (isNull(this.name))
                 return;
 
-            let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+            let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
 
-            if (!form)
+            if (form === this)
                 return;
 
             let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
@@ -77,9 +77,9 @@ export class TermRadio extends TermElement {
             if (isNull(this.name))
                 return;
 
-            let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+            let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
 
-            if (!form)
+            if (form === this)
                 return;
 
             let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
@@ -104,21 +104,20 @@ export class TermRadio extends TermElement {
 
                 if (!isNull(value)) {
 
-                    let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+                    let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
 
-                    if (form) {
+                    if (form === this)
+                        return;
 
-                        let uncheck = false;
+                    let uncheck = false;
 
-                        for (let radio of findDescendantsByPredicate(form, node => node instanceof TermRadio)) {
+                    for (let radio of findDescendantsByPredicate(form, node => node instanceof TermRadio)) {
 
-                            if (uncheck)
-                                radio.checked = false;
+                        if (uncheck)
+                            radio.checked = false;
 
-                            if (radio.checked) {
-                                uncheck = true;
-                            }
-
+                        if (radio.checked) {
+                            uncheck = true;
                         }
 
                     }
@@ -149,17 +148,21 @@ export class TermRadio extends TermElement {
 
                     if (value) {
 
-                        let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+                        let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
 
-                        for (let radio of findDescendantsByPredicate(form, node => node instanceof TermRadio)) {
+                        if (form !== this) {
 
-                            if (radio === this)
-                                continue;
+                            for (let radio of findDescendantsByPredicate(form, node => node instanceof TermRadio)) {
 
-                            if (radio.name !== this.name)
-                                continue;
+                                if (radio === this)
+                                    continue;
 
-                            radio.checked = false;
+                                if (radio.name !== this.name)
+                                    continue;
+
+                                radio.checked = false;
+
+                            }
 
                         }
 

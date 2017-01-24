@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@arcanis/npm-git-install": "^0.2.1",
-    "@manaflair/term-strings": "^0.3.0",
+    "@manaflair/term-strings": "^0.3.1",
     "@manaflair/text-layout": "^0.6.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",

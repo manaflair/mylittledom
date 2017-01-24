@@ -1,8 +1,12 @@
-import { TermElement, TermInput, TermText } from '@manaflair/mylittledom/term';
-import { SyntaxHighlighter }                from '@manaflair/mylittledom/extra';
-import { TermString }                       from '@manaflair/term-strings/gen';
-import { GrammarRegistry }                  from 'first-mate';
-import plist                                from 'plist';
+import { TermElement, TermInput, TermScrollbar, TermText } from '@manaflair/mylittledom/term';
+import { SyntaxHighlighter }                               from '@manaflair/mylittledom/extra';
+import { TermString }                                      from '@manaflair/term-strings/gen';
+import { GrammarRegistry }                                 from 'first-mate';
+import plist                                               from 'plist';
+
+// This demo doesn't work in browser environments, since Oniguruma hasn't
+// been ported yet. The plan is to compile it to asm.js, just like we did
+// with Yoga & Text-Buffer, but it will take time :)
 
 let highlighter = new SyntaxHighlighter();
 highlighter.grammar.load(`javascript`, readFileSync(`${__dirname}/data/JavaScriptNext.tmLanguage`)).use();
@@ -12,13 +16,26 @@ let container = new TermElement();
 container.style.height = `100%`;
 screen.appendChild(container);
 
+let mainRow = new TermElement();
+mainRow.style.flexDirection = `row`;
+mainRow.style.flexGrow = 1;
+mainRow.style.flexShrink = 1;
+container.appendChild(mainRow);
+
 let input = new TermInput({ decored: false, multiline: true, textLayout: highlighter });
 input.style.background = highlighter.theme.resolve([], `background`, null);
-input.style.flexGrow = 1;
-input.style.flexShrink = 1;
+input.style.flex = `auto`;
 input.style.whiteSpace = `pre`;
 input.value = readFileSync(__filename);
-container.appendChild(input);
+mainRow.appendChild(input);
+
+let scrollbar = new TermScrollbar({ direction: `vertical` });
+scrollbar.style.flex = null;
+scrollbar.style.width = 2;
+scrollbar.style.height = `100%`;
+scrollbar.style.backgroundColor = `#222222`;
+scrollbar.style.color = `white`;
+mainRow.appendChild(scrollbar);
 
 let status = new TermElement();
 status.style.flexDirection = `row`;
@@ -52,34 +69,15 @@ statusCaret.style.color = `black`;
 statusCaret.textContent = `(?,?)`;
 status.appendChild(statusCaret);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 input.addEventListener(`caret`, e => {
     statusCaret.textContent = `(${input.caret.y},${input.caret.x})`;
+});
+
+input.addEventListener(`layout`, e => {
+    scrollbar.viewportSize = input.offsetHeight;
+    scrollbar.innerSize = input.scrollHeight;
+});
+
+input.addEventListener(`scroll`, e => {
+    scrollbar.position = input.scrollTop;
 });

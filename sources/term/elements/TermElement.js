@@ -12,9 +12,14 @@ export class TermElement extends Element {
         this.declareEvent(`keypress`);
 
         this.declareEvent(`mousewheel`);
+
         this.declareEvent(`mousedown`);
-        this.declareEvent(`mousemove`);
         this.declareEvent(`mouseup`);
+
+        this.declareEvent(`mousemove`);
+
+        this.declareEvent(`mouseover`);
+        this.declareEvent(`mouseout`);
 
         this.declareEvent(`mouseenter`);
         this.declareEvent(`mouseleave`);
@@ -26,10 +31,35 @@ export class TermElement extends Element {
 
         this.declareEvent(`data`);
 
+        this.isActive = false;
+
+        this.addEventListener(`mouseenter`, e => {
+
+            this.styleDeclaration.enable(`hover`);
+
+            if (this.isActive) {
+                this.styleDeclaration.enable(`active`);
+            }
+
+        });
+
+        this.addEventListener(`mouseleave`, e => {
+
+            this.styleDeclaration.disable(`hover`);
+
+            if (this.isActive) {
+                this.styleDeclaration.disable(`active`);
+            }
+
+        });
+
         this.addEventListener(`mousedown`, e => {
 
             if (e.mouse.name !== `left`)
                 return;
+
+            this.styleDeclaration.enable(`active`);
+            this.isActive = true;
 
             if (!this.style.$.focusEvents)
                 return;
@@ -45,9 +75,41 @@ export class TermElement extends Element {
             if (e.mouse.name !== `left`)
                 return;
 
+            if (this.rootNode.isActive) {
+
+                let element = this.rootNode;
+
+                disableLoop: while (element) {
+
+                    element.styleDeclaration.disable(`active`);
+                    element.isActive = false;
+
+                    for (let child of element.childNodes) {
+
+                        if (!child.isActive)
+                            continue;
+
+                        element = child;
+                        continue disableLoop;
+
+                    }
+
+                    break;
+
+                }
+
+            }
+
             e.setDefault(() => {
-                let clickEvent = Object.assign(new Event(`click`), { mouse: e.mouse });
-                this.dispatchEvent(clickEvent);
+
+                let event = new Event(`click`);
+                event.mouse = e.mouse;
+
+                event.worldCoordinates = e.worldCoordinates;
+                event.contentCoordinates = e.contentCoordinates;
+
+                this.dispatchEvent(event);
+
             });
 
         }, { capture: true });
@@ -277,6 +339,12 @@ export class TermElement extends Element {
     }
 
     renderBackground(l) {
+
+        if (l < 0)
+            throw new Error(`Failed to execute 'renderBackground': Invalid size.`);
+
+        if (l === 0)
+            return ``;
 
         if (this.rootNode.debugPaintRects)
             return this.style.$.backgroundCharacter.repeat(l);
