@@ -317,7 +317,7 @@ export class TermElement extends Element {
             }
 
             if (x + l > this.contentRect.width) {
-                let size = x + l - this.contentRect.width;
+                let size = Math.min(l, x + l - this.contentRect.width);
                 append = this.renderBackground(size);
                 l -= size;
             }

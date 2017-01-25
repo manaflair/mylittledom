@@ -70,7 +70,7 @@ class Window extends React.PureComponent {
 
     render() {
 
-        return <div ref={`main`} style={{ border: `simple`, position: `absolute`, left: this.props.x, top: this.props.y, width: this.props.width, height: this.props.height }} onMouseDown={e => this.handleMouseDown(e)}>
+        return <div ref={`main`} style={{ border: `strong`, position: `absolute`, left: this.props.x, top: this.props.y, width: this.props.width, height: this.props.height }} onMouseDown={e => this.handleMouseDown(e)}>
             {`Box position: ${this.props.x}x${this.props.y}`}
         </div>;
 
