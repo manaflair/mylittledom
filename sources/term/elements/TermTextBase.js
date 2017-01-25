@@ -117,8 +117,8 @@ export class TermTextBase extends TermElement {
 
                 let dirtyRect = this.contentWorldRect.clone();
 
-              //dirtyRect.x += start.x; // We can't do this because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the previous ones are displayed
-                dirtyRect.y += start.y;
+              //dirtyRect.x += start.x - this.scrollRect.x; // We can't do this because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the previous ones are displayed
+                dirtyRect.y += start.y - this.scrollRect.y;
 
                 dirtyRect.height = 1;
 
@@ -128,7 +128,7 @@ export class TermTextBase extends TermElement {
 
                 let dirtyRect = this.contentWorldRect.clone();
 
-                dirtyRect.y += start.y;
+                dirtyRect.y += start.y - this.scrollRect.y;
 
                 dirtyRect.height = Math.max(oldEnd.y, newEnd.y) - start.y + 1;
 

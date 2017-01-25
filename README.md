@@ -4,7 +4,7 @@
 
 [![](https://img.shields.io/npm/v/@manaflair/mylittledom.svg)]() [![](https://img.shields.io/npm/l/@manaflair/mylittledom.svg)]()
 
-[Check out our other OSS projects!](https://manaflair.github.io)
+[Check out our other OSS projects!](https://manaflair.github.io) | [Try out the MyLittleDom playground!](https://manaflair.github.io/mylittledom/demo/)
 
 ## Features
 
