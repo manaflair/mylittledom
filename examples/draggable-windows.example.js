@@ -86,6 +86,18 @@ class Example extends React.PureComponent {
 
     };
 
+    componentDidMount() {
+
+        setTimeout(() => {
+
+            this.handleClick();
+            this.handleClick();
+            this.handleClick();
+
+        }, 1500);
+
+    }
+
     @autobind handleClick() {
 
         let width = 20;

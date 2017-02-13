@@ -5,6 +5,7 @@ import { display, position, overflow, repeat, length, character, color, number, 
 import { dirtyLayout, dirtyClipping, dirtyRendering, dirtyRenderList, dirtyFocusList, forwardToYoga, forwardToTextLayout } from './styleTriggers';
 import { onNullSwitch }                                                                                                    from './styleTriggers';
 import { StyleAlignment }                                                                                                  from './types/StyleAlignment';
+import { StyleBackgroundClip }                                                                                             from './types/StyleBackgroundClip';
 import { StyleDecoration }                                                                                                 from './types/StyleDecoration';
 import { StyleDisplay }                                                                                                    from './types/StyleDisplay';
 import { StyleFlexAlignment }                                                                                              from './types/StyleFlexAlignment';
@@ -326,6 +327,12 @@ export let styleProperties = {
         parsers: [ list([ optional(character), color ]), list([ character, optional(color) ]), new Map([ [ null, [ null, ` ` ] ] ]) ],
         getter: (style) => [ style.backgroundCharacter, style.backgroundColor ],
         setter: (style, [ backgroundCharacter = style.backgroundCharacter, backgroundColor = style.backgroundColor ]) => Object.assign(style, { backgroundCharacter, backgroundColor })
+    },
+
+    backgroundClip: {
+        parsers: [ pick(StyleBackgroundClip, `borderBox`, `paddingBox`, `contentBox`) ],
+        triggers: [ dirtyRendering ],
+        initial: `borderBox`
     },
 
     backgroundColor: {

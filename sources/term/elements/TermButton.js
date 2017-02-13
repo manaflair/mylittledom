@@ -1,4 +1,6 @@
-import { TermText } from './TermText';
+import { StyleManager, makeRuleset } from '../../core';
+
+import { TermText }                  from './TermText';
 
 export class TermButton extends TermText {
 
@@ -6,30 +8,27 @@ export class TermButton extends TermText {
 
         super({ ... props });
 
-        this.style.when(`:element`).then({
+        this.styleManager.addRuleset(makeRuleset({
 
             focusEvents: true
 
-        });
-
-        this.style.when(`:element:hover`).then({
+        }, `:hover`, {
 
             borderColor: `white`,
             color: `white`,
 
             textDecoration: `underline`
 
-        });
+        }, `:active`, {
 
-        this.style.when(`:element:active`).then({
-
+            backgroundClip: `paddingBox`,
             backgroundColor: `white`,
-            borderColor: `black`,
+
             color: `black`,
 
             textDecoration: null
 
-        });
+        }), StyleManager.RULESET_NATIVE);
 
     }
 

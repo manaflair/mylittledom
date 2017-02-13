@@ -1,12 +1,12 @@
-import { Key, Mouse, parseTerminalInputs }        from '@manaflair/term-strings/parse';
-import { cursor, feature, screen, style }         from '@manaflair/term-strings';
-import { autobind }                               from 'core-decorators';
-import { isBoolean, isEmpty, isUndefined, merge } from 'lodash';
-import { Readable, Writable }                     from 'stream';
+import { Key, Mouse, parseTerminalInputs }         from '@manaflair/term-strings/parse';
+import { cursor, feature, screen, style }          from '@manaflair/term-strings';
+import { autobind }                                from 'core-decorators';
+import { isBoolean, isEmpty, isUndefined, merge }  from 'lodash';
+import { Readable, Writable }                      from 'stream';
 
-import { Event, Point }                           from '../../core';
+import { Event, Point, StyleManager, makeRuleset } from '../../core';
 
-import { TermElement }                            from './TermElement';
+import { TermElement }                             from './TermElement';
 
 // We will iterate through those colors when rendering if the debugPaintRects option is set
 let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta`, `yellow` ], currentDebugColorIndex = 0;
@@ -17,9 +17,10 @@ export class TermScreen extends TermElement {
 
         super(attributes);
 
-        this.style.when(`:element`, {
-            position: `relative`
-        });
+        this.styleManager.addRuleset(makeRuleset({
+            position: `relative`,
+            width: 0, height: 0
+        }), StyleManager.RULESET_NATIVE);
 
         // We prevent this element from being set as child of another node
         Reflect.defineProperty(this, `parentNode`, {
@@ -42,6 +43,9 @@ export class TermScreen extends TermElement {
 
         // Another timer, this time used to render the dirty part of the screen after they have been computed
         this.renderTimer = null;
+
+        //
+        this.trackOutputSize = false;
 
         //
         this.mouseOverElement = null;
@@ -83,7 +87,7 @@ export class TermScreen extends TermElement {
 
     }
 
-    attachScreen({ stdin = process.stdin, stdout = process.stdout } = {}) {
+    attachScreen({ stdin = process.stdin, stdout = process.stdout, trackOutputSize = true, throttleMouseMoveEvents = 1000 / 60 } = {}) {
 
         if (this.ready)
             throw new Error(`Failed to execute 'setup': This screen is already in use.`);
@@ -102,26 +106,42 @@ export class TermScreen extends TermElement {
         this.stdin = stdin;
         this.stdout = stdout;
 
-        this.subscription = parseTerminalInputs(this.stdin).subscribe({ next: this.handleInput });
-        this.stdout.on(`resize`, this.handleStdoutResize);
+        this.trackOutputSize = trackOutputSize;
 
+        // Automatically clear the screen when the program exits
         process.on(`exit`, this.handleExit);
 
-        this.style.when(`:element`).then({
-            width: this.stdout.columns,
-            height: this.stdout.rows
-        });
+        // Listen for input events
+        this.subscription = parseTerminalInputs(this.stdin, { throttleMouseMoveEvents }).subscribe({ next: this.handleInput });
 
+        // Automatically resize the screen when its output changes
+        if (this.trackOutputSize) {
+            this.style.assign({ width: this.stdout.columns, height: this.stdout.rows });
+            this.stdout.on(`resize`, this.handleStdoutResize);
+        }
+
+        // If we can operate in raw mode, we do
         if (this.stdin.setRawMode)
             this.stdin.setRawMode(true);
 
-        this.stdout.write(screen.reset);
+        // Enter the alternate screen
+        this.stdout.write(screen.alternateScreen.in);
+
+        // Disable the terminal soft wrapping
+        this.stdout.write(screen.noWrap.in);
+
+        // Hide the cursor (it will be renderer with everything else later)
         this.stdout.write(cursor.hidden);
 
+        // Enable mouse tracking (all events are tracked, even when the mouse button isn't pressed)
         this.stdout.write(feature.enableMouseHoldTracking.in);
         this.stdout.write(feature.enableMouseMoveTracking.in);
         this.stdout.write(feature.enableExtendedCoordinates.in);
 
+        // Clear the current font style so that we aren't polluted by previous applications
+        this.stdout.write(style.clear);
+
+        // Finally schedule the first update of the screen
         this.scheduleUpdate();
 
     }
@@ -131,17 +151,26 @@ export class TermScreen extends TermElement {
         if (!this.ready)
             return;
 
-        this.stdout.write(screen.reset);
+        // Exit the alternate screen
+        this.stdout.write(screen.alternateScreen.out);
 
-        this.style.when(`:element`).then({
-            width: 0,
-            height: 0
-        });
+        // Display the cursor
+        this.stdout.write(cursor.normal);
 
+        // Stop resizing the screen
+        if (this.trackOutputSize) {
+            this.style.assign({ width: undefined, height: undefined });
+            this.stdout.removeListener(`resize`, this.handleStdoutResize);
+        }
+
+        // Stop listening for events from the input stream
+        this.subscription.unsubscribe();
+        this.subscription = null;
+
+        // Remove the exit hooks, since the screen is already closed
         process.removeListener(`exit`, this.handleExit);
 
-        this.stdout.removeListener(`resize`, this.handleStdoutResize);
-        this.subscription = this.subscription.unsubscribe(), null;
+        this.trackOutputSize = false;
 
         this.stdin = null;
         this.stdout = null;
@@ -464,12 +493,10 @@ export class TermScreen extends TermElement {
 
     @autobind handleStdoutResize() {
 
-        this.style.when(`:element`).then({
+        let width = this.stdout.columns;
+        let height = this.stdout.rows;
 
-            width: this.stdout.columns,
-            height: this.stdout.rows
-
-        });
+        this.style.assign({ width, height });
 
     }
 

@@ -1,9 +1,9 @@
-import { isBoolean, isNull, isString }                                                           from 'lodash';
+import { isBoolean, isNull, isString }                                                                                      from 'lodash';
 
-import { Event, findAncestorByPredicate, findDescendantsByPredicate, findDescendantByPredicate } from './../../core';
+import { Event, StyleManager, findAncestorByPredicate, findDescendantsByPredicate, findDescendantByPredicate, makeRuleset } from '../../core';
 
-import { TermElement }                                                                           from './TermElement';
-import { TermForm }                                                                              from './TermForm';
+import { TermElement }                                                                                                      from './TermElement';
+import { TermForm }                                                                                                         from './TermForm';
 
 export class TermRadio extends TermElement {
 
@@ -11,31 +11,25 @@ export class TermRadio extends TermElement {
 
         super(props);
 
-        this.styleDeclaration.addStates([ `checked` ], checked);
+        this.styleManager.setStateStatus(`checked`, checked);
 
-        this.style.when(`:element`).then({
+        this.styleManager.addRuleset(makeRuleset({
 
             focusEvents: true
 
-        });
-
-        this.style.when(`:element:focus`).then({
+        }, `:focus`, {
 
             color: `darkblue`
 
-        });
-
-        this.style.when(`:element:checked`).then({
+        }, `:checked`, {
 
             color: `darkcyan`
 
-        });
-
-        this.style.when(`:element:focus:checked`).then({
+        }, `:focus:checked`, {
 
             color: `cyan`
 
-        });
+        }), StyleManager.RULESET_NATIVE);
 
         this.yogaNode.setMeasureFunc((maxWidth, widthMode, maxHeight, heightMode) => {
 
@@ -138,11 +132,7 @@ export class TermRadio extends TermElement {
 
             trigger: value => {
 
-                if (value) {
-                    this.styleDeclaration.enable(`checked`);
-                } else {
-                    this.styleDeclaration.disable(`checked`);
-                }
+                this.styleManager.setStateStatus(`checked`, value);
 
                 if (!isNull(this.name)) {
 

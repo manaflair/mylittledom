@@ -1,20 +1,20 @@
 import { has, isUndefined }   from 'lodash';
 
+import { EasyStyle }          from './EasyStyle';
+import { Ruleset }            from './Ruleset';
 import { styleProperties }    from './styleProperties';
 import { parsePropertyValue } from './tools/parsePropertyValue';
 
-export let initialStyles = new Map();
+let globalRuleset = new Ruleset();
+let globalStyle = new EasyStyle(globalRuleset, []);
 
 for (let key of Reflect.ownKeys(styleProperties)) {
 
     if (!has(styleProperties[key], `initial`))
         continue;
 
-    let rawValue = styleProperties[key].initial;
-
-    if (isUndefined(rawValue))
-        continue;
-
-    initialStyles.set(key, parsePropertyValue(key, rawValue));
+    globalStyle[key] = styleProperties[key].initial;
 
 }
+
+export { globalRuleset };

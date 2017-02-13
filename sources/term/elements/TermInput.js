@@ -1,7 +1,9 @@
-import { isBoolean, isString } from 'lodash';
-import TextBuffer              from 'text-buffer';
+import { isBoolean, isString }       from 'lodash';
+import TextBuffer                    from 'text-buffer';
 
-import { TermTextBase }        from './TermTextBase';
+import { StyleManager, makeRuleset } from '../../core';
+
+import { TermTextBase }              from './TermTextBase';
 
 export class TermInput extends TermTextBase {
 
@@ -9,11 +11,11 @@ export class TermInput extends TermTextBase {
 
         super({ ... props, textBuffer });
 
-        this.style.when(`:element`).then({
+        this.styleManager.addRuleset(makeRuleset({
 
             focusEvents: true
 
-        });
+        }), StyleManager.RULESET_NATIVE);
 
         this.setPropertyAccessor(`value`, {
 
@@ -47,7 +49,7 @@ export class TermInput extends TermTextBase {
 
             trigger: value => {
 
-                this.style.when(`:element`).then({
+                this.style.assign({
 
                     whiteSpace: value ? `pre` : undefined,
 
@@ -57,7 +59,7 @@ export class TermInput extends TermTextBase {
 
                 });
 
-                this.style.when(`:element:focus`).then({
+                this.style.when(`:element:focus`).assign({
 
                     backgroundColor: value ? `#000088` : undefined
 
@@ -79,7 +81,7 @@ export class TermInput extends TermTextBase {
 
                 this.enterIsNewline = multiline ? true : false;
 
-                this.decored && this.style.when(`:element`).then({
+                this.decored && this.style.assign({
 
                     minHeight: value ? 10 : 1
 

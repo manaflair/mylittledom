@@ -6,7 +6,7 @@ export class Screen extends Element {
 
         super(props);
 
-        this.style.when(`:element`).then({
+        this.style.when(`:element`).assign({
 
             position: `relative`
 

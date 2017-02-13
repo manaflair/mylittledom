@@ -1,4 +1,4 @@
-import { Event, findDescendantByPredicate, isChildOf } from './../../core';
+import { Event, findDescendantByPredicate, isChildOf } from '../../core';
 
 import { TermElement }                                 from './TermElement';
 

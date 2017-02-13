@@ -40,6 +40,12 @@ export class Rect {
 
     }
 
+    isEmpty() {
+
+        return this.width === 0 || this.height === 0;
+
+    }
+
     equals(other) {
 
         return (

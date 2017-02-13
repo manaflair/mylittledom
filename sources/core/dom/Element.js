@@ -6,8 +6,8 @@ import { Event }                                   from '../misc/Event';
 import { Point }                                   from '../misc/Point';
 import { Rect }                                    from '../misc/Rect';
 
-import { StyleDeclaration }                        from '../style/StyleDeclaration';
-import { StyleSet }                                from '../style/StyleSet';
+import { StyleManager }                            from '../style/StyleManager';
+import { globalRuleset }                           from '../style/globalRuleset';
 import { StyleLength }                             from '../style/types/StyleLength';
 import { StyleOverflow }                           from '../style/types/StyleOverflow';
 
@@ -24,7 +24,7 @@ function getPreferredSize(node, ... args) {
 
 export class Element extends Node {
 
-    constructor({ style } = {}) {
+    constructor({ style = {} } = {}) {
 
         super();
 
@@ -35,10 +35,17 @@ export class Element extends Node {
 
         this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
 
-        this.styleDeclaration = new StyleDeclaration(this);
-        this.styleDeclaration.addStates([ `element`, `local` ], true);
-        this.styleDeclaration.addStates([ `focus`, `hover` ], false);
-        this.style = Object.assign(this.styleDeclaration.makeProxy(), style);
+        this.styleManager = new StyleManager(this);
+
+        this.styleManager.setStateStatus(`firstChild`, true);
+        this.styleManager.setStateStatus(`lastChild`, true);
+
+        this.styleManager.addRuleset(globalRuleset, StyleManager.RULESET_NATIVE);
+
+        this.style = this.styleManager.getStyle();
+        this.classList = this.styleManager.getClassList();
+
+        this.style.assign(style);
 
         this.caret = null;
 
@@ -172,7 +179,7 @@ export class Element extends Node {
             this.rootNode.activeElement.blur();
 
         this.rootNode.activeElement = this;
-        this.styleDeclaration.enable(`focus`);
+        this.styleManager.setStateStatus(`focus`, true);
 
         this.scrollIntoView();
 
@@ -186,7 +193,7 @@ export class Element extends Node {
             return;
 
         this.rootNode.activeElement = null;
-        this.styleDeclaration.disable(`focus`);
+        this.styleManager.setStateStatus(`focus`, false);
 
         this.dispatchEvent(new Event(`blur`));
 
@@ -543,7 +550,7 @@ export class Element extends Node {
 
     queueDirtyRect(dirtyRect = this.elementClipRect, checkIntersectionFrom = 0) {
 
-        if (!dirtyRect)
+        if (!dirtyRect || dirtyRect.isEmpty())
             return;
 
         if (this.rootNode !== this)

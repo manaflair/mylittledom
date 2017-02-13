@@ -1,7 +1,8 @@
-import { style }          from '@manaflair/term-strings';
+import { style }                                     from '@manaflair/term-strings';
 
-import { Element, Event } from '../../core';
-import { KeySequence }    from '../misc/KeySequence';
+import { Element, Event, StyleManager, makeRuleset } from '../../core';
+
+import { KeySequence }                               from './../misc/KeySequence';
 
 export class TermElement extends Element {
 
@@ -35,20 +36,20 @@ export class TermElement extends Element {
 
         this.addEventListener(`mouseenter`, e => {
 
-            this.styleDeclaration.enable(`hover`);
+            this.styleManager.setStateStatus(`hover`, true);
 
             if (this.isActive) {
-                this.styleDeclaration.enable(`active`);
+                this.styleManager.setStateStatus(`active`, true);
             }
 
         });
 
         this.addEventListener(`mouseleave`, e => {
 
-            this.styleDeclaration.disable(`hover`);
+            this.styleManager.setStateStatus(`hover`, false);
 
             if (this.isActive) {
-                this.styleDeclaration.disable(`active`);
+                this.styleManager.setStateStatus(`active`, false);
             }
 
         });
@@ -58,7 +59,7 @@ export class TermElement extends Element {
             if (e.mouse.name !== `left`)
                 return;
 
-            this.styleDeclaration.enable(`active`);
+            this.styleManager.setStateStatus(`active`, true);
             this.isActive = true;
 
             if (!this.style.$.focusEvents)
@@ -81,7 +82,7 @@ export class TermElement extends Element {
 
                 disableLoop: while (element) {
 
-                    element.styleDeclaration.disable(`active`);
+                    element.styleManager.setStateStatus(`active`, false);
                     element.isActive = false;
 
                     for (let child of element.childNodes) {
@@ -194,13 +195,13 @@ export class TermElement extends Element {
 
                 let data = prepend + this.style.$.borderTopCharacter.repeat(contentL) + append;
 
-                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor && this.style.$.backgroundClip.doesIncludeBorders)
                     data = this.style.$.backgroundColor.back + data;
 
                 if (!this.rootNode.debugPaintRects && this.style.$.borderColor)
                     data = this.style.$.borderColor.front + data;
 
-                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor || this.style.borderColor)
+                if (!this.rootNode.debugPaintRects && ((this.style.$.backgroundColor && this.style.$.backgroundClip.doesIncludeBorders) || this.style.$.borderColor))
                     data += style.clear;
 
                 return data;
@@ -221,13 +222,13 @@ export class TermElement extends Element {
 
                 let data = prepend + this.style.$.borderBottomCharacter.repeat(contentL) + append;
 
-                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor)
+                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor && this.style.$.backgroundClip.doesIncludeBorders)
                     data = this.style.$.backgroundColor.back + data;
 
                 if (!this.rootNode.debugPaintRects && this.style.$.borderColor)
                     data = this.style.$.borderColor.front + data;
 
-                if (!this.rootNode.debugPaintRects && this.style.$.backgroundColor || this.style.borderColor)
+                if (!this.rootNode.debugPaintRects && ((this.style.$.backgroundColor && this.style.$.backgroundClip.doesIncludeBorders) || this.style.$.borderColor))
                     data += style.clear;
 
                 return data;
@@ -258,7 +259,7 @@ export class TermElement extends Element {
 
                 }
 
-                if (this.style.$.backgroundColor) {
+                if (this.style.$.backgroundColor && this.style.$.backgroundClip.doesIncludeBorders) {
 
                     if (prepend)
                         prepend = this.style.$.backgroundColor.back + prepend;
@@ -280,7 +281,7 @@ export class TermElement extends Element {
 
                 }
 
-                if (this.style.$.backgroundColor || this.style.$.borderColor) {
+                if ((this.style.$.backgroundColor && this.style.$.backgroundClip.doesIncludeBorders) || this.style.$.borderColor) {
 
                     if (prepend)
                         prepend += style.clear;

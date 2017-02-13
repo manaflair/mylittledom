@@ -1,13 +1,13 @@
 import { TermElement } from '@manaflair/mylittledom/term';
 
 let ball = new TermElement();
-ball.style.position = 'absolute';
+ball.style.position = `absolute`;
 ball.style.left = 0;
 ball.style.top = 0;
 ball.style.width = 10;
 ball.style.height = 5;
-ball.style.border = 'modern';
-ball.style.backgroundCharacter = '#';
+ball.style.border = `modern`;
+ball.style.backgroundCharacter = `#`;
 ball.appendTo(screen);
 
 let dx = +1;
