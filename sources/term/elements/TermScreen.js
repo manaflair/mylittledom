@@ -151,11 +151,16 @@ export class TermScreen extends TermElement {
         if (!this.ready)
             return;
 
+        // Disable the various mouse tracking modes
+        this.stdout.write(feature.enableExtendedCoordinates.out);
+        this.stdout.write(feature.enableMouseMoveTracking.out);
+        this.stdout.write(feature.enableMouseHoldTracking.out);
+
+        // Display the cursor back
+        this.stdout.write(cursor.normal);
+
         // Exit the alternate screen
         this.stdout.write(screen.alternateScreen.out);
-
-        // Display the cursor
-        this.stdout.write(cursor.normal);
 
         // Stop resizing the screen
         if (this.trackOutputSize) {
