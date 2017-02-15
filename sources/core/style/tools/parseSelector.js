@@ -8,9 +8,9 @@ export function parseSelector(selector) {
     if (!isString(selector))
         throw new Error(`Failed to execute 'parseSelector': Parameter 1 is not a string.`);
 
-    if (!selector.match(/^(:[a-z]+(-[a-z]+)*)+$/))
+    if (!selector.match(/^(:[a-z]+([A-Z][a-z]+)*)+$/))
         throw new Error(`Failed to execute 'parseSelector': '${selector}' is not a valid selector.`);
 
-    return new Set(selector.match(/[a-z]+/g));
+    return new Set(selector.match(/[a-zA-Z]+/g));
 
 }

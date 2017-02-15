@@ -10,7 +10,7 @@ export class TermCheckbox extends TermElement {
 
         super(props);
 
-        this.styleManager.addStateStatus(`checked`, checked);
+        this.styleManager.setStateStatus(`checked`, checked);
 
         this.styleManager.addRuleset(makeRuleset({
 

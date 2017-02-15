@@ -1,5 +1,5 @@
 import { flatten, groupBy, isEmpty, isNull, pick } from 'lodash';
-import Yoga                                        from 'yoga-layout/sources/entry-browser';
+import Yoga                                        from 'yoga-layout';
 
 import { EventSource }                             from '../misc/EventSource';
 import { Event }                                   from '../misc/Event';
@@ -14,7 +14,7 @@ import { StyleOverflow }                           from '../style/types/StyleOve
 import { Node }                                    from './Node';
 import { flags }                                   from './flags';
 
-Yoga.setExperimentalFeatureEnabled(Yoga.FEATURE_ROUNDING, true);
+Yoga.setExperimentalFeatureEnabled(Yoga.EXPERIMENTAL_FEATURE_ROUNDING, true);
 
 function getPreferredSize(node, ... args) {
 
@@ -24,7 +24,7 @@ function getPreferredSize(node, ... args) {
 
 export class Element extends Node {
 
-    constructor({ style = {} } = {}) {
+    constructor({ classList = [], style = {} } = {}) {
 
         super();
 
@@ -41,6 +41,7 @@ export class Element extends Node {
         this.styleManager.setStateStatus(`lastChild`, true);
 
         this.styleManager.addRuleset(globalRuleset, StyleManager.RULESET_NATIVE);
+        this.styleManager.setRulesets(classList, StyleManager.RULESET_USER);
 
         this.style = this.styleManager.getStyle();
         this.classList = this.styleManager.getClassList();
@@ -282,6 +283,11 @@ export class Element extends Node {
 
         super.appendChild(node);
 
+        if (node.previousSibling) {
+            node.previousSibling.styleManager.setStateStatus(`lastChild`, false);
+            node.styleManager.setStateStatus(`firstChild`, false);
+        }
+
         this.yogaNode.unsetMeasureFunc();
         this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
 
@@ -303,6 +309,16 @@ export class Element extends Node {
 
         super.insertBefore(node, referenceNode);
 
+        if (node.previousSibling) {
+            node.previousSibling.styleManager.setStateStatus(`lastChild`, false);
+            node.styleManager.setStateStatus(`firstChild`, false);
+        }
+
+        if (node.nextSibling) {
+            node.nextSibling.styleManager.setStateStatus(`firstChild`, false);
+            node.styleManager.setStateStatus(`lastChild`, false);
+        }
+
         this.yogaNode.unsetMeasureFunc();
         this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
 
@@ -322,7 +338,19 @@ export class Element extends Node {
         if (!(node instanceof Element))
             throw new Error(`Failed to execute 'removeChild': Parameter 1 is not of type 'Element'.`);
 
+        let previousSibling = node.previousSibling;
+        let nextSibling = node.nextSibling;
+
         super.removeChild(node);
+
+        if (previousSibling)
+            previousSibling.setStateStatus(`lastChild`, !nextSibling ? true : false);
+
+        if (nextSibling)
+            nextSibling.setStateStatus(`firstChild`, !previousSibling ? true : false);
+
+        node.styleManager.setStateStatus(`firstChild`, true);
+        node.styleManager.setStateStatus(`lastChild`, true);
 
         this.yogaNode.removeChild(node.yogaNode);
 

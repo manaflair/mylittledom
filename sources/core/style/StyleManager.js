@@ -18,13 +18,15 @@ export class StyleManager {
 
         this.element = element;
 
-        this.localRuleset = new Ruleset();
-        this.localRuleset.addEventListener(`change`, this.handleRulesetChange);
+        this.states = new Set();
 
         this.nativeRulesets = new Set();
         this.userRulesets = new Set();
 
-        this.states = new Set();
+        this.localRuleset = new Ruleset();
+        this.localRuleset.addEventListener(`change`, this.handleRulesetChange);
+
+        this.stylePasses = [ this.nativeRulesets, this.userRulesets, [ this.localRuleset ] ];
 
         this.computed = new Map();
 
@@ -38,25 +40,33 @@ export class StyleManager {
 
     getStyle() {
 
-        let style = new EasyStyle(this.localRuleset, [], {
+        let localRuleset = this.localRuleset;
+
+        return new EasyStyle(localRuleset, new Set(), {
 
             $: new EasyComputedStyle(this.computed),
 
-            assign: propertyValues => {
+            assign(propertyValues) {
 
-                Object.assign(style, propertyValues);
+                Object.assign(this, propertyValues);
 
             },
 
-            when: selector => {
+            when(selector) {
 
-                return new EasyStyle(this.localRuleset, parseSelector(selector));
+                return new EasyStyle(localRuleset, parseSelector(selector), {
+
+                    assign(propertyValues) {
+
+                        Object.assign(this, propertyValues);
+
+                    }
+
+                });
 
             }
 
         });
-
-        return style;
 
     }
 
@@ -78,18 +88,9 @@ export class StyleManager {
 
         }
 
-        let stylePasses = [
-
-            this.nativeRulesets,
-            this.userRulesets,
-
-            [ this.localRuleset ]
-
-        ];
-
         let dirtyProperties = new Set();
 
-        for (let rulesets of stylePasses) {
+        for (let rulesets of this.stylePasses) {
 
             for (let ruleset of rulesets) {
 
@@ -112,7 +113,10 @@ export class StyleManager {
 
     }
 
-    setRulesets(rulesets) {
+    setRulesets(rulesets, target = StyleManager.RULESET_USER) {
+
+        if (target !== StyleManager.RULESET_USER)
+            throw new Error(`Failed to execute 'setRulesets': Invalid target.`);
 
         let current = Array.from(this.userRulesets);
         let next = Array.from(rulesets);
@@ -126,10 +130,11 @@ export class StyleManager {
 
         for (let t = skip; t < current.length; ++t) {
 
-            this.userRulesets.remove(current[t]);
+            let ruleset = current[t];
+            this.userRulesets.remove(ruleset);
 
-            let propertyNames = current[t].when(this.states).keys();
-            ruleSet.removeEventListener(`change`, this.handleRulesetChange);
+            let propertyNames = ruleset.keys();
+            ruleset.removeEventListener(`change`, this.handleRulesetChange);
 
             for (let propertyName of propertyNames) {
                 dirtyPropertyNames.add(propertyName);
@@ -139,10 +144,11 @@ export class StyleManager {
 
         for (let t = skip; t < next.length; ++t) {
 
-            this.userRulesets.add(next[t]);
+            let ruleset = next[t];
+            this.userRulesets.add(ruleset);
 
-            let props = next[t].when(this.states).keys();
-            ruleSet.addEventListener(`change`, this.handleRulesetChange);
+            let propertyNames = ruleset.keys();
+            ruleset.addEventListener(`change`, this.handleRulesetChange);
 
             for (let propertyName of propertyNames) {
                 dirtyPropertyNames.add(propertyName);
@@ -154,34 +160,34 @@ export class StyleManager {
 
     }
 
-    addRuleset(ruleSet, target = StyleManager.RULESET_USER) {
+    addRuleset(ruleset, target = StyleManager.RULESET_USER) {
 
-        if (!ruleSet)
+        if (!ruleset)
             return;
 
         switch (target) {
 
             case StyleManager.RULESET_NATIVE: {
 
-                if (this.nativeRulesets.has(ruleSet))
+                if (this.nativeRulesets.has(ruleset))
                     return;
 
-                if (this.userRulesets.has(ruleSet))
+                if (this.userRulesets.has(ruleset))
                     throw new Error(`Failed to execute 'addRuleset': This ruleset already has been registered as a user ruleset.`);
 
-                this.nativeRulesets.add(ruleSet);
+                this.nativeRulesets.add(ruleset);
 
             } break;
 
             case StyleManager.RULESET_USER: {
 
-                if (this.userRulesets.has(ruleSet))
+                if (this.userRulesets.has(ruleset))
                     return;
 
-                if (this.nativeRulesets.has(ruleSet))
+                if (this.nativeRulesets.has(ruleset))
                     throw new Error(`Failed to execute 'addRuleset': This ruleset already has been registered as a native ruleset.`);
 
-                this.userRulesets.add(ruleSet);
+                this.userRulesets.add(ruleset);
 
             } break;
 
@@ -193,8 +199,8 @@ export class StyleManager {
 
         }
 
-        let dirtyPropertyNames = ruleSet.when(this.states).keys();
-        ruleSet.addEventListener(`change`, this.handleRulesetChange);
+        let dirtyPropertyNames = ruleset.keys();
+        ruleset.addEventListener(`change`, this.handleRulesetChange);
 
         this.refresh(dirtyPropertyNames);
 
@@ -210,8 +216,8 @@ export class StyleManager {
 
         this.userRulesets.add(ruleset);
 
-        let dirtyPropertyNames = ruleset.when(this.states).keys();
-        ruleSet.removeEventListener(`change`, this.handleRulesetChange);
+        let dirtyPropertyNames = ruleset.keys();
+        ruleset.removeEventListener(`change`, this.handleRulesetChange);
 
         this.refresh(dirtyPropertyNames);
 
@@ -229,21 +235,15 @@ export class StyleManager {
 
     refresh(propertyNames) {
 
-        let stylePasses = [
-
-            this.nativeRulesets,
-            this.userRulesets,
-
-            [ this.localRuleset ]
-
-        ];
+        if (propertyNames.size === 0)
+            return;
 
         for (let propertyName of propertyNames) {
 
             let oldValue = this.computed.get(propertyName);
             let newValue = undefined;
 
-            for (let rulesets of stylePasses) {
+            for (let rulesets of this.stylePasses) {
 
                 let specificity = -Infinity;
 

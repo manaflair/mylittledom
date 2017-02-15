@@ -1,18 +1,28 @@
-import { render }   from '@manaflair/mylittledom/term/react';
-import { css }      from '@manaflair/mylittledom';
-import { autobind } from 'core-decorators';
+import { render }      from '@manaflair/mylittledom/term/react';
+import { makeRuleset } from '@manaflair/mylittledom';
+import { autobind }    from 'core-decorators';
 
-let rowStyle = css `
+let rowStyle = makeRuleset({
 
-    flex-direction: row;
+    flexDirection: `row`,
 
-    margin-top: 1;
+    marginTop: 1
 
-    &:first-child {
-        margin-top: 0;
-    }
+}, `:firstChild`, {
 
-`;
+    marginTop: 0
+
+});
+
+let entryStyle = makeRuleset({
+
+    marginLeft: 2
+
+}, `:firstChild`, {
+
+    marginLeft: 0
+
+});
 
 class Input extends React.PureComponent {
 
@@ -21,19 +31,21 @@ class Input extends React.PureComponent {
         label: React.PropTypes.string.isRequired,
         element: React.PropTypes.node.isRequired,
 
+        classList: React.PropTypes.array,
         style: React.PropTypes.object
 
     };
 
     static defaultProps = {
 
+        classList: [],
         style: {}
 
     };
 
     render() {
 
-        return <label style={this.props.style}>
+        return <label classList={this.props.classList} style={this.props.style}>
             <text textContent={this.props.label} style={{ marginBottom: 1, fontWeight: `bold` }} />
             {this.props.element}
         </label>;
@@ -50,28 +62,28 @@ class Example extends React.PureComponent {
 
             <div style={{ border: `strong`, padding: [ 1, 2 ] }}>
 
-                <div classStyles={[ rowStyle ]}>
-                    <Input label={`Movie title`} element={<input />} style={{ flex: 5 }} />
-                    <Input label={`Genre`} element={<input />} style={{ flex: 2, marginLeft: 2 }} />
+                <div classList={[ rowStyle ]}>
+                    <Input classList={[ entryStyle ]} label={`Movie title`} element={<input />} style={{ flex: 5 }} />
+                    <Input classList={[ entryStyle ]} label={`Genre`} element={<input />} style={{ flex: 2 }} />
                 </div>
 
-                <div classStyles={[ rowStyle ]}>
-                    <Input label={`Director`} element={<input />} style={{ flex: 1 }} />
-                    <Input label={`Writer`} element={<input />} style={{ flex: 1, marginLeft: 2 }} />
-                    <Input label={`Producer`} element={<input />} style={{ flex: 1, marginLeft: 2 }} />
+                <div classList={[ rowStyle ]}>
+                    <Input classList={[ entryStyle ]} label={`Director`} element={<input />} style={{ flex: 1 }} />
+                    <Input classList={[ entryStyle ]} label={`Writer`} element={<input />} style={{ flex: 1 }} />
+                    <Input classList={[ entryStyle ]} label={`Producer`} element={<input />} style={{ flex: 1 }} />
                 </div>
 
-                <div classStyles={[ rowStyle ]}>
-                    <Input label={`Website`} element={<input />} style={{ flex: 1 }} />
-                    <Input label={`Youtube trailer`} element={<input />} style={{ flex: 1, marginLeft: 2 }} />
+                <div classList={[ rowStyle ]}>
+                    <Input classList={[ entryStyle ]} label={`Website`} element={<input />} style={{ flex: 1 }} />
+                    <Input classList={[ entryStyle ]} label={`Youtube trailer`} element={<input />} style={{ flex: 1 }} />
                 </div>
 
-                <div classStyles={[ rowStyle ]}>
-                    <Input label={`Review`} element={<input multiline={true} />} style={{ flex: 1 }} />
+                <div classList={[ rowStyle ]}>
+                    <Input classList={[ entryStyle ]} label={`Review`} element={<input multiline={true} />} style={{ flex: 1 }} />
                 </div>
 
-                <div classStyles={[ rowStyle ]}>
-                    <Input label={`Rating`} element={<div classStyles={[ rowStyle ]} style={{ flexDirection: `row` }}>
+                <div classList={[ rowStyle ]}>
+                    <Input label={`Rating`} element={<div classList={[ rowStyle ]} style={{ flexDirection: `row` }}>
                         <label style={{ flexDirection: `row` }}><radio name={`rating`} value={0} /><text textContent={`Terrible`} style={{ marginLeft: 1 }} /></label>
                         <label style={{ flexDirection: `row`, marginLeft: 1 }}><radio name={`rating`} value={5} /><text textContent={`Watchable`} style={{ marginLeft: 1 }} /></label>
                         <label style={{ flexDirection: `row`, marginLeft: 1 }}><radio name={`rating`} value={10} /><text textContent={`Best ever`} style={{ marginLeft: 1 }} /></label>

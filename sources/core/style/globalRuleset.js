@@ -6,7 +6,7 @@ import { styleProperties }    from './styleProperties';
 import { parsePropertyValue } from './tools/parsePropertyValue';
 
 let globalRuleset = new Ruleset();
-let globalStyle = new EasyStyle(globalRuleset, []);
+let globalStyle = new EasyStyle(globalRuleset, new Set());
 
 for (let key of Reflect.ownKeys(styleProperties)) {
 

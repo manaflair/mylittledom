@@ -3,6 +3,8 @@
 import { camelCase, difference, lowerFirst, upperFirst } from 'lodash';
 import ReactFiberReconcilier                             from 'react-dom/lib/ReactFiberReconciler';
 
+import { StyleManager }                                  from '../core';
+
 import * as TermElements                                 from './elements';
 
 let eventSymbol = Symbol();
@@ -208,10 +210,12 @@ let TermRenderer = ReactFiberReconcilier(new class {
         setupEventListeners(instance, newProps);
         setupRenderListeners(instance, newProps);
 
-        let { style, ... rest } = newProps;
+        let { style = {}, classList = [], ... rest } = newProps;
 
         Object.assign(instance.style, style);
         Object.assign(instance, rest);
+
+        instance.classList.set(classList);
 
     }
 

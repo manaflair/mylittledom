@@ -27,9 +27,12 @@ export class Ruleset {
 
     when(states) {
 
+        if (!(states instanceof Set))
+            throw new Error(42);
+
         let rule = this.rules.find(rule => {
 
-            if (states.size < rule.states.size)
+            if (states.size !== rule.states.size)
                 return false;
 
             for (let state of rule.states)
@@ -64,7 +67,7 @@ export class Ruleset {
 
             assign: propertyValues => {
 
-                let dirtyProperties = new Set();
+                let dirtyPropertyNames = new Set();
 
                 for (let [ propertyName, newValue ] of propertyValues) {
 
@@ -78,28 +81,28 @@ export class Ruleset {
                     else
                         rule.propertyValues.delete(propertyName);
 
-                    let count = this.propertyNames.get(propertyName);
+                    let count = this.propertyNames.get(propertyName) || 0;
 
                     if (!isUndefined(newValue))
                         count += 1;
                     else
                         count -= 1;
 
-                    if (count === 0)
+                    if (count > 0)
                         this.propertyNames.set(propertyName, count);
                     else
                         this.propertyNames.delete(propertyName);
 
-                    dirtyProperties.add(propertyName);
+                    dirtyPropertyNames.add(propertyName);
 
                 }
 
-                if (dirtyProperties.size > 0) {
+                if (dirtyPropertyNames.size > 0) {
 
                     let event = new Event(`change`);
 
                     event.states = rule.states;
-                    event.properties = dirtyProperties;
+                    event.properties = dirtyPropertyNames;
 
                     this.dispatchEvent(event);
 

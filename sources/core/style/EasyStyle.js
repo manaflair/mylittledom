@@ -5,9 +5,9 @@ import { parseSelector }                               from './tools/parseSelect
 import { serializePropertyValue }                      from './tools/serializePropertyValue';
 import { styleProperties }                             from './styleProperties';
 
-export function EasyStyle(ruleSet, selector, base = Object.create(null)) {
+export function EasyStyle(ruleset, selector, base = Object.create(null)) {
 
-    let { assign, get } = ruleSet.when(selector);
+    let { assign, get } = ruleset.when(selector);
 
     return new Proxy(base, {
 
@@ -25,11 +25,11 @@ export function EasyStyle(ruleSet, selector, base = Object.create(null)) {
 
         get(target, key, receiver) {
 
-            if (key in target)
-                return target[key];
+            if (has(base, key))
+                return base[key];
 
             if (!has(styleProperties, key))
-                throw new Error(`Failed to get a style property: '${key}' is not a valid style property name.`);
+                throw new Error(`Failed to get a style property: '${key}' is not a valid style property name. ${typeof base} ${JSON.stringify(Object.keys(base))}`);
 
             return serializePropertyValue(get(key));
 
