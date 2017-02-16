@@ -16,15 +16,13 @@ export class TermCheckbox extends TermElement {
 
             focusEvents: true
 
-        }, `:focus`, {
-
-            color: `darkblue`
-
         }, `:checked`, {
 
-            color: `darkcyan`
+            fontWeight: `bold`,
 
-        }, `:focus:checked`, {
+            color: `white`
+
+        }, `:focus`, {
 
             color: `cyan`
 

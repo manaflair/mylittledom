@@ -17,15 +17,13 @@ export class TermRadio extends TermElement {
 
             focusEvents: true
 
-        }, `:focus`, {
-
-            color: `darkblue`
-
         }, `:checked`, {
 
-            color: `darkcyan`
+            fontWeight: `bold`,
 
-        }, `:focus:checked`, {
+            color: `white`
+
+        }, `:focus`, {
 
             color: `cyan`
 
@@ -181,28 +179,40 @@ export class TermRadio extends TermElement {
 
     }
 
-    validateRelativeFocusTargetSelf(node) {
+    validateRelativeFocusTargetSelf(source) {
 
-        if (this.name === null || this.checked)
+        if (this.name === null)
             return true;
 
-        let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+        let formTarget = findAncestorByPredicate(this, node => node instanceof TermForm);
 
-        if (!form)
+        if (!formTarget)
             return true;
 
-        let checked = findDescendantByPredicate(form, node => node instanceof TermRadio && node.name === this.name && node.checked);
+        if (source instanceof TermRadio && source.name === this.name) {
 
-        if (!checked)
+            let formSource = findAncestorByPredicate(source, node => node instanceof TermForm);
+
+            if (formSource === formTarget) {
+                return false;
+            }
+
+        }
+
+        if (this.checked)
             return true;
 
-        return false;
+        let checked = findDescendantByPredicate(formTarget, node => node instanceof TermRadio && node.name === this.name && node.checked);
 
-    }
+        if (checked)
+            return false;
 
-    validateRelativeFocusTarget(node) {
+        let first = findDescendantByPredicate(formTarget, node => node instanceof TermRadio && node.name === this.name);
 
-        return !(node instanceof TermRadio) || this.name === null || this.name !== node.name;
+        if (this !== first)
+            return false;
+
+        return true;
 
     }
 

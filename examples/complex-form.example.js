@@ -58,7 +58,7 @@ class Example extends React.PureComponent {
 
     render() {
 
-        return <div style={{ padding: 2 }}>
+        return <form style={{ padding: 2 }}>
 
             <div style={{ border: `strong`, padding: [ 1, 2 ] }}>
 
@@ -113,7 +113,7 @@ class Example extends React.PureComponent {
                 <button textContent={`Submit`} style={{ border: `modern`, padding: [ 0, 2 ] }} />
             </div>
 
-        </div>;
+        </form>;
 
     }
 

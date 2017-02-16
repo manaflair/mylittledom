@@ -59,9 +59,9 @@ export class TermInput extends TermTextBase {
 
                 });
 
-                this.style.when(`:element:focus`).assign({
+                this.style.when(`:focus`).assign({
 
-                    backgroundColor: value ? `#000088` : undefined
+                    backgroundColor: value ? `darkblue` : undefined
 
                 });
 
