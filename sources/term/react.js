@@ -215,7 +215,7 @@ let TermRenderer = ReactFiberReconcilier(new class {
         Object.assign(instance.style, style);
         Object.assign(instance, rest);
 
-        instance.classList.set(classList);
+        instance.classList.assign(classList);
 
     }
 
