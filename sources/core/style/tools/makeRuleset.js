@@ -7,7 +7,7 @@ import { parseSelector }           from './parseSelector';
 export function makeRuleset(... parts) {
 
     let ruleset = new Ruleset();
-    let style = new EasyStyle(ruleset, new Set());
+    let style = new EasyStyle(ruleset);
 
     for (let t = 0; t < parts.length; ++t) {
 

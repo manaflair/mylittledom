@@ -5,9 +5,9 @@ import { parseSelector }                               from './tools/parseSelect
 import { serializePropertyValue }                      from './tools/serializePropertyValue';
 import { styleProperties }                             from './styleProperties';
 
-export function EasyStyle(ruleset, selector, base = Object.create(null)) {
+export function EasyStyle(ruleset, selector = [], base = Object.create(null)) {
 
-    let { assign, get } = ruleset.when(selector);
+    let { assign, get } = ruleset.when(new Set(selector));
 
     return new Proxy(base, {
 

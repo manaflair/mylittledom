@@ -42,7 +42,7 @@ export class StyleManager {
 
         let localRuleset = this.localRuleset;
 
-        return new EasyStyle(localRuleset, new Set(), {
+        return new EasyStyle(localRuleset, [], {
 
             $: new EasyComputedStyle(this.computed),
 
