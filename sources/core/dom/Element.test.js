@@ -8,6 +8,141 @@ import { Element }       from './Element';
 
 describe(`Element`, () => {
 
+    describe(`#scrollIntoView`, () => {
+
+        it(`should scroll until the element is on the top of the screen`, () => {
+
+            let container = new Element();
+            container.style.width = 100;
+            container.style.height = 100;
+
+            let elementA = new Element();
+            elementA.style.height = 500;
+            elementA.appendTo(container);
+
+            let elementB = new Element();
+            elementB.style.position = `absolute`;
+            elementB.style.left = 0;
+            elementB.style.right = 0;
+            elementB.style.top = 200;
+            elementB.style.height = 10;
+            elementB.appendTo(container);
+
+            container.triggerUpdates();
+
+            elementB.scrollIntoView();
+
+            expect(container.scrollTop).to.equal(110);
+            expect(elementA.scrollTop).to.equal(0);
+            expect(elementB.scrollTop).to.equal(0);
+
+        });
+
+    });
+
+    describe(`#scrollRowIntoView`, () => {
+
+        it(`should scroll until the specified row is on the top of the screen`, () => {
+
+            let container = new Element();
+            container.style.width = 100;
+            container.style.height = 100;
+
+            let element = new Element();
+            element.style.width = 100;
+            element.style.height = 200;
+            element.appendTo(container);
+
+            container.triggerUpdates();
+
+            container.scrollTop = 50;
+
+            expect(container.scrollTop).to.equal(50);
+
+            container.scrollRowIntoView(25);
+
+            expect(container.scrollTop).to.equal(25);
+
+        });
+
+        it(`should scroll until the specified row is on the bottom of the screen`, () => {
+
+            let container = new Element();
+            container.style.width = 100;
+            container.style.height = 100;
+
+            let element = new Element();
+            element.style.width = 100;
+            element.style.height = 200;
+            element.appendTo(container);
+
+            container.triggerUpdates();
+
+            container.scrollTop = 25;
+
+            expect(container.scrollTop).to.equal(25);
+
+            container.scrollRowIntoView(150);
+
+            expect(container.scrollTop).to.equal(51);
+
+        });
+
+        it(`should not scroll when the specified row is already in the viewport`, () => {
+
+            let container = new Element();
+            container.style.width = 100;
+            container.style.height = 100;
+
+            let element = new Element();
+            element.style.width = 100;
+            element.style.height = 200;
+            element.appendTo(container);
+
+            container.triggerUpdates();
+
+            container.scrollTop = 50;
+
+            expect(container.scrollTop).to.equal(50);
+
+            container.scrollRowIntoView(75);
+
+            expect(container.scrollTop).to.equal(50);
+
+            container.scrollRowIntoView(125);
+
+            expect(container.scrollTop).to.equal(50);
+
+        });
+
+        it(`should scroll its parent node as required to bring the line into the viewport`, () => {
+
+            let container = new Element();
+            container.style.width = 100;
+            container.style.height = 100;
+
+            let elementA = new Element();
+            elementA.style.width = 100;
+            elementA.style.height = 200;
+            elementA.appendTo(container);
+
+            let elementB = new Element();
+            elementB.style.width = 100;
+            elementB.style.height = 400;
+            elementB.appendTo(elementA);
+
+            container.triggerUpdates();
+
+            elementB.scrollRowIntoView(400);
+
+            expect(container.scrollTop).to.equal(100);
+            expect(elementA.scrollTop).to.equal(200);
+            expect(elementB.scrollTop).to.equal(0);
+
+        });
+
+    });
+
     describe(`#generateRenderList`, () => {
 
         it(`should correctly resolve a set of mixed elements (small test)`, () => {

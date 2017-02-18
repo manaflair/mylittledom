@@ -292,7 +292,7 @@ export class TermElement extends Element {
 
                 }
 
-                return prepend + processContent(contentX, contentY, contentL) + append;
+                return prepend + processContent(contentX + this.scrollRect.x, contentY + this.scrollRect.y, contentL) + append;
 
             }
 
@@ -323,7 +323,7 @@ export class TermElement extends Element {
                 l -= size;
             }
 
-            let content = this.renderContent(x + this.scrollRect.x, y + this.scrollRect.y, l);
+            let content = this.renderContent(x, y, l);
 
             return prepend + content + append;
 

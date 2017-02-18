@@ -93,7 +93,7 @@ export class Element extends Node {
         this.triggerUpdates();
 
         let previousScrollLeft = this.scrollRect.x;
-        let newScrollLeft = Math.min(scrollLeft, this.scrollRect.width - this.contentRect.width);
+        let newScrollLeft = Math.max(0, Math.min(scrollLeft, this.scrollRect.width - this.contentRect.width));
 
         if (previousScrollLeft !== newScrollLeft) {
 
@@ -121,7 +121,7 @@ export class Element extends Node {
         this.triggerUpdates();
 
         let previousScrollTop = this.scrollRect.y;
-        let newScrollTop = Math.min(scrollTop, this.scrollRect.height - this.contentRect.height);
+        let newScrollTop = Math.max(0, Math.min(scrollTop, this.scrollRect.height - this.contentRect.height));
 
         if (previousScrollTop !== newScrollTop) {
 
@@ -371,30 +371,36 @@ export class Element extends Node {
 
     }
 
-    scrollIntoView({ block = `auto`, force = false } = {}) {
+    scrollIntoView({ align = `auto`, alignX = align, alignY = align, force = false, forceX = force, forceY = force } = {}) {
 
         this.triggerUpdates();
 
         if (!this.parentNode)
             return;
 
-        this.parentNode.scrollIntoView({ block, force });
+        if (this.caret) {
 
-        if (!force && this.elementRect.y >= this.parentNode.scrollTop && this.elementRect.y + this.elementRect.height - 1 < this.parentNode.scrollTop + this.parentNode.offsetHeight)
-            return;
+            let x = this.elementRect.x + this.contentRect.x + this.caret.x;
+            let y = this.elementRect.y + this.contentRect.y + this.caret.y;
 
-        if (block === `auto`)
-            block = this.elementRect.y - this.parentNode.scrollTop < this.parentNode.scrollTop + this.parentNode.offsetHeight - this.elementRect.y - this.elementRect.height + 1 ? `top` : `bottom`;
+            this.parentNode.scrollCellIntoView(new Point({ x, y }), { alignX, alignY, forceX, forceY });
 
-        switch (block) {
+        } else {
 
-            case `top`: {
-                this.parentNode.scrollTop = this.elementRect.y;
-            } break;
+            if (alignY === `auto`)
+                alignY = Math.abs(this.elementRect.y - this.parentNode.scrollTop) < Math.abs((this.elementRect.y + this.elementRect.height - 1) - (this.parentNode.scrollTop + this.parentNode.contentRect.height - 1)) ? `start` : `end`;
 
-            case `bottom`: {
-                this.parentNode.scrollTop = this.elementRect.y + this.elementRect.height - this.parentNode.offsetHeight;
-            } break;
+            switch (alignY) {
+
+                case `start`: {
+                    this.parentNode.scrollRowIntoView(this.elementRect.y, { alignY, forceY });
+                } break;
+
+                case `end`: {
+                    this.parentNode.scrollRowIntoView(this.elementRect.y + this.elementRect.height - 1, { alignY, forceY });
+                } break;
+
+            }
 
         }
 
@@ -404,10 +410,13 @@ export class Element extends Node {
 
         this.triggerUpdates();
 
-        if (forceX || position.x < this.scrollLeft || position.x >= this.scrollLeft + this.contentRect.width) {
+        if (alignX === `auto`)
+            alignX = Math.abs(position.x - this.scrollLeft) < Math.abs(position.x - (this.scrollLeft + this.contentRect.width - 1)) ? `start` : `end`;
 
-            if (alignX === `auto`)
-                alignX = position.x - this.scrollLeft < this.scrollLeft + this.contentRect.width - position.x ? `start` : `end`;
+        if (alignY === `auto`)
+            alignY = Math.abs(position.y - this.scrollTop) < Math.abs(position.y - (this.scrollTop + this.contentRect.height - 1)) ? `start` : `end`;
+
+        if (forceX || position.x < this.scrollLeft || position.x >= this.scrollLeft + this.elementRect.width) {
 
             switch (alignX) {
 
@@ -416,17 +425,14 @@ export class Element extends Node {
                 } break;
 
                 case `end`: {
-                    this.scrollLeft = position.x - this.contentRect.width + 1;
+                    this.scrollLeft = position.x - this.elementRect.width + 1;
                 } break;
 
             }
 
         }
 
-        if (forceY || position.y < this.scrollTop || position.y >= this.scrollTop + this.contentRect.height) {
-
-            if (alignY === `auto`)
-                alignY = position.y - this.scrollTop < this.scrollTop + this.contentRect.height - position.y ? `start` : `end`;
+        if (forceY || position.y < this.scrollTop || position.y >= this.scrollTop + this.elementRect.height) {
 
             switch (alignY) {
 
@@ -435,10 +441,19 @@ export class Element extends Node {
                 } break;
 
                 case `end`: {
-                    this.scrollTop = position.y - this.contentRect.height + 1;
+                    this.scrollTop = position.y - this.elementRect.height + 1;
                 } break;
 
             }
+
+        }
+
+        if (this.parentNode) {
+
+            let x = this.elementRect.x + position.x - this.scrollRect.x;
+            let y = this.elementRect.y + position.y - this.scrollRect.y;
+
+            this.parentNode.scrollCellIntoView(new Point({ x, y }), { alignX, alignY });
 
         }
 
@@ -446,13 +461,13 @@ export class Element extends Node {
 
     scrollColumnIntoView(column, { align = `auto`, force = false } = {}) {
 
-        this.scrollCellIntoView(new Point(column, this.scrollTop), { alignX: align, forceX: force });
+        this.scrollCellIntoView(new Point({ x: column, y: this.scrollTop }), { alignX: align, forceX: force });
 
     }
 
     scrollRowIntoView(row, { align = `auto`, force = false } = {}) {
 
-        this.scrollCellIntoView(new Point(this.scrollLeft, row), { alignY: align, forceY: force });
+        this.scrollCellIntoView(new Point({ x: this.scrollLeft, y: row }), { alignY: align, forceY: force });
 
     }
 
@@ -778,11 +793,11 @@ export class Element extends Node {
                 let prevScrollWidth = this.scrollRect.width;
                 let prevScrollHeight = this.scrollRect.height;
 
-                this.scrollRect.width = Math.max(this.contentRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
+                this.scrollRect.width = Math.max(this.elementRect.width, this.getInternalContentWidth(), ... this.childNodes.map(child => {
                     return child.elementRect.x + child.elementRect.width;
                 }));
 
-                this.scrollRect.height = Math.max(this.contentRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
+                this.scrollRect.height = Math.max(this.elementRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
                     return child.elementRect.y + child.elementRect.height;
                 }));
 
@@ -821,8 +836,8 @@ export class Element extends Node {
                 let prevScrollX = this.scrollRect.x;
                 let prevScrollY = this.scrollRect.y;
 
-                this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.contentRect.width);
-                this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.contentRect.height);
+                this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.elementRect.width);
+                this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.elementRect.height);
 
                 doesScrollChange = this.scrollRect.x !== prevScrollX || this.scrollRect.y !== prevScrollY;
 

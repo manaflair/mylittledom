@@ -58,7 +58,7 @@ class Example extends React.PureComponent {
 
     render() {
 
-        return <form style={{ padding: 2 }}>
+        return <form style={{ padding: [ 1, 2 ] }}>
 
             <div style={{ border: `strong`, padding: [ 1, 2 ] }}>
 
@@ -66,7 +66,6 @@ class Example extends React.PureComponent {
                     <Input classList={[ entryStyle ]} label={`Movie title`} element={<input />} style={{ flex: 5 }} />
                     <Input classList={[ entryStyle ]} label={`Genre`} element={<input />} style={{ flex: 2 }} />
                 </div>
-
                 <div classList={[ rowStyle ]}>
                     <Input classList={[ entryStyle ]} label={`Director`} element={<input />} style={{ flex: 1 }} />
                     <Input classList={[ entryStyle ]} label={`Writer`} element={<input />} style={{ flex: 1 }} />
