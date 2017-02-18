@@ -18,7 +18,9 @@ import { StyleWhiteSpace }                                                      
 
 let simple = [ `+`, `+`, `+`, `+`, `-`, `|` ];
 let modern = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
-let strong = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
+let strong = [ `┏`, `┓`, `┗`, `┛`, `━`, `┃` ];
+let double = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
+let block  = [ `▄`, `▄`, `▀`, `▀`, `▄`, `█`, `▀`, `█` ];
 
 export let styleProperties = {
 
@@ -185,13 +187,13 @@ export let styleProperties = {
     },
 
     border: {
-        parsers: [ { simple, modern, strong }, repeat([ 1, 2, 4, 5, 8 ], [ character, null ]) ],
+        parsers: [ { simple, modern, strong, double, block }, repeat([ 1, 2, 4, 5, 8 ], [ character, null ]) ],
         getter: (style) => [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter ],
         setter: (style, [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter = borderTopCharacter, borderBottomCharacter = borderTopCharacter, borderLeftCharacter = borderRightCharacter ]) => Object.assign(style, { borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter })
     },
 
     borderCharacter: {
-        parsers: [ { simple, modern, strong }, repeat([ 5, 6, 8 ], [ character, null ]) ],
+        parsers: [ { simple, modern, strong, double, block }, repeat([ 5, 6, 8 ], [ character, null ]) ],
         getter: (style) => [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter ],
         setter: (style, [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter = borderTopCharacter, borderBottomCharacter = borderTopCharacter, borderLeftCharacter = borderRightCharacter ]) => Object.assign(style, { borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter })
     },
