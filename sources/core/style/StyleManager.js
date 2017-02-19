@@ -1,13 +1,16 @@
 import { autobind }               from 'core-decorators';
 import { isEqual }                from 'lodash';
 
+import { parsePropertyValue }     from './tools/parsePropertyValue';
 import { parseSelector }          from './tools/parseSelector';
 import { runPropertyTriggers }    from './tools/runPropertyTriggers';
 import { serializePropertyValue } from './tools/serializePropertyValue';
+import { StyleInherit }           from './types/StyleInherit';
 import { ClassList }              from './ClassList';
 import { EasyComputedStyle }      from './EasyComputedStyle';
 import { EasyStyle }              from './EasyStyle';
 import { Ruleset }                from './Ruleset';
+import { styleProperties }        from './styleProperties';
 
 export class StyleManager {
 
@@ -28,6 +31,7 @@ export class StyleManager {
 
         this.stylePasses = [ this.nativeRulesets, this.userRulesets, [ this.localRuleset ] ];
 
+        this.inherited = new Set();
         this.computed = new Map();
 
     }
@@ -233,12 +237,17 @@ export class StyleManager {
 
     }
 
-    refresh(propertyNames) {
+    refresh(propertyNames, { inheritedOnly = false } = {}) {
 
         if (propertyNames.size === 0)
             return;
 
+        let dirtyPropertyNames = new Set();
+
         for (let propertyName of propertyNames) {
+
+            if (inheritedOnly && !this.inherited.has(propertyName))
+                continue;
 
             let oldValue = this.computed.get(propertyName);
             let newValue = undefined;
@@ -273,12 +282,38 @@ export class StyleManager {
 
             }
 
+            if (newValue === StyleInherit.inherit) {
+
+                this.inherited.add(propertyName);
+
+                if (this.element.parentNode) {
+                    newValue = this.element.parentNode.style.$[propertyName];
+                } else {
+                    newValue = parsePropertyValue(propertyName, styleProperties[propertyName].default);
+                }
+
+            } else {
+
+                this.inherited.delete(propertyName);
+
+            }
+
             if (!isEqual(serializePropertyValue(newValue), serializePropertyValue(oldValue))) {
+
+                dirtyPropertyNames.add(propertyName);
 
                 this.computed.set(propertyName, newValue);
 
                 runPropertyTriggers(propertyName, this.element, newValue, oldValue);
 
+            }
+
+        }
+
+        if (dirtyPropertyNames.size > 0) {
+
+            for (let child of this.element.childNodes) {
+                child.styleManager.refresh(dirtyPropertyNames, { inheritedOnly: true });
             }
 
         }

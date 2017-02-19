@@ -283,23 +283,6 @@ export class Element extends Node {
 
         super.appendChild(node);
 
-        if (node.previousSibling) {
-            node.previousSibling.styleManager.setStateStatus(`lastChild`, false);
-            node.styleManager.setStateStatus(`firstChild`, false);
-        }
-
-        this.yogaNode.unsetMeasureFunc();
-        this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
-
-        this.setDirtyLayoutFlag();
-        this.setDirtyClippingFlag();
-
-        this.rootNode.setDirtyNodeListFlag();
-        this.rootNode.setDirtyRenderListFlag();
-
-        node.clearDirtyNodeListFlag();
-        node.clearDirtyRenderListFlag();
-
     }
 
     insertBefore(node, referenceNode) {
@@ -308,6 +291,12 @@ export class Element extends Node {
             throw new Error(`Failed to execute 'insertBefore': Parameter 1 is not of type 'Element'.`);
 
         super.insertBefore(node, referenceNode);
+
+    }
+
+    linkBefore(node, referenceNode) {
+
+        super.linkBefore(node, referenceNode);
 
         if (node.previousSibling) {
             node.previousSibling.styleManager.setStateStatus(`lastChild`, false);
@@ -330,6 +319,8 @@ export class Element extends Node {
 
         node.clearDirtyNodeListFlag();
         node.clearDirtyRenderListFlag();
+
+        node.styleManager.refresh(node.styleManager.inherited);
 
     }
 
@@ -368,6 +359,8 @@ export class Element extends Node {
 
         node.setDirtyNodeListFlag();
         node.setDirtyRenderListFlag();
+
+        node.styleManager.refresh(node.styleManager.inherited);
 
     }
 

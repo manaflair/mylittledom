@@ -1,5 +1,7 @@
 import { has, isUndefined } from 'lodash';
 
+import { StyleInherit }     from '../types/StyleInherit';
+
 import { styleProperties }  from '../styleProperties';
 
 import { parseRawValue }    from './parseRawValue';
@@ -13,6 +15,9 @@ export function parsePropertyValue(propertyName, rawValue) {
 
     if (isUndefined(property.parsers))
         throw new Error(`Failed to parse a style property: '${propertyName}' has no declared parser.`);
+
+    if (rawValue === `inherit`)
+        return StyleInherit.inherit;
 
     let styleValue = parseRawValue(rawValue, property.parsers);
 

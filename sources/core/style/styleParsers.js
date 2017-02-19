@@ -3,6 +3,7 @@ import { castArray, isFinite, isString, isUndefined, isNumber } from 'lodash';
 import { colorNames }                                           from './colorNames';
 import { parseRawValue }                                        from './tools/parseRawValue';
 import { StyleColor }                                           from './types/StyleColor';
+import { StyleInherit }                                         from './types/StyleInherit';
 import { StyleLength }                                          from './types/StyleLength';
 import { StyleWeight }                                          from './types/StyleWeight';
 
@@ -164,6 +165,15 @@ length.infinity = function (rawValue) {
     return StyleLength.infinity;
 
 };
+
+export function inherit(rawValue) {
+
+    if (rawValue !== `inherit`)
+        return undefined;
+
+    return StyleInherit.inherit;
+
+}
 
 export function character(rawValue) {
 

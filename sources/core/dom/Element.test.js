@@ -1,5 +1,6 @@
 import { expect }        from 'chai';
 
+import { StyleColor }    from '../style/types/StyleColor';
 import { StyleDisplay }  from '../style/types/StyleDisplay';
 import { StyleLength }   from '../style/types/StyleLength';
 import { StylePosition } from '../style/types/StylePosition';
@@ -317,6 +318,60 @@ describe(`Element`, () => {
             expect(element.style.$.paddingRight).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(2));
             expect(element.style.$.paddingTop).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(1));
             expect(element.style.$.paddingBottom).to.be.instanceof(StyleLength).and.to.deep.equal(new StyleLength(3));
+
+        });
+
+        it(`should correctly inherit properties when adding a node to another`, () => {
+
+            let elementA = new Element();
+            elementA.style.color = `red`;
+
+            let elementB = new Element();
+            elementB.style.color = `inherit`;
+
+            expect(elementB.style.$.color).to.equal(null);
+
+            elementB.appendTo(elementA);
+
+            expect(elementB.style.$.color).to.deep.equal(new StyleColor(`#ff0000`));
+
+        });
+
+        it(`should correctly inherit properties when a parent changes its own property (one level)`, () => {
+
+            let elementA = new Element();
+            elementA.style.color = `red`;
+
+            let elementB = new Element();
+            elementB.style.color = `inherit`;
+            elementB.appendTo(elementA);
+
+            expect(elementB.style.$.color).to.deep.equal(new StyleColor(`#ff0000`));
+
+            elementA.style.color = `blue`;
+
+            expect(elementB.style.$.color).to.deep.equal(new StyleColor(`#0000ff`));
+
+        });
+
+        it(`should correctly inherit properties when a parent changes its own property (two levels)`, () => {
+
+            let elementA = new Element();
+            elementA.style.color = `red`;
+
+            let elementB = new Element();
+            elementB.style.color = `inherit`;
+            elementB.appendTo(elementA);
+
+            let elementC = new Element();
+            elementC.style.color = `inherit`;
+            elementC.appendTo(elementB);
+
+            expect(elementC.style.$.color).to.deep.equal(new StyleColor(`#ff0000`));
+
+            elementA.style.color = `blue`;
+
+            expect(elementC.style.$.color).to.deep.equal(new StyleColor(`#0000ff`));
 
         });
 

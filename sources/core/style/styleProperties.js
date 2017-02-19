@@ -316,7 +316,8 @@ export let styleProperties = {
     color: {
         parsers: [ color, null ],
         triggers: [ dirtyRendering ],
-        initial: null
+        initial: `inherit`,
+        default: null
     },
 
     borderColor: {
@@ -341,7 +342,8 @@ export let styleProperties = {
     backgroundColor: {
         parsers: [ color, null ],
         triggers: [ dirtyRendering ],
-        initial: null
+        initial: `inherit`,
+        default: null
     },
 
     backgroundCharacter: {
