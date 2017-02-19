@@ -309,16 +309,22 @@ export class TermElement extends Element {
             let prepend = ``;
             let append = ``;
 
-            if (x < this.contentRect.x) {
-                let size = Math.min(l, this.contentRect.x - x);
+            let contentStart = this.contentRect.x;
+            let contentWidth = this.contentRect.width;
+
+            if (this.style.$.borderLeftCharacter)
+                contentStart -= 1;
+
+            if (x < contentStart) {
+                let size = Math.min(l, contentStart - x);
                 prepend = this.renderBackground(size);
                 x = 0, l -= size;
             } else {
                 x -= this.contentRect.x;
             }
 
-            if (x + l > this.contentRect.width) {
-                let size = Math.min(l, x + l - this.contentRect.width);
+            if (x + l > contentWidth) {
+                let size = Math.min(l, x + l - contentWidth);
                 append = this.renderBackground(size);
                 l -= size;
             }
