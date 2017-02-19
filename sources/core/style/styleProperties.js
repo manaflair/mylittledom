@@ -16,11 +16,12 @@ import { StylePosition }                                                        
 import { StyleWeight }                                                                                                     from './types/StyleWeight';
 import { StyleWhiteSpace }                                                                                                 from './types/StyleWhiteSpace';
 
-let simple = [ `+`, `+`, `+`, `+`, `-`, `|` ];
-let modern = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
-let strong = [ `┏`, `┓`, `┗`, `┛`, `━`, `┃` ];
-let double = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
-let block  = [ `▄`, `▄`, `▀`, `▀`, `▄`, `█`, `▀`, `█` ];
+let simple  = [ `+`, `+`, `+`, `+`, `-`, `|` ];
+let modern  = [ `┌`, `┐`, `└`, `┘`, `─`, `│` ];
+let strong  = [ `┏`, `┓`, `┗`, `┛`, `━`, `┃` ];
+let double  = [ `╔`, `╗`, `╚`, `╝`, `═`, `║` ];
+let block   = [ `▄`, `▄`, `▀`, `▀`, `▄`, `█`, `▀`, `█` ];
+let rounded = [ `╭`, `╮`, `╰`, `╯`, `─`, `│` ];
 
 export let styleProperties = {
 
@@ -187,13 +188,13 @@ export let styleProperties = {
     },
 
     border: {
-        parsers: [ { simple, modern, strong, double, block }, repeat([ 1, 2, 4, 5, 8 ], [ character, null ]) ],
+        parsers: [ { simple, modern, strong, double, block, rounded }, repeat([ 1, 2, 4, 5, 8 ], [ character, null ]) ],
         getter: (style) => [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter ],
         setter: (style, [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter = borderTopCharacter, borderBottomCharacter = borderTopCharacter, borderLeftCharacter = borderRightCharacter ]) => Object.assign(style, { borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter })
     },
 
     borderCharacter: {
-        parsers: [ { simple, modern, strong, double, block }, repeat([ 5, 6, 8 ], [ character, null ]) ],
+        parsers: [ { simple, modern, strong, double, block, rounded }, repeat([ 5, 6, 8 ], [ character, null ]) ],
         getter: (style) => [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter ],
         setter: (style, [ borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter = borderTopCharacter, borderBottomCharacter = borderTopCharacter, borderLeftCharacter = borderRightCharacter ]) => Object.assign(style, { borderTopLeftCharacter, borderTopRightCharacter, borderBottomLeftCharacter, borderBottomRightCharacter, borderTopCharacter, borderRightCharacter, borderBottomCharacter, borderLeftCharacter })
     },
