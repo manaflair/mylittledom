@@ -1,6 +1,7 @@
 import { autobind }               from 'core-decorators';
 import { isEqual }                from 'lodash';
 
+import { getSpecificity }         from './tools/getSpecificity';
 import { parsePropertyValue }     from './tools/parsePropertyValue';
 import { parseSelector }          from './tools/parseSelector';
 import { runPropertyTriggers }    from './tools/runPropertyTriggers';
@@ -266,7 +267,9 @@ export class StyleManager {
                         if (states.size > this.states.size)
                             continue ruleLoop; // it cannot match anyway
 
-                        if (states.size < specificity)
+                        let ruleSpecificity = getSpecificity(states);
+
+                        if (ruleSpecificity < specificity)
                             continue ruleLoop; // it has a lower specificity than ours
 
                         for (let state of states)
@@ -274,7 +277,7 @@ export class StyleManager {
                                 continue ruleLoop;
 
                         newValue = propertyValues.get(propertyName);
-                        specificity = states.size;
+                        specificity = ruleSpecificity;
 
                     }
 

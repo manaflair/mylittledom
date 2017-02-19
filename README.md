@@ -9,7 +9,7 @@
 ## Features
 
   - DOM-like API (`element.appendChild()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
-  - CSS-like API (`element.style.display`, `element.style.position`, `element.style.backgroundColor`, ...)
+  - CSS-like API (`element.classList`, `element.style.display`, `element.style.position`, `element.style.backgroundColor`, ...)
   - Complex flex positioning (thanks to the awesome [Yoga](https://github.com/facebook/yoga) library!)
   - Work in Node.js but also inside web browsers (through [XTerm.js](https://github.com/sourcelair/xterm.js/))
   - Automatic text layout à-la-CSS (text-align, overflow-wrap, white-space, ...)
@@ -78,11 +78,7 @@ import { TermScreen } from '@manaflair/mylittledom/term';
 let screen = new TermScreen();
 screen.attachScreen();
 
-render(<div>
-
-    Hello world!
-
-</div>, screen);
+render(<div>Hello world!</div>, screen);
 ```
 
 ---
@@ -97,6 +93,7 @@ MyLittleDom does not aim to be a perfect HTML renderer and, as such, will not at
   - Floating positioning
   - Block / Inline display
   - Font size
+  - Opacity
 
 ### Major changes
 
@@ -106,23 +103,21 @@ For the same reasons than those exposed above, some features work a bit differen
 
   - Unless specified otherwise, `scrollIntoView` and its variants will automatically detect the best alignment, depending on the current location of the target. In the same spirit, the default behaviour of `scrollIntoView` and its variants is to have no effect if the target is already visible.
 
-  - The `getAttribute` and `setAttribute` functions differ from their browser counterparts in that they can store actual JavaScript objects (rather than only strings).
-
 #### Layouts
 
 Because MyLittleDom uses [Yoga](https://facebook.github.io/yoga/) to layout its elements, it is subject to the same limitations:
 
-  - The only display currently supported is `display: flex`.
+  - The only display currently supported are `display: flex` and `display: none` (using `null` instead of `none`).
 
   - In order to emulate the `display: block` behaviour, the default value for `flex-direction` is `column`.
 
   - Element layouts are computed as if they had been declared with `box-sizing: content-box`.
 
-On top of these quirks, the MyLittleDom renderer deviates from the CSS standard on a few additional points:
-
-  - The padding spaces are located outside of the scroll containers, instead of inside.
+Additionally, the MyLittleDom renderer deviates from the CSS standard on a few additional points:
 
   - Fixed positioning will be applied relative to the nearest positioned element instead of the window.
+
+  - Form elements must live inside form objects, and only live inside their top-most form. Two form checkboxes with similar names will not be linked together if they live under two different forms.
 
 #### Styling
 
@@ -133,6 +128,8 @@ On top of these quirks, the MyLittleDom renderer deviates from the CSS standard 
   - Pixel units are replaced by raw numbers, but percent strings are kept as strings. No other unit is currently supported.
 
   - To prevent mistakes and facilitate onboarding, setting an invalid value will throw instead of being silently ignored.
+
+  - For the same reason, setting an invalid style property will also throw an error.
 
 ### Supported CSS properties
 
@@ -148,13 +145,15 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - When `debugPaintRects` is on, the renderer will use random background colors to help you detect which parts of the screen have been redrawn. Check the section below for more information.
 
-  - `new TermElement()`
+  - `new TermElement({ decored })`
 
-    - Each other term element is a subclass of `TermElement` (including `TermScreen`).
+    - Each other term element is a subclass of `TermElement` (including `TermScreen`). As such, any TermElement prop can also be used on other elements (unless they strongly override it).
 
     - You can focus an element (if it actually supports being focused!) by using `element.focus()`, and blur it by using `element.blur()`.
 
     - Scrolling to a specific row in the element can be done by using `element.scrollRowIntoView(row, { force, block })`. The `force` option is a boolean to instruct the function to scroll even if the specified row is already in the viewport, and `block` is used to specify where should the row be aligned (top or bottom). The default value is `auto`, which means that the algorithm will automatically compute the best alignment given the current position of the row relative to the viewport.
+
+    - The `decored` option can be set to `false` in order to disable any particular style set for the element, except those strongly required for the element to behave as expected. For example, you can use this option to remove the default style used by TermInput elements and display them as plain boxes instead.
 
   - `new TermText({ textContent, textBuffer, multiline })`
 
@@ -166,7 +165,7 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - Forms are used to wrap various input elements.
 
-  - `new TermInput({ value, textBuffer, decored, multiline })`
+  - `new TermInput({ value, textBuffer, multiline })`
 
     - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `value` option.
 
@@ -184,7 +183,19 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
   - `new TermRadio({ checked })`
 
-    - Display a radio button. The status of the button (checked / unchecked) can be altered through the `checked` option. When a radio button becomes checked, all other radio buttons sharing the same name (excepting `null`) and *located inside the same form element* will be automatically unchecked.
+    - Display a radio button. The status of the element (checked / unchecked) can be altered through the `checked` option. When a radio button becomes checked, all other radio buttons sharing the same name (excepting `null`) and *located inside the same form element* will be automatically unchecked.
+
+  - `new TermCheckbox({ checked })`
+
+    - Display a checkbox. The status of the element (checked / unchecked) can be altered through the `checked` option.
+
+  - `new TermButton({ textContent, textBuffer, submit })`
+
+    - Display a simple button.
+
+    - You can instruct the TermButton to not add any particular style to the element by setting the `decored` option to `false`.
+
+    - When pressed while the `submit` option is enabled, a `submit` event will be dispatched on the closest parent form.
 
 ---
 

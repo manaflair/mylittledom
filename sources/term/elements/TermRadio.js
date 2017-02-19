@@ -38,51 +38,69 @@ export class TermRadio extends TermElement {
 
         });
 
-        this.addShortcutListener(`enter`, () => {
+        this.addEventListener(`click`, () => {
 
-            this.checked = true;
+            e.setDefault(() => {
+                this.checked = true;
+            });
 
-        });
+        }, { capture: true });
 
-        this.addShortcutListener(`left, up`, () => {
+        this.addShortcutListener(`enter`, e => {
 
-            if (isNull(this.name))
-                return;
+            e.setDefault(() => {
+                this.checked = true;
+            });
 
-            let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
+        }, { capture: true });
 
-            if (form === this)
-                return;
+        this.addShortcutListener(`left, up`, e => {
 
-            let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
+            e.setDefault(() => {
 
-            let index = radios.indexOf(this);
-            let prev = (index === 0 ? radios.length : index) - 1;
+                if (isNull(this.name))
+                    return;
 
-            radios[prev].focus();
-            radios[prev].checked = true;
+                let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
 
-        });
+                if (form === this)
+                    return;
 
-        this.addShortcutListener(`down, right`, () => {
+                let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
 
-            if (isNull(this.name))
-                return;
+                let index = radios.indexOf(this);
+                let prev = (index === 0 ? radios.length : index) - 1;
 
-            let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
+                radios[prev].focus();
+                radios[prev].checked = true;
 
-            if (form === this)
-                return;
+            });
 
-            let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
+        }, { capture: true });
 
-            let index = radios.indexOf(this);
-            let next = (index === radios.length - 1 ? -1 : index) + 1;
+        this.addShortcutListener(`down, right`, e => {
 
-            radios[next].focus();
-            radios[next].checked = true;
+            e.setDefault(() => {
 
-        });
+                if (isNull(this.name))
+                    return;
+
+                let form = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
+
+                if (form === this)
+                    return;
+
+                let radios = findDescendantsByPredicate(form, node => node instanceof TermRadio && node.name === this.name);
+
+                let index = radios.indexOf(this);
+                let next = (index === radios.length - 1 ? -1 : index) + 1;
+
+                radios[next].focus();
+                radios[next].checked = true;
+
+            });
+
+        }, { capture: true });
 
         this.setPropertyTrigger(`name`, name, {
 
@@ -165,12 +183,6 @@ export class TermRadio extends TermElement {
 
         });
 
-        this.addEventListener(`click`, () => {
-
-            this.checked = true;
-
-        });
-
     }
 
     getInternalContentWidth() {
@@ -184,14 +196,11 @@ export class TermRadio extends TermElement {
         if (this.name === null)
             return true;
 
-        let formTarget = findAncestorByPredicate(this, node => node instanceof TermForm);
-
-        if (!formTarget)
-            return true;
+        let formTarget = findAncestorByPredicate(this, node => node instanceof TermForm) || this.rootNode;
 
         if (source instanceof TermRadio && source.name === this.name) {
 
-            let formSource = findAncestorByPredicate(source, node => node instanceof TermForm);
+            let formSource = findAncestorByPredicate(source, node => node instanceof TermForm) || source.rootNode;
 
             if (formSource === formTarget) {
                 return false;

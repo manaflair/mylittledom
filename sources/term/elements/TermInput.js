@@ -15,6 +15,22 @@ export class TermInput extends TermTextBase {
 
             focusEvents: true
 
+        }, `:decored`, {
+
+            minHeight: 1,
+
+            whiteSpace: `pre`,
+
+            backgroundCharacter: `.`
+
+        }, `:decored:multiline`, {
+
+            minHeight: 10
+
+        }, `:decored:focus`, {
+
+            background: `darkblue`
+
         }), StyleManager.RULESET_NATIVE);
 
         this.setPropertyAccessor(`value`, {
@@ -39,36 +55,6 @@ export class TermInput extends TermTextBase {
 
         });
 
-        this.setPropertyTrigger(`decored`, decored, {
-
-            validate: value => {
-
-                return isBoolean(value);
-
-            },
-
-            trigger: value => {
-
-                this.style.assign({
-
-                    whiteSpace: value ? `pre` : undefined,
-
-                    backgroundCharacter: value ? `.` : undefined,
-
-                    minHeight: value ? this.multiline ? 10 : 1 : undefined
-
-                });
-
-                this.style.when(`:focus`).assign({
-
-                    backgroundColor: value ? `darkblue` : undefined
-
-                });
-
-            }
-
-        });
-
         this.setPropertyTrigger(`multiline`, multiline, {
 
             validate: value => {
@@ -81,11 +67,7 @@ export class TermInput extends TermTextBase {
 
                 this.enterIsNewline = multiline ? true : false;
 
-                this.decored && this.style.assign({
-
-                    minHeight: value ? 10 : 1
-
-                });
+                this.styleManager.setStateStatus(`multiline`, value);
 
             }
 

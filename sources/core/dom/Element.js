@@ -1,18 +1,18 @@
-import { flatten, groupBy, isEmpty, isNull, pick } from 'lodash';
-import Yoga                                        from 'yoga-layout';
+import { flatten, groupBy, isBoolean, isEmpty, isNull, pick } from 'lodash';
+import Yoga                                                   from 'yoga-layout';
 
-import { EventSource }                             from '../misc/EventSource';
-import { Event }                                   from '../misc/Event';
-import { Point }                                   from '../misc/Point';
-import { Rect }                                    from '../misc/Rect';
+import { EventSource }                                        from '../misc/EventSource';
+import { Event }                                              from '../misc/Event';
+import { Point }                                              from '../misc/Point';
+import { Rect }                                               from '../misc/Rect';
 
-import { StyleManager }                            from '../style/StyleManager';
-import { globalRuleset }                           from '../style/globalRuleset';
-import { StyleLength }                             from '../style/types/StyleLength';
-import { StyleOverflow }                           from '../style/types/StyleOverflow';
+import { StyleManager }                                       from '../style/StyleManager';
+import { globalRuleset }                                      from '../style/globalRuleset';
+import { StyleLength }                                        from '../style/types/StyleLength';
+import { StyleOverflow }                                      from '../style/types/StyleOverflow';
 
-import { Node }                                    from './Node';
-import { flags }                                   from './flags';
+import { Node }                                               from './Node';
+import { flags }                                              from './flags';
 
 Yoga.setExperimentalFeatureEnabled(Yoga.EXPERIMENTAL_FEATURE_ROUNDING, true);
 
@@ -24,7 +24,7 @@ function getPreferredSize(node, ... args) {
 
 export class Element extends Node {
 
-    constructor({ classList = [], style = {} } = {}) {
+    constructor({ classList = [], style = {}, decored = true } = {}) {
 
         super();
 
@@ -77,6 +77,22 @@ export class Element extends Node {
 
         this.declareEvent(`scroll`); // After the element scroll position has changed.
         this.declareEvent(`caret`); // After the element caret position has changed.
+
+        this.setPropertyTrigger(`decored`, decored, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: value => {
+
+                this.styleManager.setStateStatus(`decored`, value);
+
+            }
+
+        });
 
     }
 

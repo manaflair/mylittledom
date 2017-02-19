@@ -1,10 +1,13 @@
+import { isBoolean }                 from 'lodash';
+
 import { StyleManager, makeRuleset } from '../../core';
 
+import { TermForm }                  from './TermForm';
 import { TermText }                  from './TermText';
 
 export class TermButton extends TermText {
 
-    constructor({ ... props }) {
+    constructor({ submit = false, ... props }) {
 
         super({ ... props });
 
@@ -12,14 +15,14 @@ export class TermButton extends TermText {
 
             focusEvents: true
 
-        }, `:hover`, {
+        }, `:decored:hover`, {
 
             borderColor: `white`,
             color: `white`,
 
             textDecoration: `underline`
 
-        }, `:active`, {
+        }, `:decored:active`, {
 
             backgroundClip: `paddingBox`,
             backgroundColor: `white`,
@@ -29,6 +32,51 @@ export class TermButton extends TermText {
             textDecoration: null
 
         }), StyleManager.RULESET_NATIVE);
+
+        let submitForm = () => {
+
+            let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+            if (!form)
+                return;
+
+            let event = new Event(`submit`, { cancelable: true });
+
+            form.dispatchEvent(event);
+
+        };
+
+        this.addEventListener(`click`, e => {
+
+            if (!this.doesSubmit)
+                return;
+
+            e.setDefault(() => {
+                submitForm();
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`enter`, e => {
+
+            if (!this.doesSubmit)
+                return;
+
+            e.setDefault(() => {
+                submitForm();
+            });
+
+        }, { capture: true });
+
+        this.setPropertyTrigger(`submit`, submit, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            }
+
+        });
 
     }
 
