@@ -60,7 +60,7 @@ class Example extends React.PureComponent {
 
         return <form style={{ padding: [ 1, 2 ] }}>
 
-            <div style={{ border: `strong`, padding: [ 1, 2 ] }}>
+            <div style={{ border: `rounded`, padding: [ 1, 2 ] }}>
 
                 <div classList={[ rowStyle ]}>
                     <Input classList={[ entryStyle ]} label={`Movie title`} element={<input />} style={{ flex: 5 }} />
@@ -91,7 +91,7 @@ class Example extends React.PureComponent {
 
             </div>
 
-            <div style={{ border: `modern`, padding: [ 1, 2 ], marginTop: 1 }}>
+            <div style={{ border: `rounded`, padding: [ 1, 2 ], marginTop: 1 }}>
 
                 <div style={{ flexDirection: `row` }}>
                     <Input label={`Collection`} element={<div style={{ flexDirection: `row` }}>
@@ -109,7 +109,7 @@ class Example extends React.PureComponent {
             </div>
 
             <div style={{ flexDirection: `row`, marginTop: 1 }}>
-                <button textContent={`Submit`} style={{ border: `modern`, padding: [ 0, 2 ] }} />
+                <button textContent={`Submit`} style={{ border: `modern`, padding: [ 1, 2 ] }} />
             </div>
 
         </form>;
