@@ -110,7 +110,7 @@ class Example extends React.PureComponent {
             </div>
 
             <div style={{ flexDirection: `row`, marginTop: 1 }}>
-                <button textContent={`Submit`} style={{ border: `modern`, padding: [ 1, 2 ] }} />
+                <button textContent={`Submit`} style={{ border: `modern`, padding: [ 0, 2 ] }} />
             </div>
 
         </form>;

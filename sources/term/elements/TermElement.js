@@ -243,6 +243,7 @@ export class TermElement extends Element {
 
                     if (x === 0) {
                         prepend = this.style.$.borderLeftCharacter;
+                        contentX += 1;
                         contentL -= 1;
                     } else {
                         contentX -= 1;
@@ -309,22 +310,16 @@ export class TermElement extends Element {
             let prepend = ``;
             let append = ``;
 
-            let contentStart = this.contentRect.x;
-            let contentWidth = this.contentRect.width;
-
-            if (this.style.$.borderLeftCharacter)
-                contentStart -= 1;
-
-            if (x < contentStart) {
-                let size = Math.min(l, contentStart - x);
+            if (x < this.contentRect.x) {
+                let size = Math.min(l, this.contentRect.x - x);
                 prepend = this.renderBackground(size);
                 x = 0, l -= size;
             } else {
                 x -= this.contentRect.x;
             }
 
-            if (x + l > contentWidth) {
-                let size = Math.min(l, x + l - contentWidth);
+            if (x + l > this.contentRect.width) {
+                let size = Math.min(l, x + l - this.contentRect.width);
                 append = this.renderBackground(size);
                 l -= size;
             }

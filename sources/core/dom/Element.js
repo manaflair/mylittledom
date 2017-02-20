@@ -396,20 +396,25 @@ export class Element extends Node {
 
         } else {
 
-            if (alignY === `auto`)
-                alignY = Math.abs(this.elementRect.y - this.parentNode.scrollTop) < Math.abs((this.elementRect.y + this.elementRect.height - 1) - (this.parentNode.scrollTop + this.parentNode.contentRect.height - 1)) ? `start` : `end`;
+            let effectiveAlignX = alignX;
+            let effectiveAlignY = alignY;
 
-            switch (alignY) {
+            if (effectiveAlignX === `auto`)
+                effectiveAlignX = Math.abs(this.elementRect.x - this.parentNode.scrollLeft) < Math.abs((this.elementRect.x + this.elementRect.width - 1) - (this.parentNode.scrollLeft + this.parentNode.contentRect.width - 1)) ? `start` : `end`;
 
-                case `start`: {
-                    this.parentNode.scrollRowIntoView(this.elementRect.y, { alignY, forceY });
-                } break;
+            if (effectiveAlignY === `auto`)
+                effectiveAlignY = Math.abs(this.elementRect.y - this.parentNode.scrollTop) < Math.abs((this.elementRect.y + this.elementRect.height - 1) - (this.parentNode.scrollTop + this.parentNode.contentRect.height - 1)) ? `start` : `end`;
 
-                case `end`: {
-                    this.parentNode.scrollRowIntoView(this.elementRect.y + this.elementRect.height - 1, { alignY, forceY });
-                } break;
+            let x = this.elementRect.x;
+            let y = this.elementRect.y;
 
-            }
+            if (effectiveAlignX === `end`)
+                x += this.elementRect.width - 1;
+
+            if (effectiveAlignY === `end`)
+                y += this.elementRect.height - 1;
+
+            this.parentNode.scrollCellIntoView(new Point({ x, y }), { alignX, alignY, forceX, forceY });
 
         }
 
@@ -419,15 +424,18 @@ export class Element extends Node {
 
         this.triggerUpdates();
 
-        if (alignX === `auto`)
-            alignX = Math.abs(position.x - this.scrollLeft) < Math.abs(position.x - (this.scrollLeft + this.contentRect.width - 1)) ? `start` : `end`;
+        let effectiveAlignX = alignX;
+        let effectiveAlignY = alignY;
 
-        if (alignY === `auto`)
-            alignY = Math.abs(position.y - this.scrollTop) < Math.abs(position.y - (this.scrollTop + this.contentRect.height - 1)) ? `start` : `end`;
+        if (effectiveAlignX === `auto`)
+            effectiveAlignX = Math.abs(position.x - this.scrollLeft) < Math.abs(position.x - (this.scrollLeft + this.elementRect.width - 1)) ? `start` : `end`;
+
+        if (effectiveAlignY === `auto`)
+            effectiveAlignY = Math.abs(position.y - this.scrollTop) < Math.abs(position.y - (this.scrollTop + this.elementRect.height - 1)) ? `start` : `end`;
 
         if (forceX || position.x < this.scrollLeft || position.x >= this.scrollLeft + this.elementRect.width) {
 
-            switch (alignX) {
+            switch (effectiveAlignX) {
 
                 case `start`: {
                     this.scrollLeft = position.x;
@@ -443,7 +451,7 @@ export class Element extends Node {
 
         if (forceY || position.y < this.scrollTop || position.y >= this.scrollTop + this.elementRect.height) {
 
-            switch (alignY) {
+            switch (effectiveAlignY) {
 
                 case `start`: {
                     this.scrollTop = position.y;
