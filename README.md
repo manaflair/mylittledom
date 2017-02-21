@@ -11,10 +11,12 @@
   - DOM-like API (`element.appendChild()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
   - CSS-like API (`element.classList`, `element.style.display`, `element.style.position`, `element.style.backgroundColor`, ...)
   - Complex flex positioning (thanks to the awesome [Yoga](https://github.com/facebook/yoga) library!)
-  - Work in Node.js but also inside web browsers (through [XTerm.js](https://github.com/sourcelair/xterm.js/))
+  - Work in Node.js but also inside web browsers (through [XTerm.js](https://github.com/sourcelair/xterm.js/)) <sup>1</sup>
   - Automatic text layout à-la-CSS (text-align, overflow-wrap, white-space, ...)
   - Border support, padding support, positioning support, custom rendering support ...
   - Native React renderer
+
+<sup>1</sup> Currently disabled in master until this [PR](https://github.com/atom/superstring/pull/7) is merged.
 
 ## Installation
 
@@ -139,12 +141,6 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
 ## User API
 
-  - `new TermScreen({ debugPaintRects })`
-
-    - You will need to call `screen.attachScreen({ stdin, stdout })` before the screen actually prints anything (with `stdin` and `stdout` being Node.js streams). Use `screen.releaseScreen()` once you are done.
-
-    - When `debugPaintRects` is on, the renderer will use random background colors to help you detect which parts of the screen have been redrawn. Check the section below for more information.
-
   - `new TermElement({ decored })`
 
     - Each other term element is a subclass of `TermElement` (including `TermScreen`). As such, any TermElement prop can also be used on other elements (unless they strongly override it).
@@ -154,6 +150,12 @@ An up-to-date list of supported CSS properties and supported values for each pro
     - Scrolling to a specific row in the element can be done by using `element.scrollRowIntoView(row, { force, block })`. The `force` option is a boolean to instruct the function to scroll even if the specified row is already in the viewport, and `block` is used to specify where should the row be aligned (top or bottom). The default value is `auto`, which means that the algorithm will automatically compute the best alignment given the current position of the row relative to the viewport.
 
     - The `decored` option can be set to `false` in order to disable any particular style set for the element, except those strongly required for the element to behave as expected. For example, you can use this option to remove the default style used by TermInput elements and display them as plain boxes instead.
+
+  - `new TermScreen({ debugPaintRects })`
+
+    - You will need to call `screen.attachScreen({ stdin, stdout })` before the screen actually prints anything (with `stdin` and `stdout` being Node.js streams). Use `screen.releaseScreen()` once you are done.
+
+    - When `debugPaintRects` is on, the renderer will use random background colors to help you detect which parts of the screen have been redrawn. Check the section below for more information.
 
   - `new TermText({ textContent, textBuffer, multiline })`
 

@@ -1,5 +1,6 @@
 {
   "name": "@manaflair/mylittledom",
+  "private": true,
   "version": "0.0.2",
   "license": "MIT",
   "main": "./dist/core/index",
@@ -7,17 +8,17 @@
     "dist"
   ],
   "scripts": {
-    "install": "npm-git install --verbose",
+    "install:dev": "npm-git install --verbose",
     "docs": "npm run build:demo",
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "demo": "node -r babel-register -r core-js -r ./examples/setup --",
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
     "build:demo": "NODE_ENV=production webpack",
-    "serve:demo": "webpack-dev-server"
+    "serve:demo": "webpack-dev-server",
+    "push": "babel -D -d dist sources && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
   },
   "dependencies": {
-    "@arcanis/npm-git-install": "^0.2.1",
     "@manaflair/term-strings": "^0.6.1",
     "@manaflair/text-layout": "^0.6.0",
     "core-decorators": "^0.13.0",
@@ -25,9 +26,11 @@
     "first-mate": "^6.2.1",
     "immutable": "^3.8.1",
     "lodash": "^4.16.4",
-    "plist": "^2.0.1"
+    "plist": "^2.0.1",
+    "text-buffer": "^10.3.11"
   },
   "devDependencies": {
+    "@arcanis/npm-git-install": "^0.2.1",
     "babel-cli": "^6.18.0",
     "babel-core": "^6.17.0",
     "babel-loader": "^6.2.8",
