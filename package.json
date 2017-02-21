@@ -3,10 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "license": "MIT",
-  "main": "./dist/core/index",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "install:dev": "npm-git install --verbose",
     "docs": "npm run build:demo",
@@ -16,7 +12,7 @@
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
     "build:demo": "NODE_ENV=production webpack",
     "serve:demo": "webpack-dev-server",
-    "push": "babel -D -d dist sources && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
+    "push": "babel -D -d dist sources && cp README.md dist/ && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.6.1",
