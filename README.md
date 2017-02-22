@@ -9,7 +9,7 @@
 ## Features
 
   - DOM-like API (`element.appendChild()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
-  - CSS-like API (`element.classList`, `element.style.display`, `element.style.position`, `element.style.backgroundColor`, ...)
+  - CSS-like API (`element.classList`, `element.style.display`, `element.style.backgroundColor`, ...)
   - Complex flex positioning (thanks to the awesome [Yoga](https://github.com/facebook/yoga) library!)
   - Work in Node.js but also inside web browsers (through [XTerm.js](https://github.com/sourcelair/xterm.js/)) <sup>1</sup>
   - Automatic text layout à-la-CSS (text-align, overflow-wrap, white-space, ...)
