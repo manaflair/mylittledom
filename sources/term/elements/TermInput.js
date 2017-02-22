@@ -7,7 +7,7 @@ import { TermTextBase }              from './TermTextBase';
 
 export class TermInput extends TermTextBase {
 
-    constructor({ value = ``, textBuffer = new TextBuffer(value), decored = true, multiline = false, ... props } = {}) {
+    constructor({ value = ``, textBuffer = new TextBuffer(value), multiline = false, ... props } = {}) {
 
         super({ ... props, textBuffer });
 
