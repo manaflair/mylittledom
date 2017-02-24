@@ -47,6 +47,9 @@ export class TermText extends TermTextBase {
 
             set: value => {
 
+                if (value === this.textBuffer.getText())
+                    return;
+
                 this.textBuffer.setText(value);
 
             }

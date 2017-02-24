@@ -49,6 +49,9 @@ export class TermInput extends TermTextBase {
 
             set: value => {
 
+                if (value === this.textBuffer.getText())
+                    return;
+
                 this.textBuffer.setText(value);
 
             }
