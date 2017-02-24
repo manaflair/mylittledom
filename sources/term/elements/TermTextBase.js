@@ -136,8 +136,6 @@ export class TermTextBase extends TermElement {
 
             }
 
-            this.dispatchEvent(new Event(`change`));
-
         });
 
         this.addShortcutListener(`left`, () => {
@@ -278,6 +276,7 @@ export class TermTextBase extends TermElement {
 
                 this.scrollCellIntoView(this.caret);
 
+                this.dispatchEvent(new Event(`change`));
                 this.dispatchEvent(new Event(`caret`));
 
             } else {
@@ -310,6 +309,7 @@ export class TermTextBase extends TermElement {
 
             this.scrollCellIntoView(this.caret);
 
+            this.dispatchEvent(new Event(`change`));
             this.dispatchEvent(new Event(`caret`));
 
         });
@@ -327,6 +327,7 @@ export class TermTextBase extends TermElement {
 
             this.textBuffer.setTextInRange([ start, end ], ``);
 
+            this.dispatchEvent(new Event(`change`));
             this.scrollCellIntoView(this.caret);
 
         });
@@ -349,6 +350,7 @@ export class TermTextBase extends TermElement {
 
             this.scrollCellIntoView(this.caret);
 
+            this.dispatchEvent(new Event(`change`));
             this.dispatchEvent(new Event(`caret`));
 
         });
