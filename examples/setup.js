@@ -1,8 +1,9 @@
-import { TermScreen }      from '@manaflair/mylittledom/term';
-import faker               from 'faker';
-import { readFileSync }    from 'fs';
-import { registerHandler } from 'segfault-handler';
-import yargs               from 'yargs';
+import { TermScreen, TermText }       from '@manaflair/mylittledom/term';
+import { findDescendantsByPredicate } from '@manaflair/mylittledom';
+import faker                          from 'faker';
+import { readFileSync }               from 'fs';
+import { registerHandler }            from 'segfault-handler';
+import yargs                          from 'yargs';
 
 // Extract the options from the command line
 
@@ -39,6 +40,32 @@ if (argv.output === undefined) {
 
 global.screen = new TermScreen({ debugPaintRects: argv.debugPaintRects ? true : false });
 global.screen.attachScreen({ stdout });
+
+if (argv.console) {
+
+    let console = new TermText();
+    console.style.position = `absolute`;
+    console.style.right = 0;
+    console.style.top = 0;
+    console.style.bottom = 0;
+    console.style.width = 80;
+    console.style.border = `strong`;
+    console.appendTo(global.screen);
+
+    global.console.log = (... args) => {
+        console.textContent += JSON.stringify(args) + '\n';
+        console.scrollTop = console.scrollHeight;
+    };
+
+}
+
+if (argv.debugShortcuts) {
+
+    global.screen.addShortcutListener(`C-l`, () => {
+        global.screen.queueDirtyRect();
+    });
+
+}
 
 // Expose a few functions that can be used by the various examples
 
