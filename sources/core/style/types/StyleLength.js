@@ -47,6 +47,10 @@ export class StyleLength {
 
 }
 
+StyleLength.autoNaN = new StyleLength();
+StyleLength.autoNaN.toYoga = () => NaN;
+StyleLength.autoNaN.serialize = () => `auto`;
+
 StyleLength.auto = new StyleLength();
 StyleLength.auto.serialize = () => `auto`;
 

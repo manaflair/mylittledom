@@ -62,25 +62,25 @@ export let styleProperties = {
     },
 
     left: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_LEFT, forwardToYoga.value) ],
         initial: `auto`
     },
 
     right: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_RIGHT, forwardToYoga.value) ],
         initial: `auto`
     },
 
     top: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_TOP, forwardToYoga.value) ],
         initial: `auto`
     },
 
     bottom: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setPosition`, Yoga.EDGE_BOTTOM, forwardToYoga.value) ],
         initial: `auto`
     },
@@ -122,7 +122,7 @@ export let styleProperties = {
     },
 
     flex: {
-        parsers: [ list([ number, optional(number), optional([ length, length.rel, length.auto ]) ]), list([ optional(number), optional(number), [ length, length.rel, length.auto ] ]), new Map([ [ null, [ 0, 0, `auto` ] ] ]) ],
+        parsers: [ list([ number, optional(number), optional([ length, length.rel, length.autoNaN ]) ]), list([ optional(number), optional(number), [ length, length.rel, length.autoNaN ] ]), new Map([ [ null, [ 0, 0, `auto` ] ] ]) ],
         getter: (style) => [ style.flexGrow, style.flexShrink, style.flexBasis ],
         setter: (style, [ flexGrow = 1, flexShrink = 1, flexBasis = 0 ]) => Object.assign(style, { flexGrow, flexShrink, flexBasis })
     },
@@ -140,19 +140,19 @@ export let styleProperties = {
     },
 
     flexBasis: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setFlexBasis`, forwardToYoga.value) ],
         initial: `auto`
     },
 
     width: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setWidth`, forwardToYoga.value) ],
         initial: `auto`
     },
 
     height: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setHeight`, forwardToYoga.value) ],
         initial: `auto`
     },
@@ -164,7 +164,7 @@ export let styleProperties = {
     },
 
     minHeight: {
-        parsers: [ length, length.rel, length.auto ],
+        parsers: [ length, length.rel, length.autoNaN ],
         triggers: [ dirtyLayout, forwardToYoga(`setMinHeight`, forwardToYoga.value) ],
         initial: 0
     },

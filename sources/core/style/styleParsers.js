@@ -148,6 +148,15 @@ length.rel = function (rawValue) {
 
 };
 
+length.autoNaN = function (rawValue) {
+
+    if (rawValue !== `auto` && rawValue !== StyleLength.fakeAuto)
+        return undefined;
+
+    return StyleLength.autoNaN;
+
+};
+
 length.auto = function (rawValue) {
 
     if (rawValue !== `auto` && rawValue !== StyleLength.auto)

@@ -24,7 +24,7 @@
     "lodash": "^4.16.4",
     "plist": "^2.0.1",
     "text-buffer": "^10.3.11",
-    "yoga-layout": "^1.0.1"
+    "yoga-layout": "^1.2.0"
   },
   "devDependencies": {
     "@arcanis/npm-git-install": "^0.2.1",
