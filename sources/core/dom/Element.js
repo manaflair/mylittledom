@@ -351,10 +351,10 @@ export class Element extends Node {
         super.removeChild(node);
 
         if (previousSibling)
-            previousSibling.setStateStatus(`lastChild`, !nextSibling ? true : false);
+            previousSibling.styleManager.setStateStatus(`lastChild`, !nextSibling ? true : false);
 
         if (nextSibling)
-            nextSibling.setStateStatus(`firstChild`, !previousSibling ? true : false);
+            nextSibling.styleManager.setStateStatus(`firstChild`, !previousSibling ? true : false);
 
         node.styleManager.setStateStatus(`firstChild`, true);
         node.styleManager.setStateStatus(`lastChild`, true);
