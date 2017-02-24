@@ -1,11 +1,11 @@
 // "instance" is whatever you want. They're also called "host components" in this documentation.
 
-import { camelCase, difference, lowerFirst, upperFirst } from 'lodash';
-import ReactFiberReconcilier                             from 'react-dom/lib/ReactFiberReconciler';
+import { camelCase, difference, intersection, lowerFirst, upperFirst } from 'lodash';
+import ReactFiberReconcilier                                           from 'react-dom/lib/ReactFiberReconciler';
 
-import { StyleManager }                                  from '../core';
+import { StyleManager }                                                from '../core';
 
-import * as TermElements                                 from './elements';
+import * as TermElements                                               from './elements';
 
 let eventSymbol = Symbol();
 
@@ -29,30 +29,23 @@ function findEventProps(props) {
 
 function setupEventListeners(instance, props) {
 
-    let eventMap = instance[eventSymbol];
+    let oldListeners = instance[eventSymbol];
+    let newListeners = findEventProps(props);
 
-    if (!eventMap)
-        eventMap = instance[eventSymbol] = new Map();
+    let oldEvents = Array.from(oldListeners.keys());
+    let newEvents = Array.from(newListeners.keys());
 
-    let bindings = findEventProps(props);
+    let removedEvents = difference(oldEvents, newEvents);
+    let addedEvents = difference(newEvents, oldEvents);
+    let replacedEvents = intersection(newEvents, oldEvents).filter(eventName => oldListeners.get(eventName) !== newListeners.get(eventName));
 
-    let previousEvents = Array.from(eventMap.keys());
-    let events = Array.from(bindings.keys());
+    for (let eventName of [ ... removedEvents, ... replacedEvents ])
+        instance.removeEventListener(eventName, oldListeners.get(eventName));
 
-    let dirtyEvents = [
-        ... events.filter(eventName => bindings.get(eventName) && eventMap.get(eventName) && bindings.get(eventName) !== eventMap.get(eventName)),
-        ... difference(previousEvents, events)
-    ];
+    for (let eventName of [ ... replacedEvents, ... addedEvents ])
+        instance.addEventListener(eventName, newListeners.get(eventName));
 
-    for (let eventName of dirtyEvents) {
-        instance.removeEventListener(eventName, eventMap.get(eventName));
-        eventMap.delete(eventName);
-    }
-
-    for (let eventName of events) {
-        instance.addEventListener(eventName, bindings.get(eventName));
-        eventMap.set(eventName, bindings.get(eventName));
-    }
+    instance[eventSymbol] = newListeners;
 
 }
 
@@ -80,7 +73,10 @@ function createInstance(type, props) {
     if (!ElementClass)
         throw new Error(`Invalid element type "${type}" (${elementName} is not amongst ${Object.keys(TermElements).join(`, `)})`);
 
-    return new ElementClass(props);
+    let instance = new ElementClass(props);
+    instance[eventSymbol] = new Map();
+
+    return instance;
 
 }
 
@@ -122,6 +118,14 @@ let TermRenderer = ReactFiberReconcilier(new class {
         // Create a text instance. It will get called for each text node in your React tree, except if their parent is returning a truthy value when invoked through the `shouldSetTextContent` hook.
 
         return new (TermElements.TermText)({ textContent: text });
+
+    }
+
+    getPublicInstance(instance) {
+
+        // UNCONFIRMED: Return the public instance to the components (ie. the one which can be accessed via refs).
+
+        return instance;
 
     }
 
@@ -203,7 +207,7 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
     }
 
-    commitUpdate(instance, type, oldProps, newProps) {
+    commitUpdate(instance, payload, type, oldProps, newProps) {
 
         // This function is called everytime the host component needs to be synced with the React props.
 
