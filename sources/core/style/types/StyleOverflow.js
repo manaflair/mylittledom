@@ -1,5 +1,11 @@
 export class StyleOverflow {
 
+    constructor({ doesHideOverflow = false } = {}) {
+
+        this.doesHideOverflow = doesHideOverflow;
+
+    }
+
     serialize() {
 
         return null;
@@ -17,5 +23,5 @@ export class StyleOverflow {
 StyleOverflow.visible = new StyleOverflow();
 StyleOverflow.visible.serialize = () => `visible`;
 
-StyleOverflow.hidden = new StyleOverflow();
+StyleOverflow.hidden = new StyleOverflow({ doesHideOverflow: true });
 StyleOverflow.hidden.serialize = () => `hidden`;

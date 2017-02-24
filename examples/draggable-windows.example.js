@@ -6,6 +6,8 @@ class Window extends React.PureComponent {
 
     static propTypes = {
 
+        name: React.PropTypes.string,
+
         x: React.PropTypes.number.isRequired,
         y: React.PropTypes.number.isRequired,
 
@@ -17,6 +19,8 @@ class Window extends React.PureComponent {
     };
 
     static defaultProps = {
+
+        name: `unnamed`,
 
         onDrag: () => {}
 
@@ -61,8 +65,8 @@ class Window extends React.PureComponent {
         if (!this.isDragged)
             return;
 
-        let newPosX = e.worldCoordinates.x - this.dragDiffX;
-        let newPosY = e.worldCoordinates.y - this.dragDiffY;
+        let newPosX = this.props.x + (e.worldCoordinates.x - this.refs.main.elementWorldRect.x) - this.dragDiffX;
+        let newPosY = this.props.y + (e.worldCoordinates.y - this.refs.main.elementWorldRect.y) - this.dragDiffY;
 
         this.props.onDrag(newPosX, newPosY);
 
@@ -71,6 +75,7 @@ class Window extends React.PureComponent {
     render() {
 
         return <div ref={`main`} style={{ border: `strong`, position: `absolute`, left: this.props.x, top: this.props.y, width: this.props.width, height: this.props.height }} onMouseDown={e => this.handleMouseDown(e)}>
+            {`Box name: ${this.props.name}`}
             {`Box position: ${this.props.x}x${this.props.y}`}
         </div>;
 
@@ -88,15 +93,19 @@ class Example extends React.PureComponent {
 
     @autobind handleClick() {
 
-        let width = 20;
-        let height = 10;
+        let width = 30;
+        let height = 4;
 
-        let x = random.number(this.refs.main.elementRect.width - width);
-        let y = random.number(this.refs.main.elementRect.height - height);
+        let x = random.number(this.refs.container.elementRect.width - width);
+        let y = random.number(this.refs.container.elementRect.height - height);
 
         this.setState(({ windows }) => {
 
-            windows = windows.concat([ { x, y, width, height } ]);
+            let index = windows.length;
+
+            windows = windows.concat([ { x, y, width, height, onDrag: (x, y) => {
+                this.handleDrag(index, x, y);
+            } } ]);
 
             return { windows };
 
@@ -119,11 +128,13 @@ class Example extends React.PureComponent {
 
     render() {
 
-        return <div ref={`main`} style={{ padding: [ 1, 2 ], width: `100%`, height: `100%` }}>
+        return <div style={{ padding: [ 1, 2 ], width: `100%`, height: `100%` }}>
 
             <button textContent={`Add a new window`} style={{ border: `modern`, padding: [ 0, 1 ] }} onClick={e => this.handleClick(e)} />
 
-            {this.state.windows.map((window, index) => <Window key={index} onDrag={(x, y) => this.handleDrag(index, x, y)} {... window} />)}
+            <div ref={`container`} style={{ border: `modern`, flex: `auto`, width: `100%`, overflow: `hidden` }}>
+                {this.state.windows.map((window, index) => <Window key={index} name={`box#${index}`} {... window} />)}
+            </div>
 
         </div>;
 

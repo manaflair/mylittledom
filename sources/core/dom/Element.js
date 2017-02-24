@@ -841,7 +841,7 @@ export class Element extends Node {
 
     }
 
-    cascadeClipping({ dirtyScrollNodes, force = false } = {}) {
+    cascadeClipping({ dirtyScrollNodes, relativeClipRect = null, force = false } = {}) {
 
         if (force || this.flags & (flags.ELEMENT_HAS_DIRTY_CLIPPING | flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN)) {
 
@@ -879,8 +879,8 @@ export class Element extends Node {
 
                 let prevElementClipRect = this.elementClipRect ? this.elementClipRect.clone() : null;
 
-                this.elementClipRect = this.parentNode ? this.elementWorldRect.intersect(this.parentNode.elementClipRect) : this.elementWorldRect;
-                this.contentClipRect = this.parentNode ? this.contentWorldRect.intersect(this.parentNode.elementClipRect) : this.contentWorldRect;
+                this.elementClipRect = relativeClipRect ? this.elementWorldRect.intersect(relativeClipRect) : this.elementWorldRect;
+                this.contentClipRect = relativeClipRect ? this.contentWorldRect.intersect(relativeClipRect) : this.contentWorldRect;
 
                 doesClippingChange = !Rect.areEqual(prevElementWorldRect, this.elementWorldRect) || !Rect.areEqual(prevContentWorldRect, this.contentWorldRect) || !Rect.areEqual(prevElementClipRect, this.elementClipRect);
 
@@ -895,8 +895,11 @@ export class Element extends Node {
 
             }
 
+            if (this.style.$.overflow.doesHideOverflow || !relativeClipRect)
+                relativeClipRect = this.elementClipRect;
+
             for (let child of this.childNodes)
-                child.cascadeClipping({ dirtyScrollNodes, force: force || this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING });
+                child.cascadeClipping({ dirtyScrollNodes, relativeClipRect, force: force || this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING });
 
             this.clearDirtyClippingFlag();
             this.clearDirtyClippingChildrenFlag();

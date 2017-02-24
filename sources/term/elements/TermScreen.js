@@ -220,7 +220,6 @@ export class TermScreen extends TermElement {
             this.updateTimer = null;
             this.renderScreen();
 
-
         });
 
     }

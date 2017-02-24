@@ -26,6 +26,41 @@ describe(`AbsoluteLayout`, () => {
 
     });
 
+    it(`should correctly position an element inside another`, () => {
+
+        let screen = new Screen();
+        screen.style.width = 800;
+        screen.style.height = 600;
+
+        let elementA = new Element();
+        elementA.style.width = 800;
+        elementA.style.height = 100;
+        elementA.appendTo(screen);
+
+        let elementB = new Element();
+        elementB.style.width = 800;
+        elementB.style.height = 500;
+        elementB.appendTo(screen);
+
+        let elementC = new Element();
+        elementC.style.position = `absolute`;
+        elementC.style.width = 100;
+        elementC.style.height = 100;
+        elementC.style.left = 100;
+        elementC.style.top = 100;
+        elementC.appendTo(elementB);
+
+        screen.triggerUpdates();
+
+        expect(screen.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 600 });
+        expect(elementA.elementRect).to.deep.equal({ x: 0, y: 0, width: 800, height: 100 });
+        expect(elementB.elementRect).to.deep.equal({ x: 0, y: 100, width: 800, height: 500 });
+        expect(elementC.elementRect).to.deep.equal({ x: 100, y: 100, width: 100, height: 100 });
+
+        expect(elementC.elementWorldRect).to.deep.equal({ x: 100, y: 200, width: 100, height: 100 });
+
+    });
+
     it(`should change width: auto behaviour to be as small as possible`, () => {
 
         let screen = new Screen();
