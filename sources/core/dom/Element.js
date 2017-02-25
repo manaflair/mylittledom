@@ -66,8 +66,10 @@ export class Element extends Node {
         this.elementWorldRect = new Rect(); // Position & size of the element inside the viewport
         this.contentWorldRect = new Rect(); // Position & size of the element content inside the viewport
 
-        this.elementClipRect = new Rect(); // Position & size of the actual visible box inside the element
-        this.contentClipRect = new Rect(); // Position & size of the actual visible box inside the element
+        this.elementClipRect = null; // Position & size of the actual visible box inside the element
+        this.contentClipRect = null; // Position & size of the actual visible box inside the element
+
+        this.elementBoundingRect = null; // Position & size of the visible box that contains both the element itself and each of its children
 
         this.declareEvent(`dirty`); // After the node rects have became dirty and a call to triggerUpdates needs to be done. Usually only caught by the renderer.
         this.declareEvent(`layout`); // When the node layout is being computed. Element box and content box have been recomputed, but the scroll box hasn't yet.
@@ -377,7 +379,7 @@ export class Element extends Node {
         node.setDirtyRenderListFlag();
 
         // We need to manually register this rect because since the element will be removed from the tree, we will never iterate over it at the next triggerUpdates
-        this.queueDirtyRect(node.elementClipRect);
+        this.queueDirtyRect(node.elementBoundingRect);
 
         node.styleManager.refresh(node.styleManager.inherited);
 
@@ -903,6 +905,8 @@ export class Element extends Node {
 
             for (let child of this.childNodes)
                 child.cascadeClipping({ dirtyScrollNodes, relativeClipRect, force: force || this.flags & flags.ELEMENT_HAS_DIRTY_CLIPPING });
+
+            this.elementBoundingRect = Rect.getBoundingRect(this.elementClipRect, ... this.childNodes.map(child => child.elementBoundingRect));
 
             this.clearDirtyClippingFlag();
             this.clearDirtyClippingChildrenFlag();

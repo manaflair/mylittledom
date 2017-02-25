@@ -1,5 +1,45 @@
 export class Rect {
 
+    static getBoundingRect(... rects) {
+
+        let output = null;
+
+        for (let rect of rects) {
+
+            if (!rect || rect.isEmpty())
+                continue;
+
+            if (!output) {
+
+                output = rect.clone();
+
+            } else {
+
+                if (rect.x < output.x) {
+                    output.width += output.x - rect.x;
+                    output.x = rect.x;
+                }
+
+                if (rect.y < output.y) {
+                    output.height += output.y - rect.y;
+                    output.y = rect.y;
+                }
+
+                if (rect.x + rect.width > output.x + output.width)
+                    output.width += rect.x + rect.width - output.x - output.width;
+
+                if (rect.y + rect.height > output.y + output.height) {
+                    output.height += rect.y + rect.height - output.y - output.height;
+                }
+
+            }
+
+        }
+
+        return output;
+
+    }
+
     static areEqual(a, b) {
 
         if (a === b)
