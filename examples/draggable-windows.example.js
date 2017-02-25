@@ -14,7 +14,8 @@ class Window extends React.PureComponent {
         width: React.PropTypes.number.isRequired,
         height: React.PropTypes.number.isRequired,
 
-        onDrag: React.PropTypes.func
+        onDrag: React.PropTypes.func,
+        onDelete: React.PropTypes.func
 
     };
 
@@ -22,7 +23,8 @@ class Window extends React.PureComponent {
 
         name: `unnamed`,
 
-        onDrag: () => {}
+        onDrag: () => {},
+        onDelete: () => {}
 
     };
 
@@ -72,9 +74,16 @@ class Window extends React.PureComponent {
 
     }
 
+    @autobind handleDeleteClick() {
+
+        this.props.onDelete();
+
+    }
+
     render() {
 
         return <div ref={`main`} style={{ border: `strong`, position: `absolute`, left: this.props.x, top: this.props.y, width: this.props.width, height: this.props.height }} onMouseDown={e => this.handleMouseDown(e)}>
+            <text style={{ position: `absolute`, top: 0, right: 1 }} textContent={`X`} onClick={this.handleDeleteClick} />
             {`Box name: ${this.props.name}`}
             {`Box position: ${this.props.x}x${this.props.y}`}
         </div>;
@@ -105,6 +114,8 @@ class Example extends React.PureComponent {
 
             windows = windows.concat([ { x, y, width, height, onDrag: (x, y) => {
                 this.handleDrag(index, x, y);
+            }, onDelete: () => {
+                this.handleDelete(index);
             } } ]);
 
             return { windows };
@@ -126,6 +137,19 @@ class Example extends React.PureComponent {
 
     }
 
+    @autobind handleDelete(index) {
+
+        this.setState(({ windows }) => {
+
+            windows = windows.slice();
+            windows[index] = null;
+
+            return { windows };
+
+        });
+
+    }
+
     render() {
 
         return <div style={{ padding: [ 1, 2 ], width: `100%`, height: `100%` }}>
@@ -133,7 +157,7 @@ class Example extends React.PureComponent {
             <button textContent={`Add a new window`} style={{ border: `modern`, padding: [ 0, 1 ] }} onClick={e => this.handleClick(e)} />
 
             <div ref={`container`} style={{ border: `modern`, flex: `auto`, width: `100%`, overflow: `hidden` }}>
-                {this.state.windows.map((window, index) => <Window key={index} name={`box#${index}`} {... window} />)}
+                {this.state.windows.map((window, index) => window ? <Window key={index} name={`box#${index}`} {... window} /> : null)}
             </div>
 
         </div>;
