@@ -378,6 +378,9 @@ export class Element extends Node {
 
         node.styleManager.refresh(node.styleManager.inherited);
 
+        // We need to manually register this rect because since the element will be removed from the tree, we will never iterate over it at the next triggerUpdates
+        this.queueDirtyRect(node.elementClipRect);
+
     }
 
     scrollIntoView({ align = `auto`, alignX = align, alignY = align, force = false, forceX = force, forceY = force } = {}) {
