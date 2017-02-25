@@ -376,10 +376,10 @@ export class Element extends Node {
         node.setDirtyNodeListFlag();
         node.setDirtyRenderListFlag();
 
-        node.styleManager.refresh(node.styleManager.inherited);
-
         // We need to manually register this rect because since the element will be removed from the tree, we will never iterate over it at the next triggerUpdates
         this.queueDirtyRect(node.elementClipRect);
+
+        node.styleManager.refresh(node.styleManager.inherited);
 
     }
 
