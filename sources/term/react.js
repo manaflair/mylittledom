@@ -1,66 +1,144 @@
 // "instance" is whatever you want. They're also called "host components" in this documentation.
 
-import { camelCase, difference, intersection, lowerFirst, upperFirst } from 'lodash';
-import ReactFiberReconcilier                                           from 'react-dom/lib/ReactFiberReconciler';
+import { camelCase, difference, has, intersection, kebabCase, lowerFirst, upperFirst } from 'lodash';
+import ReactFiberReconcilier                                                           from 'react-dom/lib/ReactFiberReconciler';
 
-import { StyleManager }                                                from '../core';
+import { StyleManager }                                                                from '../core';
 
-import * as TermElements                                               from './elements';
+import * as TermElements                                                               from './elements';
 
 let eventSymbol = Symbol();
+let shortcutSymbol = Symbol();
 
 function toEventName(key) {
 
-    return key.replace(/^on/g, ``).toLowerCase();
+    return key.replace(/^on|Capture$/g, ``).toLowerCase();
 
 }
 
-function findEventProps(props) {
+function toShortcutName(key) {
 
-    let bindings = new Map();
-
-    for (let key of Object.keys(props))
-        if (/^on[A-Z]/.test(key) && ![ `onElementRender`, `onContentRender` ].includes(key))
-            bindings.set(toEventName(key), props[key]);
-
-    return bindings;
+    return kebabCase(key.replace(/^onShortcut|Capture$/g, ``));
 
 }
 
-function setupEventListeners(instance, props) {
+function doesUseCapture(key) {
+
+    return key.endsWith(`Capture`);
+
+}
+
+function wrapListener(fn) {
+
+    return { original: fn, wrapper: (... args) => {
+
+        TermRenderer.batchedUpdates(() => {
+            fn(... args);
+        });
+
+    } };
+
+}
+
+function findListeners(props) {
+
+    let events = new Map();
+    let shortcuts = new Map();
+    let renderers = new Map();
+
+    for (let key of Object.keys(props)) {
+
+        if (!props[key])
+            continue;
+
+        if (key === `elementRenderer` || key === `contentRenderer`) {
+            renderers.set(key, props[key]);
+        } else if (/^onShortcut[A-Z]/.test(key)) {
+            shortcuts.set(key, wrapListener(props[key]));
+        } else if (/^on[A-Z]/.test(key)) {
+            events.set(key, wrapListener(props[key]));
+        }
+
+    }
+
+    return { events, shortcuts, renderers };
+
+}
+
+function setupEventListeners(instance, newListeners) {
 
     let oldListeners = instance[eventSymbol];
-    let newListeners = findEventProps(props);
 
     let oldEvents = Array.from(oldListeners.keys());
     let newEvents = Array.from(newListeners.keys());
 
     let removedEvents = difference(oldEvents, newEvents);
     let addedEvents = difference(newEvents, oldEvents);
-    let replacedEvents = intersection(newEvents, oldEvents).filter(eventName => oldListeners.get(eventName) !== newListeners.get(eventName));
+    let replacedEvents = intersection(newEvents, oldEvents).filter(prop => oldListeners.get(prop).original !== newListeners.get(prop).original);
 
-    for (let eventName of [ ... removedEvents, ... replacedEvents ])
-        instance.removeEventListener(eventName, oldListeners.get(eventName));
+    for (let prop of [ ... removedEvents, ... replacedEvents ])
+        instance.removeEventListener(toEventName(prop), oldListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
 
-    for (let eventName of [ ... replacedEvents, ... addedEvents ])
-        instance.addEventListener(eventName, newListeners.get(eventName));
+    for (let prop of [ ... replacedEvents, ... addedEvents ])
+        instance.addEventListener(toEventName(prop), newListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
 
     instance[eventSymbol] = newListeners;
 
 }
 
-function setupRenderListeners(instance, props) {
+function setupShortcutListeners(instance, newListeners) {
 
-    if (props.onElementRender) {
-        instance.renderElement = props.onElementRender.bind(null, instance);
-    } else {
-        delete instance.renderElement;
+    let oldListeners = instance[shortcutSymbol];
+
+    let oldShortcuts = Array.from(oldListeners.keys());
+    let newShortcuts = Array.from(newListeners.keys());
+
+    let removedShortcuts = difference(oldShortcuts, newShortcuts);
+    let addedShortcuts = difference(newShortcuts, oldShortcuts);
+    let replacedShortcuts = intersection(newShortcuts, oldShortcuts).filter(prop => oldListeners.get(prop).original !== newListeners.get(prop).original);
+
+    for (let prop of [ ... removedShortcuts, ... replacedShortcuts ])
+        instance.removeShortcutListener(toShortcutName(prop), oldListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
+
+    for (let prop of [ ... replacedShortcuts, ... addedShortcuts ])
+        instance.addShortcutListener(toShortcutName(prop), newListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
+
+    instance[shortcutSymbol] = newListeners;
+
+}
+
+function setupRenderers(instance, renderers) {
+
+    let oldElementListener = has(instance, `renderElement`) ? instance.renderElement.original : null;
+    let newElementListener = renderers.get(`elementRenderer`) || null;
+
+    let oldContentListener = has(instance, `renderContent`) ? instance.renderContent.original : null;
+    let newContentListener = renderers.get(`contentRenderer`) || null;
+
+    if (newElementListener !== oldElementListener) {
+
+        if (newElementListener) {
+            instance.renderElement = (... args) => newElementListener(... args, instance);
+            instance.renderElement.original = newElementListener;
+        } else {
+            delete instance.renderElement;
+        }
+
+        instance.queueDirtyRect(instance.elementClipRect);
+
     }
 
-    if (props.onContentRender) {
-        instance.renderContent = props.onContentRender.bind(null, instance);
-    } else {
-        delete instance.renderContent;
+    if (newContentListener !== oldContentListener) {
+
+        if (newContentListener) {
+            instance.renderContent = (... args) => newContentListener(... args, instance);
+            instance.renderContent.original = newContentListener;
+        } else {
+            delete instance.renderContent;
+        }
+
+        instance.queueDirtyRect(instance.contentClipRect);
+
     }
 
 }
@@ -74,7 +152,9 @@ function createInstance(type, props) {
         throw new Error(`Invalid element type "${type}" (${elementName} is not amongst ${Object.keys(TermElements).join(`, `)})`);
 
     let instance = new ElementClass(props);
+
     instance[eventSymbol] = new Map();
+    instance[shortcutSymbol] = new Map();
 
     return instance;
 
@@ -106,8 +186,10 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         let instance = createInstance(type, props);
 
-        setupEventListeners(instance, props);
-        setupRenderListeners(instance, props);
+        let listeners = findListeners(props);
+        setupEventListeners(instance, listeners.events);
+        setupShortcutListeners(instance, listeners.shortcuts);
+        setupRenderers(instance, listeners.renderers);
 
         return instance;
 
@@ -147,7 +229,7 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // The return value is used to inform React that a custom effect will need to be applied during commit (once host components have been mounted). For example, a DOM implementation might want to return true in order to support auto-focus. The auto-focus itself will be implemented into the `commitMount` method.
 
-        return false;
+        return props.autofocus ? true : false;
 
     }
 
@@ -197,6 +279,17 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // This function will be called after the elements have been inserted into the host tree via `appendInitialChild` & co. That's where you need to trigger the actions that require the host components to be inserted in the tree, but also need to be only called once. For example, a DOM renderer would add support for autofocus through this hook.
 
+        if (newProps.autofocus) {
+
+            if (newProps.autofocus !== `steal` && newProps.autocus !== `initial`) {
+                throw new Error(`Invalid autofocus directive; expected "steal" or "initial"`);
+
+            } else if (newProps.autofocus === `steal` || instance.rootNode.activeElement === null) {
+                instance.focus();
+            }
+
+        }
+
     }
 
     prepareUpdate(instance, type, oldProps, newProps, hostContext) {
@@ -211,8 +304,10 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // This function is called everytime the host component needs to be synced with the React props.
 
-        setupEventListeners(instance, newProps);
-        setupRenderListeners(instance, newProps);
+        let listeners = findListeners(newProps);
+        setupEventListeners(instance, listeners.events);
+        setupShortcutListeners(instance, listeners.shortcuts);
+        setupRenderers(instance, listeners.renderers);
 
         let { style = {}, classList = [], ... rest } = newProps;
 

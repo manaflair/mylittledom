@@ -1,10 +1,11 @@
-import { TextLayout }   from '@manaflair/text-layout/sources/entry-browser';
-import { isBoolean }    from 'lodash';
-import TextBuffer       from 'text-buffer';
+import { TextLayout }                            from '@manaflair/text-layout';
+import { isBoolean }                             from 'lodash';
+import TextBuffer                                from 'text-buffer';
 
-import { Event, Point } from '../../core';
+import { Event, Point, findAncestorByPredicate } from '../../core';
 
-import { TermElement }  from './TermElement';
+import { TermElement }                           from './TermElement';
+import { TermForm }                              from './TermForm';
 
 export class TermTextBase extends TermElement {
 
@@ -117,7 +118,7 @@ export class TermTextBase extends TermElement {
 
                 let dirtyRect = this.contentWorldRect.clone();
 
-              //dirtyRect.x += start.x - this.scrollRect.x; // We can't do this because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the previous ones are displayed
+              //dirtyRect.x += start.x - this.scrollRect.x; // We can't apply this optimization because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the *previous ones* are displayed
                 dirtyRect.y += start.y - this.scrollRect.y;
 
                 dirtyRect.height = 1;
@@ -136,141 +137,251 @@ export class TermTextBase extends TermElement {
 
             }
 
+            if (oldText.length !== newText.length) {
+
+                this.caretIndex = this.rootNode.activeElement === this ? this.textBuffer.getMaxCharacterIndex() : 0;
+                this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                this.caretMaxColumn = this.caret.x;
+
+                this.dispatchEvent(new Event(`caret`));
+
+            }
+
         });
 
-        this.addShortcutListener(`left`, () => {
+        this.addShortcutListener(`left`, e => {
 
             if (!this.caret)
                 return;
 
-            this.caretIndex = Math.max(0, this.caretIndex - 1);
-            this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
-            this.caretMaxColumn = this.caret.x;
+            e.setDefault(() => {
 
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`right`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caretIndex = Math.min(this.caretIndex + 1, this.textBuffer.getMaxCharacterIndex());
-            this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
-            this.caretMaxColumn = this.caret.x;
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`up`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caret.x = this.caretMaxColumn;
-            this.caret = new Point(this.textLayout.getPositionAbove(this.caret));
-            this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`down`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caret.x = this.caretMaxColumn;
-            this.caret = new Point(this.textLayout.getPositionBelow(this.caret));
-            this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`pgup`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caret.x = this.caretMaxColumn;
-            this.caret = new Point(this.textLayout.getPositionAbove(this.caret, this.elementRect.height));
-            this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`pgdown`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caret.x = this.caretMaxColumn;
-            this.caret = new Point(this.textLayout.getPositionBelow(this.caret, this.elementRect.height));
-            this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`home`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caret = new Point();
-            this.caretIndex = 0;
-            this.caretMaxColumn = 0;
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`end`, () => {
-
-            if (!this.caret)
-                return;
-
-            this.caretIndex = this.textBuffer.getMaxCharacterIndex();
-            this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
-            this.caretMaxColumn = this.caret.x;
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`caret`));
-
-        });
-
-        this.addShortcutListener(`enter`, () => {
-
-            if (!this.caret)
-                return;
-
-            if (this.enterIsNewline) {
-
-                if (this.readOnly)
+                if (!this.caret)
                     return;
 
-                this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), `\n`);
+                this.caretIndex = Math.max(0, this.caretIndex - 1);
+                this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                this.caretMaxColumn = this.caret.x;
 
-                this.caretIndex += 1;
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`right`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                if (!this.caret)
+                    return;
+
+                this.caretIndex = Math.min(this.caretIndex + 1, this.textBuffer.getMaxCharacterIndex());
+                this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                this.caretMaxColumn = this.caret.x;
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`up`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                if (!this.caret)
+                    return;
+
+                this.caret.x = this.caretMaxColumn;
+                this.caret = new Point(this.textLayout.getPositionAbove(this.caret));
+                this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`down`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                if (!this.caret)
+                    return;
+
+                this.caret.x = this.caretMaxColumn;
+                this.caret = new Point(this.textLayout.getPositionBelow(this.caret));
+                this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`pgup`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                if (!this.caret)
+                    return;
+
+                this.caret.x = this.caretMaxColumn;
+                this.caret = new Point(this.textLayout.getPositionAbove(this.caret, this.elementRect.height));
+                this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`pgdown`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                if (!this.caret)
+                    return;
+
+                this.caret.x = this.caretMaxColumn;
+                this.caret = new Point(this.textLayout.getPositionBelow(this.caret, this.elementRect.height));
+                this.caretIndex = this.textLayout.getCharacterIndexForPosition(this.caret);
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`home, ctrl-a`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                this.caret = new Point();
+                this.caretIndex = 0;
+                this.caretMaxColumn = 0;
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`end, ctrl-e`, e => {
+
+            if (!this.caret)
+                return;
+
+            e.setDefault(() => {
+
+                this.caretIndex = this.textBuffer.getMaxCharacterIndex();
+                this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                this.caretMaxColumn = this.caret.x;
+
+                this.scrollCellIntoView(this.caret);
+
+                this.dispatchEvent(new Event(`caret`));
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`enter`, e => {
+
+            if (this.enterIsNewline && !this.caret)
+                return;
+
+            if (this.enterIsNewline && this.readOnly)
+                return;
+
+            e.setDefault(() => {
+
+                if (this.enterIsNewline) {
+
+                    let caretIndex = this.caretIndex;
+
+                    this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), `\n`);
+
+                    this.caretIndex = caretIndex + 1;
+                    this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                    this.caretMaxColumn = this.caret.x;
+
+                    this.scrollCellIntoView(this.caret);
+
+                    this.dispatchEvent(new Event(`change`));
+                    this.dispatchEvent(new Event(`caret`));
+
+                } else {
+
+                    let form = findAncestorByPredicate(this, node => node instanceof TermForm);
+
+                    if (!form)
+                        return;
+
+                    let event = new Event(`submit`, { cancelable: true });
+
+                    form.dispatchEvent(event);
+
+                }
+
+            });
+
+        }, { capture: true });
+
+        this.addShortcutListener(`backspace`, e => {
+
+            if (!this.caret)
+                return;
+
+            if (this.readOnly)
+                return;
+
+            e.setDefault(() => {
+
+                if (this.caretIndex === 0)
+                    return;
+
+                let caretIndex = this.caretIndex;
+
+                let start = this.textBuffer.positionForCharacterIndex(caretIndex - 1);
+                let end = this.textBuffer.positionForCharacterIndex(caretIndex);
+
+                this.textBuffer.setTextInRange([ start, end ], ``);
+
+                this.caretIndex = caretIndex - 1;
                 this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
                 this.caretMaxColumn = this.caret.x;
 
@@ -279,15 +390,11 @@ export class TermTextBase extends TermElement {
                 this.dispatchEvent(new Event(`change`));
                 this.dispatchEvent(new Event(`caret`));
 
-            } else {
+            });
 
-                this.dispatchEvent(new Event(`submit`));
+        }, { capture: true });
 
-            }
-
-        });
-
-        this.addShortcutListener(`backspace`, () => {
+        this.addShortcutListener(`delete`, e => {
 
             if (!this.caret)
                 return;
@@ -295,26 +402,23 @@ export class TermTextBase extends TermElement {
             if (this.readOnly)
                 return;
 
-            if (this.caretIndex === 0)
-                return;
+            e.setDefault(() => {
 
-            let start = this.textBuffer.positionForCharacterIndex(this.caretIndex - 1);
-            let end = this.textBuffer.positionForCharacterIndex(this.caretIndex);
+                let caretIndex = this.caretIndex;
 
-            this.textBuffer.setTextInRange([ start, end ], ``);
+                let start = this.textBuffer.positionForCharacterIndex(caretIndex);
+                let end = this.textBuffer.positionForCharacterIndex(caretIndex + 1);
 
-            this.caretIndex -= 1;
-            this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
-            this.caretMaxColumn = this.caret.x;
+                this.textBuffer.setTextInRange([ start, end ], ``);
 
-            this.scrollCellIntoView(this.caret);
+                this.dispatchEvent(new Event(`change`));
+                this.scrollCellIntoView(this.caret);
 
-            this.dispatchEvent(new Event(`change`));
-            this.dispatchEvent(new Event(`caret`));
+            });
 
-        });
+        }, { capture: true });
 
-        this.addShortcutListener(`delete`, () => {
+        this.addEventListener(`data`, e => {
 
             if (!this.caret)
                 return;
@@ -322,38 +426,26 @@ export class TermTextBase extends TermElement {
             if (this.readOnly)
                 return;
 
-            let start = this.textBuffer.positionForCharacterIndex(this.caretIndex);
-            let end = this.textBuffer.positionForCharacterIndex(this.caretIndex + 1);
+            e.setDefault(() => {
 
-            this.textBuffer.setTextInRange([ start, end ], ``);
+                let string = e.buffer.toString();
 
-            this.dispatchEvent(new Event(`change`));
-            this.scrollCellIntoView(this.caret);
+                let caretIndex = this.caretIndex;
 
-        });
+                this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), string);
 
-        this.addEventListener(`data`, ({ buffer }) => {
+                this.caretIndex = caretIndex + string.length;
+                this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                this.caretMaxColumn = this.caret.x;
 
-            if (!this.caret)
-                return;
+                this.scrollCellIntoView(this.caret);
 
-            if (this.readOnly)
-                return;
+                this.dispatchEvent(new Event(`change`));
+                this.dispatchEvent(new Event(`caret`));
 
-            let string = buffer.toString();
+            });
 
-            this.textBuffer.insert(this.textBuffer.positionForCharacterIndex(this.caretIndex), string);
-
-            this.caretIndex += string.length;
-            this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
-            this.caretMaxColumn = this.caret.x;
-
-            this.scrollCellIntoView(this.caret);
-
-            this.dispatchEvent(new Event(`change`));
-            this.dispatchEvent(new Event(`caret`));
-
-        });
+        }, { capture: true });
 
         this.addEventListener(`mousedown`, e => {
 
@@ -378,7 +470,7 @@ export class TermTextBase extends TermElement {
 
             });
 
-        });
+        }, { capture: true });
 
     }
 
@@ -397,6 +489,14 @@ export class TermTextBase extends TermElement {
     removeChild(node) {
 
         throw new Error(`Failed to execute 'removeChild': This node does not support this method.`);
+
+    }
+
+    bustTextLayoutCache() {
+
+        this.textLayout.reset().apply(this.textLines);
+
+        this.queueDirtyRect(this.contentClipRect);
 
     }
 

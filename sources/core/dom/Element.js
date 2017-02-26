@@ -13,6 +13,7 @@ import { StyleOverflow }                                      from '../style/typ
 
 import { Node }                                               from './Node';
 import { flags }                                              from './flags';
+import { isChildOf }                                          from './traverse';
 
 Yoga.setExperimentalFeatureEnabled(Yoga.EXPERIMENTAL_FEATURE_ROUNDING, true);
 
@@ -41,11 +42,12 @@ export class Element extends Node {
         this.styleManager.setStateStatus(`lastChild`, true);
 
         this.styleManager.addRuleset(globalRuleset, StyleManager.RULESET_NATIVE);
-        this.styleManager.setRulesets(classList, StyleManager.RULESET_USER);
+        this.styleManager.setRulesets(new Set(), StyleManager.RULESET_USER);
 
-        this.style = this.styleManager.getStyle();
         this.classList = this.styleManager.getClassList();
+        this.style = this.styleManager.getStyle();
 
+        this.classList.assign(classList);
         this.style.assign(style);
 
         this.caret = null;
@@ -111,7 +113,7 @@ export class Element extends Node {
         this.triggerUpdates();
 
         let previousScrollLeft = this.scrollRect.x;
-        let newScrollLeft = Math.max(0, Math.min(scrollLeft, this.scrollRect.width - this.contentRect.width));
+        let newScrollLeft = Math.max(0, Math.min(scrollLeft, this.scrollRect.width - this.elementRect.width));
 
         if (previousScrollLeft !== newScrollLeft) {
 
@@ -139,7 +141,7 @@ export class Element extends Node {
         this.triggerUpdates();
 
         let previousScrollTop = this.scrollRect.y;
-        let newScrollTop = Math.max(0, Math.min(scrollTop, this.scrollRect.height - this.contentRect.height));
+        let newScrollTop = Math.max(0, Math.min(scrollTop, this.scrollRect.height - this.elementRect.height));
 
         if (previousScrollTop !== newScrollTop) {
 
@@ -352,6 +354,9 @@ export class Element extends Node {
 
         super.removeChild(node);
 
+        if (this.rootNode.activeElement === node || isChildOf(this.rootNode.activeElement, node))
+            this.rootNode.activeElement = null;
+
         if (previousSibling)
             previousSibling.styleManager.setStateStatus(`lastChild`, !nextSibling ? true : false);
 
@@ -405,10 +410,10 @@ export class Element extends Node {
             let effectiveAlignY = alignY;
 
             if (effectiveAlignX === `auto`)
-                effectiveAlignX = Math.abs(this.elementRect.x - this.parentNode.scrollLeft) < Math.abs((this.elementRect.x + this.elementRect.width - 1) - (this.parentNode.scrollLeft + this.parentNode.contentRect.width - 1)) ? `start` : `end`;
+                effectiveAlignX = Math.abs(this.elementRect.x - this.parentNode.scrollLeft) < Math.abs((this.elementRect.x + this.elementRect.width - 1) - (this.parentNode.scrollLeft + this.parentNode.elementRect.width - 1)) ? `start` : `end`;
 
             if (effectiveAlignY === `auto`)
-                effectiveAlignY = Math.abs(this.elementRect.y - this.parentNode.scrollTop) < Math.abs((this.elementRect.y + this.elementRect.height - 1) - (this.parentNode.scrollTop + this.parentNode.contentRect.height - 1)) ? `start` : `end`;
+                effectiveAlignY = Math.abs(this.elementRect.y - this.parentNode.scrollTop) < Math.abs((this.elementRect.y + this.elementRect.height - 1) - (this.parentNode.scrollTop + this.parentNode.elementRect.height - 1)) ? `start` : `end`;
 
             let x = this.elementRect.x;
             let y = this.elementRect.y;
@@ -796,14 +801,8 @@ export class Element extends Node {
                 this.elementRect.width = this.yogaNode.getComputedWidth();
                 this.elementRect.height = this.yogaNode.getComputedHeight();
 
-                this.contentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
-                this.contentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
-
-                this.contentRect.width = this.elementRect.width - this.contentRect.x - this.yogaNode.getComputedBorder(Yoga.EDGE_RIGHT) - this.yogaNode.getComputedPadding(Yoga.EDGE_RIGHT);
-                this.contentRect.height = this.elementRect.height - this.contentRect.y - this.yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM) - this.yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM);
-
                 // We try to optimize away the iterations inside elements that haven't changed and aren't marked as dirty, because we know their children's layouts won't change either
-                doesLayoutChange = !this.elementRect.equals(prevElementRect) || !this.contentRect.equals(prevContentRect);
+                doesLayoutChange = !this.elementRect.equals(prevElementRect);
 
             }
 
@@ -822,6 +821,12 @@ export class Element extends Node {
                 this.scrollRect.height = Math.max(this.elementRect.height, this.getInternalContentHeight(), ... this.childNodes.map(child => {
                     return child.elementRect.y + child.elementRect.height;
                 }));
+
+                this.contentRect.x = this.yogaNode.getComputedBorder(Yoga.EDGE_LEFT) + this.yogaNode.getComputedPadding(Yoga.EDGE_LEFT);
+                this.contentRect.y = this.yogaNode.getComputedBorder(Yoga.EDGE_TOP) + this.yogaNode.getComputedPadding(Yoga.EDGE_TOP);
+
+                this.contentRect.width = this.scrollRect.width - this.contentRect.x - this.yogaNode.getComputedBorder(Yoga.EDGE_RIGHT) - this.yogaNode.getComputedPadding(Yoga.EDGE_RIGHT);
+                this.contentRect.height = this.scrollRect.height - this.contentRect.y - this.yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM) - this.yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM);
 
                 doesScrollChange = this.scrollRect.width !== prevScrollWidth || this.scrollRect.height !== prevScrollHeight;
 
@@ -866,10 +871,13 @@ export class Element extends Node {
                 if (doesScrollChange)
                     dirtyScrollNodes.push(this);
 
+                let parentScrollX = this.parentNode && this.style.$.position.isScrollAware ? this.parentNode.scrollRect.x : 0;
+                let parentScrollY = this.parentNode && this.style.$.position.isScrollAware ? this.parentNode.scrollRect.y : 0;
+
                 let prevElementWorldRect = this.elementWorldRect.clone();
 
-                this.elementWorldRect.x = this.parentNode ? this.parentNode.elementWorldRect.x + this.elementRect.x - this.parentNode.scrollRect.x : 0;
-                this.elementWorldRect.y = this.parentNode ? this.parentNode.elementWorldRect.y + this.elementRect.y - this.parentNode.scrollRect.y : 0;
+                this.elementWorldRect.x = this.parentNode ? this.parentNode.elementWorldRect.x + this.elementRect.x - parentScrollX : 0;
+                this.elementWorldRect.y = this.parentNode ? this.parentNode.elementWorldRect.y + this.elementRect.y - parentScrollY : 0;
 
                 this.elementWorldRect.width = this.elementRect.width;
                 this.elementWorldRect.height = this.elementRect.height;

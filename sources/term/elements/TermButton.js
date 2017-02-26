@@ -1,9 +1,9 @@
-import { isBoolean }                 from 'lodash';
+import { isBoolean }                                          from 'lodash';
 
-import { StyleManager, makeRuleset } from '../../core';
+import { StyleManager, makeRuleset, findAncestorByPredicate } from '../../core';
 
-import { TermForm }                  from './TermForm';
-import { TermText }                  from './TermText';
+import { TermForm }                                           from './TermForm';
+import { TermText }                                           from './TermText';
 
 export class TermButton extends TermText {
 

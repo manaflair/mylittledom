@@ -1,6 +1,6 @@
 import { TermStringBuilder }                                          from '@manaflair/term-strings/gen';
 import { style }                                                      from '@manaflair/term-strings';
-import { TextLayout }                                                 from '@manaflair/text-layout/sources/entry-browser';
+import { TextLayout, TextOperation }                                  from '@manaflair/text-layout';
 import { GrammarRegistry }                                            from 'first-mate';
 import { isNil, isNull, isPlainObject, isString, isUndefined, merge } from 'lodash';
 import plist                                                          from 'plist';
@@ -45,11 +45,18 @@ export class SyntaxHighlighter extends TextLayout {
                 if (!isNull(name) && isUndefined(this.grammar.registry.get(name)))
                     throw new Error(`Failed to execute 'grammar.use': '${name}' is not a valid grammar name.`);
 
-                if (!isNull(name)) {
+                if (!isNull(name))
                     this.grammar.active = this.grammar.registry.get(name);
-                } else {
+                else
                     this.grammar.active = null;
-                }
+
+                return this.grammar;
+
+            },
+
+            apply: () => {
+
+                return this.reset();
 
             }
 
@@ -80,11 +87,12 @@ export class SyntaxHighlighter extends TextLayout {
                 if (!isNull(name) && isUndefined(this.theme.registry.get(name)))
                     throw new Error(`Failed to execute 'theme.use': '${name}' is not a valid theme name.`);
 
-                if (!isNull(name)) {
+                if (!isNull(name))
                     this.theme.active = this.theme.registry.get(name);
-                } else {
+                else
                     this.theme.active = null;
-                }
+
+                return this.theme;
 
             },
 
@@ -104,6 +112,19 @@ export class SyntaxHighlighter extends TextLayout {
 
                 return def;
 
+            },
+
+            apply: () => {
+
+                let textOperation = new TextOperation();
+
+                textOperation.startingRow = 0;
+
+                textOperation.deletedLineCount = 0;
+                textOperation.addedLineStrings = this.tokenizedLines.map((_, index) => this.getTransformedLine(startingRow + index));
+
+                return textOperation;
+
             }
 
         };
@@ -113,13 +134,13 @@ export class SyntaxHighlighter extends TextLayout {
     reset() {
 
         let oldRange = { start: this.getFirstPosition(), end: this.getLastPosition() };
-        let patch = super.reset();
+        let textOperation = super.reset();
         let newRange = { start: this.getFirstPosition(), end: this.getLastPosition() };
 
-        patch.apply(this.rawLines);
-        this.regenerateRange(patch, oldRange, newRange);
+        textOperation.apply(this.rawLines);
+        this.regenerateRange(textOperation, oldRange, newRange);
 
-        return patch;
+        return textOperation;
 
     }
 
@@ -128,24 +149,24 @@ export class SyntaxHighlighter extends TextLayout {
         let startingPoint = this.getPositionForCharacterIndex(start);
 
         let oldRange = { start: startingPoint, end: this.getPositionForCharacterIndex(start + deleted) };
-        let patch = super.update(start, deleted, added);
+        let textOperation = super.update(start, deleted, added);
         let newRange = { start: startingPoint, end: this.getPositionForCharacterIndex(start + added) };
 
-        patch.apply(this.rawLines);
-        this.regenerateRange(patch, oldRange, newRange);
+        textOperation.apply(this.rawLines);
+        this.regenerateRange(textOperation, oldRange, newRange);
 
-        return patch;
+        return textOperation;
 
     }
 
-    regenerateRange(patch, oldRange, newRange) {
+    regenerateRange(textOperation, oldRange, newRange) {
 
         let tokenizedLines = [];
 
-        let startingRow = patch.startingRow;
+        let startingRow = textOperation.startingRow;
 
-        let deletedLineCount = patch.deletedLineCount;
-        let addedLineCount = patch.addedLineStrings.length;
+        let deletedLineCount = textOperation.deletedLineCount;
+        let addedLineCount = textOperation.addedLineStrings.length;
 
         while (startingRow > 0 && this.doesSoftWrap(startingRow - 1)) {
 
@@ -164,12 +185,12 @@ export class SyntaxHighlighter extends TextLayout {
 
         }
 
-        patch.startingRow = startingRow;
-        patch.deletedLineCount = deletedLineCount + tokenizedLines.length - addedLineCount;
+        textOperation.startingRow = startingRow;
+        textOperation.deletedLineCount = deletedLineCount + tokenizedLines.length - addedLineCount;
 
-        this.tokenizedLines.splice(patch.startingRow, patch.deletedLineCount, ... tokenizedLines);
+        this.tokenizedLines.splice(textOperation.startingRow, textOperation.deletedLineCount, ... tokenizedLines);
 
-        patch.addedLineStrings = tokenizedLines.map((_, index) => this.getTransformedLine(startingRow + index));
+        textOperation.addedLineStrings = tokenizedLines.map((_, index) => this.getTransformedLine(startingRow + index));
 
     }
 
@@ -178,7 +199,7 @@ export class SyntaxHighlighter extends TextLayout {
         let lines = [ this.rawLines[row] ];
 
         while (this.doesSoftWrap(row + lines.length - 1))
-            lines.push(this.rawLayout[row + lines.length]);
+            lines.push(this.rawLines[row + lines.length]);
 
         let { tags } = this.grammar.active.tokenizeLine(lines.join(``));
 

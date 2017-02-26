@@ -8,18 +8,22 @@ class KeySequenceEntry {
 
             switch (part) {
 
+                case `shift`:
                 case `S`: {
                     entry.shift = true;
                 } break;
 
+                case `alt`:
                 case `A`: {
                     entry.alt = true;
                 } break;
 
+                case `ctrl`:
                 case `C`: {
                     entry.ctrl = true;
                 } break;
 
+                case `meta`:
                 case `M`: {
                     entry.meta = true;
                 } break;

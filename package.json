@@ -10,13 +10,14 @@
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "demo": "node -r babel-register -r core-js -r ./examples/setup --",
     "demo:debug": "node --debug-brk --inspect -r babel-register -r core-js -- examples/simple-form",
+    "build": "babel -D -d dist sources",
     "build:demo": "NODE_ENV=production webpack",
     "serve:demo": "webpack-dev-server",
-    "push": "babel -D -d dist sources && cp README.md dist/ && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
+    "push": "npm run build && cp README.md dist/ && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.6.1",
-    "@manaflair/text-layout": "^0.6.0",
+    "@manaflair/text-layout": "^0.7.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",
     "first-mate": "^6.2.1",

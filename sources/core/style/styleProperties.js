@@ -56,7 +56,7 @@ export let styleProperties = {
     },
 
     position: {
-        parsers: [ pick(StylePosition, `relative`, `absolute`, `fixed`) ],
+        parsers: [ pick(StylePosition, `relative`, `sticky`, `absolute`, `fixed`) ],
         triggers: [ dirtyLayout, forwardToYoga(`setPositionType`, forwardToYoga.value) ],
         initial: `relative`
     },

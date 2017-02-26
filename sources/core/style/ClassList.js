@@ -8,33 +8,33 @@ export class ClassList {
 
     }
 
-    assign(ruleSets) {
+    assign(rulesets) {
 
-        this.styleManager.setRulesets(ruleSets);
-
-    }
-
-    add(ruleSet) {
-
-        this.styleManager.addRuleset(ruleSet);
+        this.styleManager.setRulesets(new Set(rulesets));
 
     }
 
-    remove(ruleSet) {
+    add(ruleset) {
 
-        this.styleManager.removeRuleset(ruleSet);
+        this.styleManager.addRuleset(ruleset);
 
     }
 
-    toggle(ruleSet, force) {
+    remove(ruleset) {
+
+        this.styleManager.removeRuleset(ruleset);
+
+    }
+
+    toggle(ruleset, force) {
 
         if (isUndefined(force))
-            force = !this.includes(ruleSet);
+            force = !this.includes(ruleset);
 
         if (force) {
-            this.add(ruleSet);
+            this.add(ruleset);
         } else {
-            this.remove(ruleSet);
+            this.remove(ruleset);
         }
 
     }
@@ -45,9 +45,9 @@ export class ClassList {
 
     }
 
-    includes(ruleSet) {
+    includes(ruleset) {
 
-        return this.StyleManager.hasRuleset(ruleSet);
+        return this.styleManager.hasRuleset(ruleset);
 
     }
 

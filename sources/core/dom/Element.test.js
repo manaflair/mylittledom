@@ -33,6 +33,8 @@ describe(`Element`, () => {
 
             elementB.scrollIntoView();
 
+            console.log(container.getElementRects());
+
             expect(container.scrollTop).to.equal(110);
             expect(elementA.scrollTop).to.equal(0);
             expect(elementB.scrollTop).to.equal(0);

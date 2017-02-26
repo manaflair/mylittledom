@@ -126,17 +126,38 @@ export class StyleManager {
         let current = Array.from(this.userRulesets);
         let next = Array.from(rulesets);
 
-        let skip = 0;
+        let skipCurrent = 0;
+        let skipNext = 0;
 
-        while (skip > Math.min(current.length, next.length) && current[skip] === next[skip])
-            skip += 1;
+        while (skipCurrent < current.length && skipNext < next.length) {
+
+            if (!current[skipCurrent]) {
+
+                skipCurrent += 1;
+
+            } else if (current[skipCurrent] === next[skipNext]) {
+
+                skipCurrent += 1;
+                skipNext += 1;
+
+            } else {
+
+                break;
+
+            }
+
+        }
 
         let dirtyPropertyNames = new Set();
 
-        for (let t = skip; t < current.length; ++t) {
+        for (let t = skipCurrent; t < current.length; ++t) {
 
             let ruleset = current[t];
-            this.userRulesets.remove(ruleset);
+
+            if (!ruleset)
+                continue;
+
+            this.userRulesets.delete(ruleset);
 
             let propertyNames = ruleset.keys();
             ruleset.removeEventListener(`change`, this.handleRulesetChange);
@@ -147,9 +168,13 @@ export class StyleManager {
 
         }
 
-        for (let t = skip; t < next.length; ++t) {
+        for (let t = skipNext; t < next.length; ++t) {
 
             let ruleset = next[t];
+
+            if (!ruleset)
+                continue;
+
             this.userRulesets.add(ruleset);
 
             let propertyNames = ruleset.keys();
@@ -238,6 +263,46 @@ export class StyleManager {
 
     }
 
+    get(propertyName) {
+
+        let value = undefined;
+
+        for (let rulesets of this.stylePasses) {
+
+            let specificity = -Infinity;
+
+            for (let ruleset of rulesets) {
+
+                ruleLoop: for (let { states, propertyValues } of ruleset.rules) {
+
+                    if (!propertyValues.has(propertyName))
+                        continue ruleLoop; // it doesn't have the property we're computing
+
+                    if (states.size > this.states.size)
+                        continue ruleLoop; // it cannot match anyway
+
+                    let ruleSpecificity = getSpecificity(states);
+
+                    if (ruleSpecificity < specificity)
+                        continue ruleLoop; // it has a lower specificity than ours
+
+                    for (let state of states)
+                        if (!this.states.has(state))
+                            continue ruleLoop;
+
+                    value = propertyValues.get(propertyName);
+                    specificity = ruleSpecificity;
+
+                }
+
+            }
+
+        }
+
+        return value;
+
+    }
+
     refresh(propertyNames, { inheritedOnly = false } = {}) {
 
         if (propertyNames.size === 0)
@@ -251,39 +316,7 @@ export class StyleManager {
                 continue;
 
             let oldValue = this.computed.get(propertyName);
-            let newValue = undefined;
-
-            for (let rulesets of this.stylePasses) {
-
-                let specificity = -Infinity;
-
-                for (let ruleset of rulesets) {
-
-                    ruleLoop: for (let { states, propertyValues } of ruleset.rules) {
-
-                        if (!propertyValues.has(propertyName))
-                            continue ruleLoop; // it doesn't have the property we're computing
-
-                        if (states.size > this.states.size)
-                            continue ruleLoop; // it cannot match anyway
-
-                        let ruleSpecificity = getSpecificity(states);
-
-                        if (ruleSpecificity < specificity)
-                            continue ruleLoop; // it has a lower specificity than ours
-
-                        for (let state of states)
-                            if (!this.states.has(state))
-                                continue ruleLoop;
-
-                        newValue = propertyValues.get(propertyName);
-                        specificity = ruleSpecificity;
-
-                    }
-
-                }
-
-            }
+            let newValue = this.get(propertyName);
 
             if (newValue === StyleInherit.inherit) {
 

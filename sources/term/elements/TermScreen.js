@@ -109,6 +109,7 @@ export class TermScreen extends TermElement {
         this.trackOutputSize = trackOutputSize;
 
         // Automatically clear the screen when the program exits
+        process.on(`uncaughtException`, this.handleException);
         process.on(`exit`, this.handleExit);
 
         // Listen for input events
@@ -173,6 +174,7 @@ export class TermScreen extends TermElement {
         this.subscription = null;
 
         // Remove the exit hooks, since the screen is already closed
+        process.removeListener(`uncaughtException`, this.handleException);
         process.removeListener(`exit`, this.handleExit);
 
         this.trackOutputSize = false;
@@ -416,6 +418,15 @@ export class TermScreen extends TermElement {
 
     }
 
+    @autobind handleException(exception) {
+
+        this.releaseScreen();
+
+        process.stderr.write(exception.stack);
+        process.exit(1);
+
+    }
+
     @autobind handleExit() {
 
         this.releaseScreen();
@@ -426,7 +437,7 @@ export class TermScreen extends TermElement {
 
         if (input instanceof Key) {
 
-            let event = new Event(`keypress`, { bubbles: true });
+            let event = new Event(`keypress`, { cancelable: true, bubbles: true });
             event.key = input;
 
             if (this.activeElement) {
@@ -448,7 +459,7 @@ export class TermScreen extends TermElement {
 
             if (input.start) {
 
-                let event = new Event(`mousedown`, { bubbles: true });
+                let event = new Event(`mousedown`, { cancelable: true, bubbles: true });
                 event.mouse = input;
 
                 event.worldCoordinates = worldCoordinates;
@@ -460,7 +471,7 @@ export class TermScreen extends TermElement {
 
             if (input.end) {
 
-                let event = new Event(`mouseup`, { bubbles: true });
+                let event = new Event(`mouseup`, { cancelable: true, bubbles: true });
                 event.mouse = input;
 
                 event.worldCoordinates = worldCoordinates;
@@ -472,7 +483,7 @@ export class TermScreen extends TermElement {
 
             if (!input.start && !input.end) {
 
-                let event = new Event(`mousemove`, { bubbles: true });
+                let event = new Event(`mousemove`, { cancelable: true, bubbles: true });
                 event.mouse = input;
 
                 event.worldCoordinates = worldCoordinates;
@@ -484,7 +495,7 @@ export class TermScreen extends TermElement {
 
         } else if (input instanceof Buffer) {
 
-            let event = new Event(`data`);
+            let event = new Event(`data`, { cancelable: true });
             event.buffer = input;
 
             if (this.activeElement) {
