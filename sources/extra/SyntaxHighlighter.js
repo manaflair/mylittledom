@@ -1,6 +1,6 @@
 import { TermStringBuilder }                                          from '@manaflair/term-strings/gen';
 import { style }                                                      from '@manaflair/term-strings';
-import { TextLayout, TextOperation }                                  from '@manaflair/text-layout';
+import { TextLayout, TextOperation }                                  from '@manaflair/text-layout/sources/entry-browser';
 import { GrammarRegistry }                                            from 'first-mate';
 import { isNil, isNull, isPlainObject, isString, isUndefined, merge } from 'lodash';
 import plist                                                          from 'plist';
