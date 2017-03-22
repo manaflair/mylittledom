@@ -1,7 +1,7 @@
 {
   "name": "@manaflair/mylittledom",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.4.2",
   "license": "MIT",
   "scripts": {
     "install:dev": "npm-git install --verbose",
