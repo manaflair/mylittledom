@@ -3,4 +3,5 @@ yarn-error.log
 npm-debug.log*
 stacktrace-*.log
 vgcore.*
+/docs/demo/main.js.map
 /dist

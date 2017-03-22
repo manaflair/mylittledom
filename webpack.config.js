@@ -82,6 +82,13 @@ module.exports = {
 
     },
 
+    externals: {
+
+        [`pathwatcher`]: `{}`,
+        [`ws`]: true
+
+    },
+
     node: {
 
         [`fs`]: `empty`,

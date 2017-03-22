@@ -63,7 +63,7 @@ if (argv.debugShortcuts) {
 
     global.screen.addShortcutListener(`C-l`, () => {
         global.screen.queueDirtyRect();
-    });
+    }, { capture: true });
 
 }
 

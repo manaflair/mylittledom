@@ -92,7 +92,7 @@ export class Application extends React.PureComponent {
         try {
 
             let screen = new TermScreen({ debugPaintRects: false });
-            screen.addShortcutListener(`C-r`, () => window.location.reload());
+            screen.addShortcutListener(`C-r`, () => window.location.reload(), { capture: true });
 
             let raf = makeAnimationFunctions();
 
