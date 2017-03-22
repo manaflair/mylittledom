@@ -62,7 +62,7 @@ export class Rect {
         for (let rect of rects) {
 
             if (Rect.isEmpty(rect))
-                continue;
+                return null;
 
             if (!output) {
 
