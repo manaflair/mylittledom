@@ -1,8 +1,8 @@
-import { camelCase, isArray, isFunction, isMap, isPlainObject, isString, isUndefined } from 'lodash';
+import { camelCase, isArray, isFunction, isPlainObject, isString, isUndefined } from 'lodash';
 
 export function parseRawValue(rawValue, parser) {
 
-    if (isMap(parser)) {
+    if (parser instanceof Map) {
 
         return parser.get(rawValue);
 
