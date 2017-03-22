@@ -348,12 +348,9 @@ export class TermTextBase extends TermElement {
 
                     let form = findAncestorByPredicate(this, node => node instanceof TermForm);
 
-                    if (!form)
-                        return;
-
-                    let event = new Event(`submit`, { cancelable: true });
-
-                    form.dispatchEvent(event);
+                    if (form) {
+                        form.dispatchEvent(new Event(`submit`, { cancelable: true }));
+                    }
 
                 }
 

@@ -14,6 +14,8 @@ export class SyntaxHighlighter extends TextLayout {
         // I don't really like this interface, so we wrap it and expose a new one
         let grammarRegistry = new GrammarRegistry();
 
+        this.colorCache = new Map();
+
         this.rawLines = [ `` ];
         this.tokenizedLines = [ ];
 
@@ -25,8 +27,8 @@ export class SyntaxHighlighter extends TextLayout {
 
             load: (name, data) => {
 
-                if (isString(data))
-                    data = plist.parse(data);
+                if (isString(data) || data instanceof Buffer)
+                    data = JSON.parse(data.toString());
 
                 if (!isPlainObject(data))
                     throw new Error(`Failed to execute 'grammar.load': Parameter 1 is not of type 'object'.`);
@@ -70,8 +72,8 @@ export class SyntaxHighlighter extends TextLayout {
 
             load: (name, data) => {
 
-                if (isString(data))
-                    data = plist.parse(data);
+                if (isString(data) || data instanceof Buffer)
+                    data = plist.parse(data.toString());
 
                 if (!isPlainObject(data))
                     throw new Error(`Failed to execute 'theme.load': Parameter 1 is not of type 'object'.`);
@@ -91,6 +93,8 @@ export class SyntaxHighlighter extends TextLayout {
                     this.theme.active = this.theme.registry.get(name);
                 else
                     this.theme.active = null;
+
+                this.colorCache.clear();
 
                 return this.theme;
 
@@ -120,14 +124,32 @@ export class SyntaxHighlighter extends TextLayout {
 
                 textOperation.startingRow = 0;
 
-                textOperation.deletedLineCount = 0;
-                textOperation.addedLineStrings = this.tokenizedLines.map((_, index) => this.getTransformedLine(startingRow + index));
+                textOperation.deletedLineCount = this.tokenizedLines.length;
+                textOperation.addedLineStrings = Array.from(this.tokenizedLines.keys()).map(index => this.transformLine(textOperation.startingRow + index));
 
                 return textOperation;
 
             }
 
         };
+
+    }
+
+    getColor(color) {
+
+        let entry = this.colorCache.get(color);
+
+        if (!entry) {
+
+            let front = style.color.front(color);
+            let back = style.color.back(color);
+
+            entry = { front, back };
+            this.colorCache.set(color, entry);
+
+        }
+
+        return entry;
 
     }
 
@@ -177,77 +199,72 @@ export class SyntaxHighlighter extends TextLayout {
 
         }
 
-        while (tokenizedLines.length < addedLineCount) {
+        for (let index = 0; index < addedLineCount; index = tokenizedLines.length) {
 
-            let lines = this.processLine(startingRow + tokenizedLines.length);
+            let row = startingRow + index;
+            let ruleStack = undefined;
 
-            tokenizedLines = tokenizedLines.concat(lines);
+            if (index > 0)
+                ruleStack = tokenizedLines[index - 1].ruleStack;
+            else if (row > 0)
+                ruleStack = this.tokenizedLines[row - 1].ruleStack;
+
+            tokenizedLines = [ ... tokenizedLines, ... this.processLine(row, ruleStack) ];
 
         }
 
+        deletedLineCount += tokenizedLines.length - addedLineCount;
+        addedLineCount += tokenizedLines.length - addedLineCount;
+
+        this.tokenizedLines.splice(startingRow, deletedLineCount, ... tokenizedLines);
+
         textOperation.startingRow = startingRow;
-        textOperation.deletedLineCount = deletedLineCount + tokenizedLines.length - addedLineCount;
+        textOperation.deletedLineCount = deletedLineCount;
 
-        this.tokenizedLines.splice(textOperation.startingRow, textOperation.deletedLineCount, ... tokenizedLines);
-
-        textOperation.addedLineStrings = tokenizedLines.map((_, index) => this.getTransformedLine(startingRow + index));
+        textOperation.addedLineStrings = Array.from(tokenizedLines.keys()).map(index => this.transformLine(startingRow + index));
 
     }
 
-    processLine(row) {
+    processLine(startingRow, ruleStack) {
 
-        let lines = [ this.rawLines[row] ];
+        let length = 1;
 
-        while (this.doesSoftWrap(row + lines.length - 1))
-            lines.push(this.rawLines[row + lines.length]);
+        while (this.doesSoftWrap(startingRow + length - 1))
+            length += 1;
 
-        let { tags } = this.grammar.active.tokenizeLine(lines.join(``));
+        let affectedLines = this.rawLines.slice(startingRow, startingRow + length);
 
-        let processedLines = [ { line: lines[0], tags: [] } ];
+        let processedData = this.grammar.active.tokenizeLine(affectedLines.join(``), ruleStack, startingRow === 0);
+        let processedLines = affectedLines.map((line, index) => ({ line, tags: [], ruleStack: index === affectedLines.length - 1 ? processedData.ruleStack : undefined }));
+
         let activeScopes = new Set();
 
-        let currentRow = 0;
-        let currentSize = 0;
+        let index = 0;
+        let size = 0;
 
-        for (let t = 0; t < tags.length; ++t) {
+        for (let tag of [ ... processedData.openScopeTags, ... processedData.tags ]) {
 
-            if (tags[t] < 0) {
+            if (tag < 0) {
 
-                if (tags[t] % 2 === 0) {
-                    activeScopes.add(tags[t]);
+                if (tag % 2 === 0) {
+                    activeScopes.add(tag);
                 } else {
-                    activeScopes.delete(tags[t] + 1);
+                    activeScopes.delete(tag + 1);
                 }
 
-                processedLines[currentRow].tags.push(tags[t]);
+                processedLines[index].tags.push(tag);
+
+            } else if (tag > 0) {
+
+                let maxSlice = tag;//Math.min(processedLines[index].line.length - size);
+                let slice = Math.min(tag, maxSlice);
+
+                processedLines[index].tags.push(slice);
+                size += slice;
 
             } else {
 
-                if (tags[t] > 0) {
-
-                    while (currentRow + 1 < lines.length && currentSize >= lines[currentRow].length) {
-
-                        for (let scope of activeScopes)
-                            processedLines[currentRow].tags.push(scope - 1);
-
-                        currentRow += 1, currentSize = 0;
-                        processedLines.push({ line: lines[currentRow], tags: [] });
-
-                        for (let scope of activeScopes) {
-                            processedLines[currentRow].tags.push(scope);
-                        }
-
-                    }
-
-                }
-
-                if (currentRow < lines.length) {
-
-                    processedLines[currentRow].tags.push(tags[t]);
-
-                    currentSize += tags[t];
-
-                }
+                processedLines[index].tags.push(0);
 
             }
 
@@ -257,19 +274,87 @@ export class SyntaxHighlighter extends TextLayout {
 
     }
 
-    getTransformedLine(row) {
+    transformLine(row) {
 
         let output = new TermStringBuilder();
 
-        for (let token of this.grammar.active.registry.decodeTokens(this.tokenizedLines[row].line, this.tokenizedLines[row].tags)) {
+        let tokens;
 
+        try {
+            tokens = this.grammar.active.registry.decodeTokens(this.tokenizedLines[row].line, this.tokenizedLines[row].tags);
+        } catch (err) {
+            console.log(row, this.tokenizedLines[row]);
+            throw err;
+        }
+
+        let defaultFrontColor = this.getColor(this.theme.resolve([], `foreground`, `#FFFFFF`));
+        let defaultBackColor = this.getColor(this.theme.resolve([], `background`, `#FFFFFF`));
+
+        if (true) {
+
+            let spaceCount = 0;
+
+            let guideColor = this.getColor(this.theme.resolve([], `guide`, `#333333`));
+            let activeGuideColor = this.getColor(this.theme.resolve([], `activeGuide`, `#333333`));
+            let stackedGuideColor = this.getColor(this.theme.resolve([], `stackedGuide`, `#333333`));
+
+            output.enter(guideColor.front);
+
+            for (let t = 0; t < tokens.length; ++t) {
+
+                let token = tokens[t];
+                let [ , spaces, rest ] = token.value.match(/^( *)(.*)$/);
+
+                if (rest.length > 0) {
+                    token.value = rest;
+                } else {
+                    tokens.shift();
+                    t = t - 1;
+                }
+
+                if (spaces.length === 0)
+                    break;
+
+                for (let u = 0; u < spaces.length; ++u) {
+                    output.append(spaceCount % 4 === 0 ? `│` : ` `);
+                    spaceCount += 1;
+                }
+
+                if (rest.length > 0) {
+                    break;
+                }
+
+            }
+
+            if (tokens.length === 0) {
+
+                let topRowSpaceCount = row > 0 ? this.rawLines[row - 1].match(/^ */)[0].length : 0;
+                let bottomRowSpaceCount = row < this.rawLines.length - 2 ? this.rawLines[row + 1].match(/^ */)[0].length : 0;
+
+                let minSpaceCount = Math.max(topRowSpaceCount, bottomRowSpaceCount);
+
+                for (; spaceCount < minSpaceCount; ++spaceCount) {
+                    output.append(spaceCount % 4 === 0 ? `│` : ` `);
+                }
+
+            }
+
+        }
+
+        for (let t = 0; t < tokens.length; ++t) {
+
+            let token = tokens[t];
             let props = this.theme.resolve(token.scopes);
 
-            if (props.foreground)
-                output.enter(style.color.front(props.foreground));
-
             if (props.background)
-                output.enter(style.color.back(props.background));
+                output.enter(this.getColor(props.background).back);
+            else
+                output.enter(defaultBackColor.back);
+
+            if (props.foreground)
+                output.enter(this.getColor(props.foreground).front);
+            else
+                output.enter(defaultFrontColor.front);
 
             output.append(token.value);
 

@@ -1,24 +1,51 @@
 // "instance" is whatever you want. They're also called "host components" in this documentation.
 
-import { camelCase, difference, has, intersection, kebabCase, lowerFirst, upperFirst } from 'lodash';
-import ReactFiberReconcilier                                                           from 'react-dom/lib/ReactFiberReconciler';
+import { camelCase, difference, has, intersection, isUndefined, kebabCase, lowerFirst, partition, pick, upperFirst } from 'lodash';
+import ReactFiberReconcilier                                                                                         from 'react-dom/lib/ReactFiberReconciler';
+import ReactPortal                                                                                                   from 'react-dom/lib/ReactPortal';
 
-import { StyleManager }                                                                from '../core';
+import { Point, StyleManager }                                                                                       from '../core';
 
-import * as TermElements                                                               from './elements';
+import * as TermElements                                                                                             from './elements';
+import { KeySequence }                                                                                               from './misc/KeySequence';
 
-let eventSymbol = Symbol();
-let shortcutSymbol = Symbol();
+const EVENT_SYMBOL = Symbol();
+const SHORTCUT_SYMBOL = Symbol();
+
+const MANAGED_PROPS = new Map([
+
+    [ `caret`, (element, caret) => {
+
+        if (caret !== null) {
+            element.caret = new Point({ x: caret.x, y: caret.y });
+        } else {
+            element.caret = null;
+        }
+
+    } ],
+
+    [ `scroll`, (element, scroll) => {
+
+        if (element.scrollRect.x !== scroll.x)
+            element.scrollLeft = scroll.x;
+
+        if (element.scrollRect.y !== scroll.y) {
+            element.scrollTop = scroll.y;
+        }
+
+    } ],
+
+    [ `value`, (element, value) => {
+
+        element.value = value;
+
+    } ]
+
+]);
 
 function toEventName(key) {
 
     return key.replace(/^on|Capture$/g, ``).toLowerCase();
-
-}
-
-function toShortcutName(key) {
-
-    return kebabCase(key.replace(/^onShortcut|Capture$/g, ``));
 
 }
 
@@ -28,7 +55,41 @@ function doesUseCapture(key) {
 
 }
 
-function wrapListener(fn) {
+function wrapShortcutListener(descriptor, fn) {
+
+    let sequence = new KeySequence(descriptor);
+
+    return { original: fn, wrapper: e => {
+
+        if (!e.key)
+            return;
+
+        if (!sequence.add(e.key))
+            return;
+
+        TermRenderer.batchedUpdates(() => {
+
+            fn(Object.assign(Object.create(e), {
+
+                setDefault: fn => {
+
+                    e.setDefault(() => {
+                        TermRenderer.batchedUpdates(() => {
+                            fn.call(e);
+                        });
+                    });
+
+                }
+
+            }));
+
+        });
+
+    } };
+
+}
+
+function wrapEventListener(fn) {
 
     return { original: fn, wrapper: (... args) => {
 
@@ -46,17 +107,25 @@ function findListeners(props) {
     let shortcuts = new Map();
     let renderers = new Map();
 
-    for (let key of Object.keys(props)) {
+    for (let [ prop, value ] of Object.entries(props)) {
 
-        if (!props[key])
+        if (!value)
             continue;
 
-        if (key === `elementRenderer` || key === `contentRenderer`) {
-            renderers.set(key, props[key]);
-        } else if (/^onShortcut[A-Z]/.test(key)) {
-            shortcuts.set(key, wrapListener(props[key]));
-        } else if (/^on[A-Z]/.test(key)) {
-            events.set(key, wrapListener(props[key]));
+        if (prop === `elementRenderer` || prop === `contentRenderer`) {
+
+            renderers.set(prop, value);
+
+        } else if (prop === `onShortcuts`) {
+
+            for (let [ shortcut, listener ] of Object.entries(value)) {
+                shortcuts.set(shortcut, wrapShortcutListener(shortcut, listener));
+            }
+
+        } else if (/^on[A-Z]/.test(prop)) {
+
+            events.set(prop, wrapEventListener(value));
+
         }
 
     }
@@ -67,7 +136,7 @@ function findListeners(props) {
 
 function setupEventListeners(instance, newListeners) {
 
-    let oldListeners = instance[eventSymbol];
+    let oldListeners = Reflect.get(instance, EVENT_SYMBOL);
 
     let oldEvents = Array.from(oldListeners.keys());
     let newEvents = Array.from(newListeners.keys());
@@ -82,13 +151,13 @@ function setupEventListeners(instance, newListeners) {
     for (let prop of [ ... replacedEvents, ... addedEvents ])
         instance.addEventListener(toEventName(prop), newListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
 
-    instance[eventSymbol] = newListeners;
+    Reflect.set(instance, EVENT_SYMBOL, newListeners);
 
 }
 
 function setupShortcutListeners(instance, newListeners) {
 
-    let oldListeners = instance[shortcutSymbol];
+    let oldListeners = Reflect.get(instance, SHORTCUT_SYMBOL);
 
     let oldShortcuts = Array.from(oldListeners.keys());
     let newShortcuts = Array.from(newListeners.keys());
@@ -98,12 +167,12 @@ function setupShortcutListeners(instance, newListeners) {
     let replacedShortcuts = intersection(newShortcuts, oldShortcuts).filter(prop => oldListeners.get(prop).original !== newListeners.get(prop).original);
 
     for (let prop of [ ... removedShortcuts, ... replacedShortcuts ])
-        instance.removeShortcutListener(toShortcutName(prop), oldListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
+        instance.removeEventListener(`keypress`, oldListeners.get(prop).wrapper, { capture: true });
 
     for (let prop of [ ... replacedShortcuts, ... addedShortcuts ])
-        instance.addShortcutListener(toShortcutName(prop), newListeners.get(prop).wrapper, { capture: doesUseCapture(prop) });
+        instance.addEventListener(`keypress`, newListeners.get(prop).wrapper, { capture: true });
 
-    instance[shortcutSymbol] = newListeners;
+    Reflect.set(instance, SHORTCUT_SYMBOL, newListeners);
 
 }
 
@@ -153,8 +222,8 @@ function createInstance(type, props) {
 
     let instance = new ElementClass(props);
 
-    instance[eventSymbol] = new Map();
-    instance[shortcutSymbol] = new Map();
+    Reflect.set(instance, EVENT_SYMBOL, new Map());
+    Reflect.set(instance, SHORTCUT_SYMBOL, new Map());
 
     return instance;
 
@@ -184,12 +253,19 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // Note that `type` will always be a string (because React itself will handle the React components). You will probably want to make some kind of switch (or use a type->host map, maybe?) to convert this string into the right host component.
 
-        let instance = createInstance(type, props);
+        let propNames = Reflect.ownKeys(props).filter(prop => prop !== `ref`);
+        let [ managed, unmanaged ] = partition(propNames, prop => MANAGED_PROPS.has(prop));
+
+        let instance = createInstance(type, pick(props, unmanaged));
 
         let listeners = findListeners(props);
         setupEventListeners(instance, listeners.events);
         setupShortcutListeners(instance, listeners.shortcuts);
         setupRenderers(instance, listeners.renderers);
+
+        for (let prop of managed)
+            if (!isUndefined(props[prop]))
+                MANAGED_PROPS.get(prop)(instance, props[prop]);
 
         return instance;
 
@@ -281,9 +357,8 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         if (newProps.autofocus) {
 
-            if (newProps.autofocus !== `steal` && newProps.autocus !== `initial`) {
+            if (newProps.autofocus !== `steal` && newProps.autofocus !== `initial`) {
                 throw new Error(`Invalid autofocus directive; expected "steal" or "initial"`);
-
             } else if (newProps.autofocus === `steal` || instance.rootNode.activeElement === null) {
                 instance.focus();
             }
@@ -311,8 +386,21 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         let { style = {}, classList = [], ... rest } = newProps;
 
-        Object.assign(instance.style, style);
-        Object.assign(instance, rest);
+        for (let name of Reflect.ownKeys(style))
+            Reflect.set(instance.style, name, style[name]);
+
+        for (let name of Reflect.ownKeys(rest)) {
+
+            let manager = MANAGED_PROPS.get(name);
+            let value = newProps[name];
+
+            if (!manager) {
+                Reflect.set(instance, name, value);
+            } else if (!isUndefined(value)) {
+                manager(instance, value);
+            }
+
+        }
 
         instance.classList.assign(classList);
 
@@ -375,5 +463,17 @@ export function render(element, root, callback) {
     TermRenderer.unbatchedUpdates(() => {
         TermRenderer.updateContainer(element, container, null, callback);
     });
+
+}
+
+export function createPortal(children, containerTag, key) {
+
+    return ReactPortal.createPortal(children, containerTag, null, key);
+
+}
+
+export function getTermNode(component) {
+
+    return TermRenderer.getHostInstance(component);
 
 }

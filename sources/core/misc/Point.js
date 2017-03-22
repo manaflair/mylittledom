@@ -7,6 +7,21 @@ export class Point {
 
     }
 
+    clone() {
+
+        return new Point(this);
+
+    }
+
+    assign(other) {
+
+        this.x = other.x;
+        this.y = other.y;
+
+        return this;
+
+    }
+
     get column() {
 
         return this.x;
@@ -31,9 +46,9 @@ export class Point {
 
     }
 
-    clone() {
+    get length() {
 
-        return new Point(this);
+        return Math.sqrt(this.x * this.x + this.y * this.y);
 
     }
 

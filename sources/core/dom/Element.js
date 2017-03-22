@@ -1,3 +1,4 @@
+import { override }                                           from 'core-decorators';
 import { flatten, groupBy, isBoolean, isEmpty, isNull, pick } from 'lodash';
 import Yoga                                                   from 'yoga-layout';
 
@@ -25,7 +26,7 @@ function getPreferredSize(node, ... args) {
 
 export class Element extends Node {
 
-    constructor({ classList = [], style = {}, decored = true } = {}) {
+    constructor({ classList = [], style = {}, caret = null, decored = true } = {}) {
 
         super();
 
@@ -38,19 +39,8 @@ export class Element extends Node {
 
         this.styleManager = new StyleManager(this);
 
-        this.styleManager.setStateStatus(`firstChild`, true);
-        this.styleManager.setStateStatus(`lastChild`, true);
-
-        this.styleManager.addRuleset(globalRuleset, StyleManager.RULESET_NATIVE);
-        this.styleManager.setRulesets(new Set(), StyleManager.RULESET_USER);
-
         this.classList = this.styleManager.getClassList();
         this.style = this.styleManager.getStyle();
-
-        this.classList.assign(classList);
-        this.style.assign(style);
-
-        this.caret = null;
 
         this.dirtyRects = [];
         this.pendingEvents = [];
@@ -73,30 +63,140 @@ export class Element extends Node {
 
         this.elementBoundingRect = null; // Position & size of the visible box that contains both the element itself and each of its children
 
-        this.declareEvent(`dirty`); // After the node rects have became dirty and a call to triggerUpdates needs to be done. Usually only caught by the renderer.
-        this.declareEvent(`layout`); // When the node layout is being computed. Element box and content box have been recomputed, but the scroll box hasn't yet.
+        this.declareEvent(`layout`); // After the element has been layouted, but before it is rendered. Modifying the layout during this event will result in a new layout pass, but no extra rendering.
 
-        this.declareEvent(`focus`); // After the element has got the focus.
-        this.declareEvent(`blur`); // After the element has lost the focus.
+        this.declareEvent(`focus`); // After the element acquired the focus.
+        this.declareEvent(`blur`); // After the element lost the focus.
 
         this.declareEvent(`scroll`); // After the element scroll position has changed.
         this.declareEvent(`caret`); // After the element caret position has changed.
 
-        this.setPropertyTrigger(`decored`, decored, {
-
-            validate: value => {
-
-                return isBoolean(value);
-
-            },
-
-            trigger: value => {
-
-                this.styleManager.setStateStatus(`decored`, value);
-
-            }
-
+        this.setPropertyTrigger(`caret`, caret, {
+            validate: value => value === null || value instanceof Point,
+            trigger: value => { this.rootNode.requestUpdates() }
         });
+
+        this.setPropertyTrigger(`decored`, decored, {
+            validate: value => isBoolean(value),
+            trigger: value => { this.styleManager.setStateStatus(`decored`, value); }
+        });
+
+        // Now that the node has been setup, we can register the default styles.
+        // We needed to wait until now, because some of these styles have triggers that expect the nodes to be fully setup.
+
+        this.styleManager.setStateStatus(`firstChild`, true);
+        this.styleManager.setStateStatus(`lastChild`, true);
+
+        this.styleManager.addRuleset(globalRuleset, StyleManager.RULESET_NATIVE);
+        this.styleManager.setRulesets(new Set(), StyleManager.RULESET_USER);
+
+        this.classList.assign(classList);
+        this.style.assign(style);
+
+    }
+
+    @override appendChild(node) {
+
+        if (!(node instanceof Element))
+            throw new Error(`Failed to execute 'appendChild': Parameter 1 is not of type 'Element'.`);
+
+        super.appendChild(node);
+
+    }
+
+    @override insertBefore(node, referenceNode) {
+
+        if (!(node instanceof Element))
+            throw new Error(`Failed to execute 'insertBefore': Parameter 1 is not of type 'Element'.`);
+
+        super.insertBefore(node, referenceNode);
+
+    }
+
+    @override linkBefore(node, referenceNode) {
+
+        node.flushDirtyRects();
+
+        super.linkBefore(node, referenceNode);
+
+        if (node.previousSibling) {
+            node.previousSibling.styleManager.setStateStatus(`lastChild`, false);
+            node.styleManager.setStateStatus(`firstChild`, false);
+        }
+
+        if (node.nextSibling) {
+            node.nextSibling.styleManager.setStateStatus(`firstChild`, false);
+            node.styleManager.setStateStatus(`lastChild`, false);
+        }
+
+        this.yogaNode.unsetMeasureFunc();
+        this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
+
+        this.setDirtyLayoutFlag();
+        this.setDirtyClippingFlag();
+
+        this.rootNode.setDirtyNodeListFlag();
+        this.rootNode.setDirtyFocusListFlag();
+        this.rootNode.setDirtyRenderListFlag();
+
+        node.clearDirtyNodeListFlag();
+        node.clearDirtyRenderListFlag();
+
+        node.styleManager.refresh(node.styleManager.inherited);
+
+    }
+
+    @override removeChild(node) {
+
+        if (!(node instanceof Element))
+            throw new Error(`Failed to execute 'removeChild': Parameter 1 is not of type 'Element'.`);
+
+        let previousSibling = this.previousSibling;
+        let nextSibling = this.nextSibling;
+
+        super.removeChild(node);
+
+        if (previousSibling)
+            previousSibling.styleManager.setStateStatus(`lastChild`, !nextSibling ? true : false);
+
+        if (nextSibling)
+            nextSibling.styleManager.setStateStatus(`firstChild`, !previousSibling ? true : false);
+
+        node.styleManager.setStateStatus(`firstChild`, true);
+        node.styleManager.setStateStatus(`lastChild`, true);
+
+        this.yogaNode.removeChild(node.yogaNode);
+
+        if (this.childNodes.length === 0)
+            this.yogaNode.setMeasureFunc(getPreferredSize.bind(null, this));
+
+        this.setDirtyLayoutFlag();
+        this.setDirtyClippingFlag();
+
+        this.rootNode.setDirtyNodeListFlag();
+        this.rootNode.setDirtyFocusListFlag();
+        this.rootNode.setDirtyRenderListFlag();
+
+        node.setDirtyLayoutFlag();
+        node.setDirtyClippingFlag();
+
+        node.setDirtyNodeListFlag();
+        node.setDirtyFocusListFlag();
+        node.setDirtyRenderListFlag();
+
+        // We need to manually register this rect because since the element will be removed from the tree, we will never iterate over it at the next triggerUpdates
+        this.rootNode.queueDirtyRect(node.elementBoundingRect);
+
+        node.styleManager.refresh(node.styleManager.inherited);
+
+        if (this.rootNode.activeElement && (this.rootNode.activeElement === node || isChildOf(this.rootNode.activeElement, node))) {
+
+            // It's a bit wtf: when an active element is removed from the tree, we need to trigger a blur event.
+            // The problem is that since we've already removed the node from the dom at this point! So we need to "fake" the parent node in order to cascade the event on the correct tree branch.
+
+            this.rootNode.activeElement.blur({ parentNode: this });
+
+        }
 
     }
 
@@ -188,6 +288,42 @@ export class Element extends Node {
 
     }
 
+    getCaretCoordinates() {
+
+        if (this.rootNode !== this) {
+
+            let worldCaret = this.rootNode.getCaretCoordinates();
+
+            return worldCaret;
+
+        } else {
+
+            if (!this.activeElement || !this.activeElement.contentClipRect || !this.activeElement.caret)
+                return null;
+
+            let x = this.activeElement.contentWorldRect.x - this.activeElement.scrollRect.x + this.activeElement.caret.x;
+            let y = this.activeElement.contentWorldRect.y - this.activeElement.scrollRect.y + this.activeElement.caret.y;
+
+            if (x < this.activeElement.contentClipRect.x || x >= this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width)
+                return null;
+
+            if (y < this.activeElement.contentClipRect.y || y >= this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height)
+                return null;
+
+            return new Point({ x, y });
+
+        }
+
+    }
+
+    getBoundingClientRect() {
+
+        this.triggerUpdates();
+
+        return this.elementWorldRect;
+
+    }
+
     focus() {
 
         if (this.rootNode.activeElement === this)
@@ -195,6 +331,8 @@ export class Element extends Node {
 
         if (!this.style.$.focusEvents)
             return;
+
+        let previousActiveNode = this.rootNode.activeElement;
 
         if (this.rootNode.activeElement)
             this.rootNode.activeElement.blur();
@@ -204,19 +342,23 @@ export class Element extends Node {
 
         this.scrollIntoView();
 
-        this.dispatchEvent(new Event(`focus`));
+        this.dispatchEvent(new Event(`focus`, {}, { was: previousActiveNode }));
+
+        this.rootNode.requestUpdates();
 
     }
 
-    blur() {
+    blur({ parentNode = this.parentNode } = {}) {
 
-        if (this.rootNode.activeElement !== this)
+        if (parentNode.rootNode.activeElement !== this)
             return;
 
-        this.rootNode.activeElement = null;
+        parentNode.rootNode.activeElement = null;
         this.styleManager.setStateStatus(`focus`, false);
 
-        this.dispatchEvent(new Event(`blur`));
+        this.dispatchEvent(new Event(`blur`), { parentSource: parentNode.getEventSource() });
+
+        parentNode.rootNode.requestUpdates();
 
     }
 
@@ -293,100 +435,6 @@ export class Element extends Node {
     focusNextElement() {
 
         this.focusRelativeElement(+1);
-
-    }
-
-    appendChild(node) {
-
-        if (!(node instanceof Element))
-            throw new Error(`Failed to execute 'appendChild': Parameter 1 is not of type 'Element'.`);
-
-        super.appendChild(node);
-
-    }
-
-    insertBefore(node, referenceNode) {
-
-        if (!(node instanceof Element))
-            throw new Error(`Failed to execute 'insertBefore': Parameter 1 is not of type 'Element'.`);
-
-        super.insertBefore(node, referenceNode);
-
-    }
-
-    linkBefore(node, referenceNode) {
-
-        super.linkBefore(node, referenceNode);
-
-        if (node.previousSibling) {
-            node.previousSibling.styleManager.setStateStatus(`lastChild`, false);
-            node.styleManager.setStateStatus(`firstChild`, false);
-        }
-
-        if (node.nextSibling) {
-            node.nextSibling.styleManager.setStateStatus(`firstChild`, false);
-            node.styleManager.setStateStatus(`lastChild`, false);
-        }
-
-        this.yogaNode.unsetMeasureFunc();
-        this.yogaNode.insertChild(node.yogaNode, this.childNodes.indexOf(node));
-
-        this.setDirtyLayoutFlag();
-        this.setDirtyClippingFlag();
-
-        this.rootNode.setDirtyNodeListFlag();
-        this.rootNode.setDirtyRenderListFlag();
-
-        node.clearDirtyNodeListFlag();
-        node.clearDirtyRenderListFlag();
-
-        node.styleManager.refresh(node.styleManager.inherited);
-
-    }
-
-    removeChild(node) {
-
-        if (!(node instanceof Element))
-            throw new Error(`Failed to execute 'removeChild': Parameter 1 is not of type 'Element'.`);
-
-        let previousSibling = node.previousSibling;
-        let nextSibling = node.nextSibling;
-
-        super.removeChild(node);
-
-        if (this.rootNode.activeElement === node || isChildOf(this.rootNode.activeElement, node))
-            this.rootNode.activeElement = null;
-
-        if (previousSibling)
-            previousSibling.styleManager.setStateStatus(`lastChild`, !nextSibling ? true : false);
-
-        if (nextSibling)
-            nextSibling.styleManager.setStateStatus(`firstChild`, !previousSibling ? true : false);
-
-        node.styleManager.setStateStatus(`firstChild`, true);
-        node.styleManager.setStateStatus(`lastChild`, true);
-
-        this.yogaNode.removeChild(node.yogaNode);
-
-        if (this.childNodes.length === 0)
-            this.yogaNode.setMeasureFunc(getPreferredSize.bind(null, this));
-
-        this.setDirtyLayoutFlag();
-        this.setDirtyClippingFlag();
-
-        this.rootNode.setDirtyNodeListFlag();
-        this.rootNode.setDirtyRenderListFlag();
-
-        node.setDirtyLayoutFlag();
-        node.setDirtyClippingFlag();
-
-        node.setDirtyNodeListFlag();
-        node.setDirtyRenderListFlag();
-
-        // We need to manually register this rect because since the element will be removed from the tree, we will never iterate over it at the next triggerUpdates
-        this.rootNode.queueDirtyRect(node.elementBoundingRect);
-
-        node.styleManager.refresh(node.styleManager.inherited);
 
     }
 
@@ -500,141 +548,122 @@ export class Element extends Node {
 
     setDirtyNodeListFlag() {
 
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flags.ELEMENT_HAS_DIRTY_NODE_LIST;
-
-        if (!wasDirty) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
+        this.setDirtyFlag(flags.ELEMENT_HAS_DIRTY_NODE_LIST);
 
     }
 
     clearDirtyNodeListFlag() {
 
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_NODE_LIST;
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_NODE_LIST);
 
     }
 
     setDirtyFocusListFlag() {
 
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flags.ELEMENT_HAS_DIRTY_FOCUS_LIST;
-
-        if (!wasDirty) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
+        this.setDirtyFlag(flags.ELEMENT_HAS_DIRTY_FOCUS_LIST);
 
     }
 
     clearDirtyFocusListFlag() {
 
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_FOCUS_LIST;
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_FOCUS_LIST);
 
     }
 
     setDirtyRenderListFlag() {
 
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flags.ELEMENT_HAS_DIRTY_RENDER_LIST;
-
-        if (!wasDirty) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
+        this.setDirtyFlag(flags.ELEMENT_HAS_DIRTY_RENDER_LIST);
 
     }
 
     clearDirtyRenderListFlag() {
 
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_RENDER_LIST;
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_RENDER_LIST);
 
     }
 
-    setDirtyLayoutFlag({ silent = false } = {}) {
+    setDirtyLayoutFlag() {
 
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flags.ELEMENT_HAS_DIRTY_LAYOUT;
-
-        if (this.parentNode)
-            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN, { silent });
-
-        if (!wasDirty && !silent) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
+        this.setDirtyFlag(flags.ELEMENT_HAS_DIRTY_LAYOUT, flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN);
 
     }
 
     clearDirtyLayoutFlag() {
 
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_LAYOUT;
-
-    }
-
-    setDirtyClippingFlag({ silent = false } = {}) {
-
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flags.ELEMENT_HAS_DIRTY_CLIPPING;
-
-        if (this.parentNode)
-            this.parentNode.setDirtyChildrenFlag(flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN, { silent });
-
-        if (!wasDirty && !silent) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
-
-    }
-
-    clearDirtyClippingFlag() {
-
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_CLIPPING;
-
-    }
-
-    setDirtyChildrenFlag(flag, { silent = false } = {}) {
-
-        if (this.flags & flag)
-            return;
-
-        let wasDirty = this.flags & flags.ELEMENT_IS_DIRTY;
-        this.flags |= flag;
-
-        if (this.parentNode)
-            this.parentNode.setDirtyChildrenFlag(flag);
-
-        if (!wasDirty && !silent) {
-            this.dispatchEvent(new Event(`dirty`));
-        }
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_LAYOUT);
 
     }
 
     clearDirtyLayoutChildrenFlag() {
 
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN;
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN);
+
+    }
+
+    setDirtyClippingFlag() {
+
+        this.setDirtyFlag(flags.ELEMENT_HAS_DIRTY_CLIPPING, flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN);
+
+    }
+
+    clearDirtyClippingFlag() {
+
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_CLIPPING);
 
     }
 
     clearDirtyClippingChildrenFlag() {
 
-        this.flags &= ~flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN;
+        this.clearDirtyFlag(flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN);
+
+    }
+
+    setDirtyFlag(flag, parentFlag = 0) {
+
+        if (this.flags & flag)
+            return;
+
+        this.flags |= flag;
+
+        if (parentFlag !== 0) {
+
+            let parent = this.parentNode;
+
+            while (parent && !(parent.flags & parentFlag)) {
+                parent.flags |= parentFlag;
+                parent = parent.parentNode;
+            }
+
+        }
+
+        this.rootNode.requestUpdates();
+
+    }
+
+    clearDirtyFlag(flag) {
+
+        this.flags &= ~flag;
 
     }
 
     queueDirtyRect(dirtyRect = this.elementClipRect, checkIntersectionFrom = 0) {
 
-        if (!dirtyRect || dirtyRect.isEmpty())
+        if (Rect.isEmpty(dirtyRect))
             return;
 
         if (this.rootNode !== this)
-            return this.rootNode.queueDirtyRect(this.elementClipRect ? dirtyRect.intersect(this.elementClipRect) : null, checkIntersectionFrom);
+            return this.rootNode.queueDirtyRect(Rect.getIntersectingRect(dirtyRect, this.elementClipRect), checkIntersectionFrom);
 
         let intersectorIndex = this.dirtyRects.findIndex(other => {
-            return dirtyRect.doesIntersect(other);
+            return dirtyRect.intersectsRect(other);
         });
 
-        if (intersectorIndex !== -1) {
-            this.queueDirtyRects(dirtyRect.exclude(this.dirtyRects[intersectorIndex]), intersectorIndex + 1);
-        } else {
+        if (intersectorIndex !== -1)
+            this.queueDirtyRects(dirtyRect.excludeRect(this.dirtyRects[intersectorIndex]), intersectorIndex + 1);
+        else
             this.dirtyRects.push(dirtyRect);
-        }
+
+        this.rootNode.requestUpdates();
 
     }
 
@@ -642,9 +671,6 @@ export class Element extends Node {
 
         if (!dirtyRects)
             return;
-
-        if (this.rootNode !== this)
-            return this.rootNode.queueDirtyRects(dirtyRects, checkIntersectionFrom);
 
         for (let dirtyRect of dirtyRects) {
             this.queueDirtyRect(dirtyRect, checkIntersectionFrom);
@@ -664,16 +690,29 @@ export class Element extends Node {
 
     }
 
+    requestUpdates() {
+
+        // The default implementation doesn't do anything; triggerUpdates has to be called manually.
+        // However, it is expected that renderer will override this function and call triggerUpdates themselves.
+
+        // Note that calling triggerUpdates synchronously isn't advised: the requestUpdates function might get called multiple times in the same execution list.
+        // For this reason, prefer using setImmediate, requestAnimationFrame, or setTimeout in order to schedule an update later on.
+
+    }
+
     triggerUpdates({ maxDepth = 5 } = {}) {
 
         if (this.rootNode !== this)
             return this.rootNode.triggerUpdates();
 
+        let needsFullRerender = this.flags & (
+            flags.ELEMENT_HAS_DIRTY_NODE_LIST |
+            flags.ELEMENT_HAS_DIRTY_RENDER_LIST
+        );
+
         if (this.flags & flags.ELEMENT_HAS_DIRTY_NODE_LIST) {
             this.nodeList = this.generateNodeList();
             this.clearDirtyNodeListFlag();
-            this.setDirtyFocusListFlag()
-            this.setDirtyRenderListFlag();
         }
 
         if (this.flags & flags.ELEMENT_HAS_DIRTY_FOCUS_LIST) {
@@ -689,19 +728,25 @@ export class Element extends Node {
         let dirtyLayoutNodes = [];
         let dirtyScrollNodes = [];
 
-        this.yogaNode.calculateLayout();
+        if (this.flags & (flags.ELEMENT_HAS_DIRTY_LAYOUT | flags.ELEMENT_HAS_DIRTY_LAYOUT_CHILDREN)) {
+            this.yogaNode.calculateLayout();
+            this.cascadeLayout({ dirtyLayoutNodes });
+        }
 
-        this.cascadeLayout({ dirtyLayoutNodes });
-        this.cascadeClipping({ dirtyScrollNodes });
+        if (this.flags & (flags.ELEMENT_HAS_DIRTY_CLIPPING | flags.ELEMENT_HAS_DIRTY_CLIPPING_CHILDREN))
+            this.cascadeClipping({ dirtyScrollNodes });
 
         if (this.flags & flags.ELEMENT_IS_DIRTY)
-            throw new Error(`Aborted 'triggerUpdates' execution: Flags have not been correctly reset at some point (${(this.flags & flags.ELEMENT_IS_DIRTY).toString(2)}).`);
+            throw new Error(`Aborted 'triggerUpdates' execution: Flags have not been correctly reset at some point (0b${(this.flags & flags.ELEMENT_IS_DIRTY).toString(2).padStart(16, `0`)}).`);
 
         for (let dirtyLayoutNode of dirtyLayoutNodes)
             dirtyLayoutNode.dispatchEvent(new Event(`layout`));
 
         for (let dirtyScrollNode of dirtyScrollNodes)
             dirtyScrollNode.dispatchEvent(new Event(`scroll`));
+
+        if (needsFullRerender)
+            this.queueDirtyRect();
 
         if (this.flags & flags.ELEMENT_IS_DIRTY) {
             if (maxDepth < 1) {
@@ -802,7 +847,7 @@ export class Element extends Node {
                 this.elementRect.height = this.yogaNode.getComputedHeight();
 
                 // We try to optimize away the iterations inside elements that haven't changed and aren't marked as dirty, because we know their children's layouts won't change either
-                doesLayoutChange = !this.elementRect.equals(prevElementRect);
+                doesLayoutChange = !Rect.areEqual(this.elementRect, prevElementRect);
 
             }
 
@@ -892,8 +937,8 @@ export class Element extends Node {
 
                 let prevElementClipRect = this.elementClipRect ? this.elementClipRect.clone() : null;
 
-                this.elementClipRect = relativeClipRect ? this.elementWorldRect.intersect(relativeClipRect) : this.elementWorldRect;
-                this.contentClipRect = relativeClipRect ? this.contentWorldRect.intersect(relativeClipRect) : this.contentWorldRect;
+                this.elementClipRect = relativeClipRect ? Rect.getIntersectingRect(this.elementWorldRect, relativeClipRect) : this.elementWorldRect;
+                this.contentClipRect = relativeClipRect ? Rect.getIntersectingRect(this.contentWorldRect, relativeClipRect) : this.contentWorldRect;
 
                 doesClippingChange = !Rect.areEqual(prevElementWorldRect, this.elementWorldRect) || !Rect.areEqual(prevContentWorldRect, this.contentWorldRect) || !Rect.areEqual(prevElementClipRect, this.elementClipRect);
 

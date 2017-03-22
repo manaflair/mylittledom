@@ -54,4 +54,5 @@ StyleLength.autoNaN.serialize = () => `auto`;
 StyleLength.auto = new StyleLength();
 StyleLength.auto.serialize = () => `auto`;
 
-StyleLength.infinity = new StyleLength(Infinity);
+// Not actually infinity! Otherwise we have issues when substracting sizes (Infinity - Infinity = NaN)
+StyleLength.infinity = new StyleLength(Number.MAX_SAFE_INTEGER);

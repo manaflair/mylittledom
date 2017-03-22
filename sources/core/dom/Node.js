@@ -243,9 +243,34 @@ export class Node {
 
     }
 
+    toString({ depth = 0 } = {}) {
+
+        let tag = `${this.nodeName}#${this.id}${Array.from(this.classList).map(className => `.${className}`).join(``)}`;
+
+        if (depth <= 0) {
+
+            return `<${tag}>`;
+
+        } else if (this.childNodes.length === 0) {
+
+            return `<${tag} />`;
+
+        } else {
+
+            let children = [];
+
+            for (let child of this.childNodes)
+                children.push(child.toString({ depth: depth - 1 }).replace(/^/gm, `  `));
+
+            return `<${tag}>\n${children.join(`\n`)}\n</${tag}>`;
+
+        }
+
+    }
+
     inspect() {
 
-        return `<${this.nodeName}#${this.id}${Array.from(this.classList).map(className => `.${className}`).join(``)}>`;
+        return this.toString();
 
     }
 

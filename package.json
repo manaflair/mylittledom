@@ -16,7 +16,7 @@
     "push": "npm run build && cp README.md dist/ && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
   },
   "dependencies": {
-    "@manaflair/term-strings": "^0.6.1",
+    "@manaflair/term-strings": "^0.8.0",
     "@manaflair/text-layout": "^0.7.0",
     "core-decorators": "^0.13.0",
     "core-js": "^2.4.1",

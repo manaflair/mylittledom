@@ -34,6 +34,12 @@ export class TermElement extends Element {
 
         this.isActive = false;
 
+        this.addEventListener(`mousewheel`, e => {
+
+            this.scrollTop += e.mouse.d * 2;
+
+        });
+
         this.addEventListener(`mouseenter`, e => {
 
             this.styleManager.setStateStatus(`hover`, true);
@@ -103,7 +109,7 @@ export class TermElement extends Element {
 
             e.setDefault(() => {
 
-                let event = new Event(`click`);
+                let event = new Event(`click`, { bubbles: true });
                 event.mouse = e.mouse;
 
                 event.worldCoordinates = e.worldCoordinates;
@@ -145,7 +151,10 @@ export class TermElement extends Element {
 
     }
 
-    addShortcutListener(descriptors, callback) {
+    addShortcutListener(descriptors, callback, { capture = false } = {}) {
+
+        if (!capture)
+            throw new Error(`Failed to execute 'addShortcutListener': The 'capture' option needs to be set when adding a shortcut.`);
 
         for (let descriptor of descriptors.split(/,/g)) {
 
@@ -160,7 +169,7 @@ export class TermElement extends Element {
                     callback.call(this, e);
                 }
 
-            });
+            }, { capture });
 
         }
 

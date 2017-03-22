@@ -2,7 +2,7 @@ import { isFunction } from 'lodash';
 
 export class Event {
 
-    constructor(name, { bubbles = false, cancelable = false } = {}) {
+    constructor(name, { bubbles = false, cancelable = false } = {}, attrs = {}) {
 
         this.name = name;
 
@@ -17,6 +17,10 @@ export class Event {
 
         this.target = null;
         this.currentTarget = null;
+
+        for (let [ key, value ] of Object.entries(attrs)) {
+            this[key] = value;
+        }
 
     }
 
@@ -63,6 +67,14 @@ export class Event {
             throw new Error(`Failed to execute 'setDefaultAction': Parameter 1 is not of type 'function'.`);
 
         this.default = callback;
+
+    }
+
+    inspect() {
+
+        let defaultPrevented = this.defaultPrevented ? ` (default prevented)` : ``;
+
+        return `<Event ${this.name}${defaultPrevented}>`;
 
     }
 

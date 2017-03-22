@@ -70,6 +70,9 @@ export function findDescendantsByPredicate(node, predicate) {
 
 export function isChildOf(node, parent) {
 
+    if (node === null)
+        return false;
+
     for (node = node.parentNode; node; node = node.parentNode)
         if (node === parent)
             return true;

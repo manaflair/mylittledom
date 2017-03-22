@@ -3,34 +3,45 @@ class KeySequenceEntry {
     static parse(string) {
 
         let entry = new KeySequenceEntry();
+        let parts = string.split(/[+-]/g);
 
-        for (let part of string.split(/[+-]/g)) {
+        for (let t = 0; t < parts.length; ++t) {
 
-            switch (part) {
+            let part = parts[t];
 
-                case `shift`:
-                case `S`: {
-                    entry.shift = true;
-                } break;
+            if (t !== parts.length - 1) {
 
-                case `alt`:
-                case `A`: {
-                    entry.alt = true;
-                } break;
+                switch (part.toLowerCase()) {
 
-                case `ctrl`:
-                case `C`: {
-                    entry.ctrl = true;
-                } break;
+                    case `shift`:
+                    case `s`: {
+                        entry.shift = true;
+                    } break;
 
-                case `meta`:
-                case `M`: {
-                    entry.meta = true;
-                } break;
+                    case `alt`:
+                    case `a`: {
+                        entry.alt = true;
+                    } break;
 
-                default: {
-                    entry.key = part;
-                } break;
+                    case `ctrl`:
+                    case `c`: {
+                        entry.ctrl = true;
+                    } break;
+
+                    case `meta`:
+                    case `m`: {
+                        entry.meta = true;
+                    } break;
+
+                    default: {
+                        throw new Error(`Failed to parse shortcut descriptor: Invalid modifier "${part}".`);
+                    } break;
+
+                }
+
+            } else {
+
+                entry.key = part;
 
             }
 
@@ -76,11 +87,12 @@ class KeySequenceEntry {
 
 export class KeySequence {
 
-    constructor(sequence) {
+    constructor(descriptor) {
 
         this.keyBuffer = [];
 
-        this.entries = String(sequence).trim().split(/\s+/g).map(descriptor => KeySequenceEntry.parse(descriptor.trim()));
+        this.descriptor = descriptor;
+        this.entries = String(this.descriptor).trim().toLowerCase().split(/\s+/g).map(descriptor => KeySequenceEntry.parse(descriptor.trim()));
 
     }
 

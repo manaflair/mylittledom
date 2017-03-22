@@ -41,6 +41,12 @@ export class EventSource {
 
     }
 
+    getEventSource() {
+
+        return this;
+
+    }
+
     getParentEventSource() {
 
         let parent = this.getParentInstance();
@@ -111,7 +117,7 @@ export class EventSource {
 
     }
 
-    dispatchEvent(event) {
+    dispatchEvent(event, { parentSource = this.getParentEventSource() } = {}) {
 
         if (!(event instanceof Event))
             throw new Error(`Failed to execute 'dispatchEvent': Parameter 1 is not of type 'Event'.`);
@@ -119,9 +125,9 @@ export class EventSource {
         if (!this.listeners.has(event.name) || event.name === `*`)
             throw new Error(`Failed to execute 'dispatchEvent': '${event.name}' is not a valid event name.`);
 
-        let eventSources = [];
+        let eventSources = [ this ];
 
-        for (let eventSource = this; eventSource; eventSource = eventSource.getParentEventSource())
+        for (let eventSource = parentSource; eventSource; eventSource = eventSource.getParentEventSource())
             eventSources.unshift(eventSource);
 
         event.target = this.instance;

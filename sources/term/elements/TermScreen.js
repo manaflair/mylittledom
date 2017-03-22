@@ -1,12 +1,12 @@
-import { Key, Mouse, parseTerminalInputs }         from '@manaflair/term-strings/parse';
-import { cursor, feature, screen, style }          from '@manaflair/term-strings';
-import { autobind }                                from 'core-decorators';
-import { isBoolean, isEmpty, isUndefined, merge }  from 'lodash';
-import { Readable, Writable }                      from 'stream';
+import { Key, Mouse, parseTerminalInputs }               from '@manaflair/term-strings/parse';
+import { cursor, feature, screen, style }                from '@manaflair/term-strings';
+import { autobind, override }                            from 'core-decorators';
+import { isBoolean, isEmpty, isUndefined, merge }        from 'lodash';
+import { Readable, Writable }                            from 'stream';
 
-import { Event, Point, StyleManager, makeRuleset } from '../../core';
+import { Event, Point, Rect, StyleManager, makeRuleset } from '../../core';
 
-import { TermElement }                             from './TermElement';
+import { TermElement }                                   from './TermElement';
 
 // We will iterate through those colors when rendering if the debugPaintRects option is set
 let DEBUG_COLORS = [ `red`, `green`, `blue`, `magenta`, `yellow` ], currentDebugColorIndex = 0;
@@ -41,9 +41,6 @@ export class TermScreen extends TermElement {
         // A timer used to trigger layout / clipping / render updates after a node becomes dirty
         this.updateTimer = null;
 
-        // Another timer, this time used to render the dirty part of the screen after they have been computed
-        this.renderTimer = null;
-
         //
         this.trackOutputSize = false;
 
@@ -51,14 +48,7 @@ export class TermScreen extends TermElement {
         this.mouseOverElement = null;
         this.mouseEnterElements = [];
 
-        // Bind the listener that will notify us when a node becomes dirty
-        this.addEventListener(`dirty`, () => this.scheduleUpdate(), { capture: true });
-
-        // Bind the listeners that will notify us when the caret position changes
-        this.addEventListener(`focus`, () => this.scheduleUpdate(), { capture: true });
-        this.addEventListener(`caret`, () => this.scheduleUpdate(), { capture: true });
-
-        //
+        // Bind the listeners that will convert the "mousemove" events into "mouseover" / "mouseout" / "mouseenter" / "mouseleave"
         this.addEventListener(`mousemove`, e => this.dispatchMouseOverEvents(e), { capture: true });
         this.addEventListener(`mousemove`, e => this.dispatchMouseEnterEvents(e), { capture: true });
 
@@ -70,18 +60,24 @@ export class TermScreen extends TermElement {
         this.addShortcutListener(`C-c`, e => this.terminate(), { capture: true });
 
         this.setPropertyTrigger(`debugPaintRects`, debugPaintRects, {
+            validate: value => isBoolean(value),
+            trigger: value => { this.queueDirtyRect(); }
+        });
 
-            validate: value => {
+    }
 
-                return isBoolean(value);
+    requestUpdates() {
 
-            },
+        if (this.updateTimer)
+            return;
 
-            trigger: value => {
+        this.updateTimer = setImmediate(() => {
 
-                this.queueDirtyRect();
+            if (!this.ready)
+                return;
 
-            }
+            this.updateTimer = null;
+            this.renderScreen();
 
         });
 
@@ -143,7 +139,7 @@ export class TermScreen extends TermElement {
         this.stdout.write(style.clear);
 
         // Finally schedule the first update of the screen
-        this.scheduleUpdate();
+        this.requestUpdates();
 
     }
 
@@ -195,34 +191,6 @@ export class TermScreen extends TermElement {
             return;
 
         process.exit(0);
-
-    }
-
-    queueDirtyRect(... args) {
-
-        this.scheduleUpdate();
-
-        return super.queueDirtyRect(... args);
-
-    }
-
-    scheduleUpdate() {
-
-        if (this.updateTimer)
-            return;
-
-        this.updateTimer = setImmediate(() => {
-
-            if (!this.ready)
-                return;
-
-            clearImmediate(this.renderTimer);
-            this.renderTimer = null;
-
-            this.updateTimer = null;
-            this.renderScreen();
-
-        });
 
     }
 
@@ -373,12 +341,12 @@ export class TermScreen extends TermElement {
                 if (!element.elementClipRect)
                     continue;
 
-                let intersection = element.elementClipRect.intersect(dirtyRect);
+                let intersection = Rect.getIntersectingRect(element.elementClipRect, dirtyRect);
 
                 if (!intersection)
                     continue;
 
-                let truncation = dirtyRect.exclude(intersection);
+                let truncation = dirtyRect.excludeRect(intersection);
                 dirtyRects = truncation.concat(dirtyRects);
 
                 for (let y = 0, Y = intersection.height; y < Y; ++y) {
@@ -457,9 +425,9 @@ export class TermScreen extends TermElement {
 
             let contentCoordinates = new Point({ x: worldCoordinates.x - targetElement.contentWorldRect.x, y: worldCoordinates.y - targetElement.contentWorldRect.y + targetElement.scrollTop });
 
-            if (input.start) {
+            if (input.name === `wheel`) {
 
-                let event = new Event(`mousedown`, { cancelable: true, bubbles: true });
+                let event = new Event(`mousewheel`);
                 event.mouse = input;
 
                 event.worldCoordinates = worldCoordinates;
@@ -467,39 +435,82 @@ export class TermScreen extends TermElement {
 
                 targetElement.dispatchEvent(event);
 
-            }
+            } else {
 
-            if (input.end) {
+                if (input.start) {
 
-                let event = new Event(`mouseup`, { cancelable: true, bubbles: true });
-                event.mouse = input;
+                    let event = new Event(`mousedown`, { cancelable: true, bubbles: true });
+                    event.mouse = input;
 
-                event.worldCoordinates = worldCoordinates;
-                event.contentCoordinates = contentCoordinates;
+                    event.worldCoordinates = worldCoordinates;
+                    event.contentCoordinates = contentCoordinates;
 
-                targetElement.dispatchEvent(event);
+                    targetElement.dispatchEvent(event);
 
-            }
+                }
 
-            if (!input.start && !input.end) {
+                if (input.end) {
 
-                let event = new Event(`mousemove`, { cancelable: true, bubbles: true });
-                event.mouse = input;
+                    let event = new Event(`mouseup`, { cancelable: true, bubbles: true });
+                    event.mouse = input;
 
-                event.worldCoordinates = worldCoordinates;
-                event.contentCoordinates = contentCoordinates;
+                    event.worldCoordinates = worldCoordinates;
+                    event.contentCoordinates = contentCoordinates;
 
-                targetElement.dispatchEvent(event);
+                    targetElement.dispatchEvent(event);
+
+                }
+
+                if (!input.start && !input.end) {
+
+                    let event = new Event(`mousemove`, { cancelable: true, bubbles: true });
+                    event.mouse = input;
+
+                    event.worldCoordinates = worldCoordinates;
+                    event.contentCoordinates = contentCoordinates;
+
+                    targetElement.dispatchEvent(event);
+
+                }
 
             }
 
         } else if (input instanceof Buffer) {
 
-            let event = new Event(`data`, { cancelable: true });
-            event.buffer = input;
+            let asString = input.toString();
 
-            if (this.activeElement) {
-                this.activeElement.dispatchEvent(event);
+            let emitData = () => {
+
+                let event = new Event(`data`, { cancelable: true });
+                event.buffer = input;
+
+                if (this.activeElement) {
+                    this.activeElement.dispatchEvent(event);
+                } else {
+                    this.dispatchEvent(event);
+                }
+
+            };
+
+            if (asString.length === 1) {
+
+                let event = new Event(`keypress`, { cancelable: true, bubbles: true });
+                event.key = new Key(asString);
+
+                event.setDefault(() => {
+                    emitData();
+                });
+
+                if (this.activeElement) {
+                    this.activeElement.dispatchEvent(event);
+                } else {
+                    this.dispatchEvent(event);
+                }
+
+            } else {
+
+                emitData();
+
             }
 
         }

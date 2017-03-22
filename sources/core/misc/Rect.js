@@ -1,4 +1,19 @@
+import { Point } from './Point';
+
 export class Rect {
+
+    static isEmpty(rect) {
+
+        return (
+
+            rect === null ||
+
+            rect.width === 0 ||
+            rect.height === 0
+
+        );
+
+    }
 
     static getBoundingRect(... rects) {
 
@@ -6,7 +21,7 @@ export class Rect {
 
         for (let rect of rects) {
 
-            if (!rect || rect.isEmpty())
+            if (Rect.isEmpty(rect))
                 continue;
 
             if (!output) {
@@ -40,15 +55,62 @@ export class Rect {
 
     }
 
+    static getIntersectingRect(... rects) {
+
+        let output = null;
+
+        for (let rect of rects) {
+
+            if (Rect.isEmpty(rect))
+                continue;
+
+            if (!output) {
+
+                output = rect.clone();
+
+            } else if (!output.intersectsRect(rect)) {
+
+                return null;
+
+            } else {
+
+                let x = Math.max(output.x, rect.x);
+                let y = Math.max(output.y, rect.y);
+
+                output.width = Math.min(output.x + output.width, rect.x + rect.width) - x;
+                output.height = Math.min(output.y + output.height, rect.y + rect.height) - y;
+
+                output.x = x;
+                output.y = y;
+
+            }
+
+        }
+
+        return output;
+
+    }
+
     static areEqual(a, b) {
 
         if (a === b)
             return true;
 
-        if (a === null || b === null)
-            return false;
+        if (Rect.isEmpty(a))
+            return Rect.isEmpty(b);
 
-        return a.equals(b);
+        if (Rect.isEmpty(b))
+            return Rect.isEmpty(a);
+
+        return (
+
+            a.x === b.x &&
+            a.y === b.y &&
+
+            a.width === b.width &&
+            a.height === b.height
+
+        );
 
     }
 
@@ -68,7 +130,7 @@ export class Rect {
 
     }
 
-    setFrom(other) {
+    assign(other) {
 
         this.x = other.x;
         this.y = other.y;
@@ -80,29 +142,21 @@ export class Rect {
 
     }
 
-    isEmpty() {
-
-        return this.width === 0 || this.height === 0;
-
-    }
-
-    equals(other) {
+    includesPoint(point) {
 
         return (
 
-            other !== null &&
+            point.x >= this.x &&
+            point.y >= this.y &&
 
-            other.x === this.x &&
-            other.y === this.y &&
-
-            other.width === this.width &&
-            other.height === this.height
+            point.x < this.x + this.width &&
+            point.y < this.y + this.height
 
         );
 
     }
 
-    doesContain(other) {
+    includesRect(other) {
 
         return (
 
@@ -118,7 +172,7 @@ export class Rect {
 
     }
 
-    doesIntersect(other) {
+    intersectsRect(other) {
 
         return (
 
@@ -137,14 +191,14 @@ export class Rect {
 
     }
 
-    exclude(other) {
+    excludeRect(other) {
 
-        if (!this.width || !this.height)
+        if (Rect.isEmpty(this))
             return [];
 
-        let intersection = this.intersect(other);
+        let intersection = Rect.getIntersectingRect(this, other);
 
-        if (!intersection)
+        if (Rect.isEmpty(intersection))
             return [ this.clone() ];
 
         let results = [];
@@ -205,37 +259,35 @@ export class Rect {
 
     }
 
-    intersect(other) {
+    getDistanceFromPoint(point) {
 
-        if (!this.doesIntersect(other))
-            return null;
+        let distance = new Point();
 
-        if (other === this)
-            return this.clone();
+        if (point.x < this.x)
+            distance.x = this.x - point.x;
+        else if (point.x >= this.x + this.width)
+            distance.x = this.x + this.width - point.x + 1;
 
-        let rect = new Rect();
+        if (point.y < this.y)
+            distance.y = this.y - point.y;
+        else if (point.y >= this.y + this.height)
+            distance.y = this.y + this.height - point.y + 1;
 
-        rect.x = Math.max(this.x, other.x);
-        rect.y = Math.max(this.y, other.y);
-
-        rect.width = Math.min(this.x + this.width, other.x + other.width) - rect.x;
-        rect.height = Math.min(this.y + this.height, other.y + other.height) - rect.y;
-
-        return rect;
+        return distance;
 
     }
 
-    union(other) {
+    get barycenter() {
 
-        let rect = new Rect();
+        if (Rect.isEmpty(this))
+            return null;
 
-        rect.x = Math.min(this.x, other.x);
-        rect.y = Math.min(this.y, other.y);
+        let point = new Point();
 
-        rect.width = Math.max(this.x + this.width, other.x + other.width) - rect.x;
-        rect.height = Math.max(this.y + this.height, other.y + other.height) - rect.y;
+        point.x = this.x + this.width / 2;
+        point.y = this.y + this.height / 2;
 
-        return rect;
+        return point;
 
     }
 
