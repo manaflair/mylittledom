@@ -1,4 +1,4 @@
 {
-    "presets": [ [ "env", { "targets": { "node": "current", "browser": "> 5%" }, "exclude": [ "transform-es2015-classes" ] } ], "react" ],
+    "presets": [ { "passPerPreset": true, "presets": [ { "plugins": [ "transform-runtime" ] }, { "passPerPreset": false, "presets": [ [ "env", { "targets": { "node": "current", "browser": "> 5%" }, "exclude": [ "transform-es2015-classes" ] } ], "react" ] } ] } ],
     "plugins": [ "transform-class-properties", "transform-decorators-legacy", "transform-object-rest-spread", "react-require", [ "module-resolver", { "alias": { "@manaflair/mylittledom": "./sources" } } ] ]
 }
