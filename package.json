@@ -4,7 +4,7 @@
   "version": "0.4.2",
   "license": "MIT",
   "scripts": {
-    "install:dev": "npm-git install --verbose",
+    "install": "npm-git install --verbose",
     "docs": "npm run build:demo",
     "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
     "test:debug": "mocha --debug-brk --inspect --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
@@ -16,6 +16,7 @@
     "push": "npm run build && cp README.md dist/ && jq 'del(.private)' package.json > dist/package.json && (cd dist && npm publish)"
   },
   "dependencies": {
+    "@arcanis/npm-git-install": "^0.3.0",
     "@manaflair/term-strings": "^0.8.1",
     "@manaflair/text-layout": "^0.7.0",
     "core-decorators": "^0.13.0",
@@ -23,11 +24,9 @@
     "immutable": "^3.8.1",
     "lodash": "^4.16.4",
     "plist": "^2.0.1",
-    "text-buffer": "^11.4.0",
-    "yoga-layout": "^1.2.0"
+    "text-buffer": "^11.4.0"
   },
   "devDependencies": {
-    "@arcanis/npm-git-install": "^0.2.1",
     "babel-cli": "^6.23.0",
     "babel-core": "^6.23.0",
     "babel-loader": "^6.2.8",
@@ -68,7 +67,9 @@
     "webpack": "^2.2.0",
     "webpack-dev-server": "^2.2.0",
     "xterm": "^2.1.0",
-    "yargs": "^6.6.0",
-    "yoga-layout": "^1.0.1"
+    "yargs": "^6.6.0"
+  },
+  "gitDependencies": {
+    "yoga-layout": "https://github.com/arcanis/yoga.git#fractial-leftover?/javascript"
   }
 }

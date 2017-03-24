@@ -16,7 +16,9 @@ import { Node }                                               from './Node';
 import { flags }                                              from './flags';
 import { isChildOf }                                          from './traverse';
 
-Yoga.setExperimentalFeatureEnabled(Yoga.EXPERIMENTAL_FEATURE_ROUNDING, true);
+let yogaConfig = Yoga.Config.create();
+
+yogaConfig.setExperimentalFeatureEnabled(Yoga.EXPERIMENTAL_FEATURE_ROUNDING, true);
 
 function getPreferredSize(node, ... args) {
 
@@ -32,7 +34,7 @@ export class Element extends Node {
 
         EventSource.setup(this, { getParentInstance: () => this.parentNode });
 
-        this.yogaNode = Yoga.Node.create();
+        this.yogaNode = Yoga.Node.create(yogaConfig);
         this.yogaNode.setMeasureFunc(getPreferredSize.bind(null, this));
 
         this.flags = flags.ELEMENT_HAS_DIRTY_NODE_LIST | flags.ELEMENT_HAS_DIRTY_LAYOUT;
