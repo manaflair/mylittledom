@@ -9,9 +9,9 @@
     commander "^2.9.0"
     temp "^0.8.3"
 
-"@manaflair/term-strings@^0.8.1":
-  version "0.8.1"
-  resolved "https://registry.yarnpkg.com/@manaflair/term-strings/-/term-strings-0.8.1.tgz#4935aa4e52c5d0eca4075b81d15c7fb8dbb99679"
+"@manaflair/term-strings@^0.9.1":
+  version "0.9.1"
+  resolved "https://registry.yarnpkg.com/@manaflair/term-strings/-/term-strings-0.9.1.tgz#ff4415c5dba69e6eb5939f99e2ae668964d6961d"
   dependencies:
     babel-runtime "^6.23.0"
     color-diff "^1.0.0"
@@ -3766,15 +3766,15 @@ right-align@^0.1.1:
   dependencies:
     align-text "^0.1.1"
 
-rimraf@2, rimraf@^2.5.1, rimraf@^2.5.2, rimraf@^2.6.1:
+rimraf@2, rimraf@~2.2.6:
+  version "2.2.8"
+  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-2.2.8.tgz#e439be2aaee327321952730f99a8929e4fc50582"
+
+rimraf@^2.5.1, rimraf@^2.5.2, rimraf@^2.6.1:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-2.6.1.tgz#c2338ec643df7a1b7fe5c54fa86f57428a55f33d"
   dependencies:
     glob "^7.0.5"
-
-rimraf@~2.2.6:
-  version "2.2.8"
-  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-2.2.8.tgz#e439be2aaee327321952730f99a8929e4fc50582"
 
 ripemd160@^1.0.0:
   version "1.0.1"

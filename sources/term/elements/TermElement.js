@@ -352,7 +352,7 @@ export class TermElement extends Element {
     renderBackground(l) {
 
         if (l < 0)
-            throw new Error(`Failed to execute 'renderBackground': Invalid size.`);
+            throw new Error(`Failed to execute 'renderBackground': Invalid length (${l}).`);
 
         if (l === 0)
             return ``;

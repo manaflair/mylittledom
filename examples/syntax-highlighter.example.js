@@ -9,8 +9,8 @@ import plist                                               from 'plist';
 // with Yoga & Text-Buffer, but it will take time :)
 
 let highlighter = new SyntaxHighlighter();
-highlighter.grammar.load(`javascript`, readFileSync(`${__dirname}/data/JavaScriptNext.tmLanguage`)).use();
-highlighter.theme.load(`tron`, readFileSync(`${__dirname}/data/tron.tmTheme`)).use();
+highlighter.grammar.load(`javascript`, readFileSync(`${__dirname}/data/language-javascript.json`)).use();
+highlighter.theme.load(`tron`, readFileSync(`${__dirname}/data/theme-tron.tmTheme`)).use();
 
 let container = new TermElement();
 container.style.height = `100%`;

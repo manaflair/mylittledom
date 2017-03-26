@@ -298,7 +298,7 @@ export class SyntaxHighlighter extends TextLayout {
             let activeGuideColor = this.getColor(this.theme.resolve([], `activeGuide`, `#333333`));
             let stackedGuideColor = this.getColor(this.theme.resolve([], `stackedGuide`, `#333333`));
 
-            output.enter(guideColor.front);
+            output.pushStyle({ front: guideColor.front });
 
             for (let t = 0; t < tokens.length; ++t) {
 
@@ -316,7 +316,7 @@ export class SyntaxHighlighter extends TextLayout {
                     break;
 
                 for (let u = 0; u < spaces.length; ++u) {
-                    output.append(spaceCount % 4 === 0 ? `│` : ` `);
+                    output.pushText(spaceCount % 4 === 0 ? `│` : ` `);
                     spaceCount += 1;
                 }
 
@@ -334,12 +334,15 @@ export class SyntaxHighlighter extends TextLayout {
                 let minSpaceCount = Math.max(topRowSpaceCount, bottomRowSpaceCount);
 
                 for (; spaceCount < minSpaceCount; ++spaceCount) {
-                    output.append(spaceCount % 4 === 0 ? `│` : ` `);
+                    output.pushText(spaceCount % 4 === 0 ? `│` : ` `);
                 }
 
             }
 
         }
+
+        let previousFrontColor = null;
+        let previousBackColor = null;
 
         for (let t = 0; t < tokens.length; ++t) {
 
@@ -347,16 +350,16 @@ export class SyntaxHighlighter extends TextLayout {
             let props = this.theme.resolve(token.scopes);
 
             if (props.background)
-                output.enter(this.getColor(props.background).back);
+                output.pushStyle({ back: this.getColor(props.background).back });
             else
-                output.enter(defaultBackColor.back);
+                output.pushStyle({ back: defaultBackColor.back });
 
             if (props.foreground)
-                output.enter(this.getColor(props.foreground).front);
+                output.pushStyle({ front: this.getColor(props.foreground).front });
             else
-                output.enter(defaultFrontColor.front);
+                output.pushStyle({ front: defaultFrontColor.front });
 
-            output.append(token.value);
+            output.pushText(token.value);
 
         }
 

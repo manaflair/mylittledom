@@ -225,20 +225,12 @@ export class Node {
 
     }
 
-    traverse(fn) {
+    traverse(fn, { depth = 0 } = {}) {
 
-        let queue = [ this ];
+        fn(this, depth);
 
-        while (!isEmpty(queue)) {
-
-            let node = queue.pop();
-
-            fn(node);
-
-            for (let child of node.childNodes) {
-                queue.push(child);
-            }
-
+        for (let child of this.childNodes) {
+            child.traverse(fn, { depth: depth + 1 });
         }
 
     }
