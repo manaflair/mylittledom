@@ -1,17 +1,23 @@
-import { TextLayout }                            from '@manaflair/text-layout/sources/entry-browser';
-import { isBoolean }                             from 'lodash';
-import TextBuffer                                from 'text-buffer';
+import { TextLayout }                                                       from '@manaflair/text-layout/sources/entry-browser';
+import { isBoolean }                                                        from 'lodash';
+import TextBuffer                                                           from 'text-buffer';
 
-import { Event, Point, findAncestorByPredicate } from '../../core';
+import { Event, Point, StyleManager, findAncestorByPredicate, makeRuleset } from '../../core';
 
-import { TermElement }                           from './TermElement';
-import { TermForm }                              from './TermForm';
+import { TermElement }                                                      from './TermElement';
+import { TermForm }                                                         from './TermForm';
 
 export class TermTextBase extends TermElement {
 
     constructor({ textBuffer = new TextBuffer(), textLayout = new TextLayout(), enterIsNewline = true, readOnly = false, disabled = false, ... props } = {}) {
 
         super(props);
+
+        this.styleManager.addRuleset(makeRuleset({
+
+            overflow: `hidden`
+
+        }), StyleManager.RULESET_NATIVE);
 
         this.textBuffer = textBuffer;
         this.textLayout = textLayout;

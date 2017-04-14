@@ -484,42 +484,46 @@ export class Element extends Node {
 
         this.triggerUpdates();
 
-        let effectiveAlignX = alignX;
-        let effectiveAlignY = alignY;
+        if (this.style.$.overflow.doesHideOverflow) {
 
-        if (effectiveAlignX === `auto`)
-            effectiveAlignX = Math.abs(position.x - this.scrollLeft) < Math.abs(position.x - (this.scrollLeft + this.elementRect.width - 1)) ? `start` : `end`;
+            let effectiveAlignX = alignX;
+            let effectiveAlignY = alignY;
 
-        if (effectiveAlignY === `auto`)
-            effectiveAlignY = Math.abs(position.y - this.scrollTop) < Math.abs(position.y - (this.scrollTop + this.elementRect.height - 1)) ? `start` : `end`;
+            if (effectiveAlignX === `auto`)
+                effectiveAlignX = Math.abs(position.x - this.scrollLeft) < Math.abs(position.x - (this.scrollLeft + this.elementRect.width - 1)) ? `start` : `end`;
 
-        if (forceX || position.x < this.scrollLeft || position.x >= this.scrollLeft + this.elementRect.width) {
+            if (effectiveAlignY === `auto`)
+                effectiveAlignY = Math.abs(position.y - this.scrollTop) < Math.abs(position.y - (this.scrollTop + this.elementRect.height - 1)) ? `start` : `end`;
 
-            switch (effectiveAlignX) {
+            if (forceX || position.x < this.scrollLeft || position.x >= this.scrollLeft + this.elementRect.width) {
 
-                case `start`: {
-                    this.scrollLeft = position.x;
-                } break;
+                switch (effectiveAlignX) {
 
-                case `end`: {
-                    this.scrollLeft = position.x - this.elementRect.width + 1;
-                } break;
+                    case `start`: {
+                        this.scrollLeft = position.x;
+                    } break;
+
+                    case `end`: {
+                        this.scrollLeft = position.x - this.elementRect.width + 1;
+                    } break;
+
+                }
 
             }
 
-        }
+            if (forceY || position.y < this.scrollTop || position.y >= this.scrollTop + this.elementRect.height) {
 
-        if (forceY || position.y < this.scrollTop || position.y >= this.scrollTop + this.elementRect.height) {
+                switch (effectiveAlignY) {
 
-            switch (effectiveAlignY) {
+                    case `start`: {
+                        this.scrollTop = position.y;
+                    } break;
 
-                case `start`: {
-                    this.scrollTop = position.y;
-                } break;
+                    case `end`: {
+                        this.scrollTop = position.y - this.elementRect.height + 1;
+                    } break;
 
-                case `end`: {
-                    this.scrollTop = position.y - this.elementRect.height + 1;
-                } break;
+                }
 
             }
 
@@ -910,8 +914,13 @@ export class Element extends Node {
                 let prevScrollX = this.scrollRect.x;
                 let prevScrollY = this.scrollRect.y;
 
-                this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.elementRect.width);
-                this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.elementRect.height);
+                if (this.style.$.overflow.doesHideOverflow) {
+                    this.scrollRect.x = Math.min(this.scrollRect.x, this.scrollRect.width - this.elementRect.width);
+                    this.scrollRect.y = Math.min(this.scrollRect.y, this.scrollRect.height - this.elementRect.height);
+                } else {
+                    this.scrollRect.x = 0;
+                    this.scrollRect.y = 0;
+                }
 
                 doesScrollChange = this.scrollRect.x !== prevScrollX || this.scrollRect.y !== prevScrollY;
 

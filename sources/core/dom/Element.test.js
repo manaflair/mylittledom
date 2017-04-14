@@ -1,5 +1,6 @@
 import { expect }        from 'chai';
 
+import { Point }         from '../misc/Point';
 import { StyleColor }    from '../style/types/StyleColor';
 import { StyleDisplay }  from '../style/types/StyleDisplay';
 import { StyleLength }   from '../style/types/StyleLength';
@@ -14,6 +15,7 @@ describe(`Element`, () => {
         it(`should scroll until the element is on the top of the screen`, () => {
 
             let container = new Element();
+            container.style.overflow = `hidden`;
             container.style.width = 100;
             container.style.height = 100;
 
@@ -33,9 +35,42 @@ describe(`Element`, () => {
 
             elementB.scrollIntoView();
 
-            console.log(container.getElementRects());
-
             expect(container.scrollTop).to.equal(110);
+            expect(elementA.scrollTop).to.equal(0);
+            expect(elementB.scrollTop).to.equal(0);
+
+        });
+
+        it(`should not scroll absolute containers that are inside the viewport`, () => {
+
+            let container = new Element();
+            container.style.overflow = `hidden`;
+            container.style.width = 100;
+            container.style.height = 100;
+
+            let elementA = new Element();
+            elementA.style.position = `absolute`;
+            elementA.style.left = 0;
+            elementA.style.right = 0;
+            elementA.style.top = 0;
+            elementA.appendTo(container);
+
+            let elementB = new Element();
+            elementB.style.position = `absolute`;
+            elementB.style.left = 0;
+            elementB.style.right = 0;
+            elementB.style.top = 0;
+            elementB.style.height = 3;
+            elementB.style.border = `modern`;
+            elementB.appendTo(elementA);
+
+            container.triggerUpdates();
+
+            console.log(elementA.getElementRects());
+
+            elementB.scrollCellIntoView(new Point({ x: 1, y: 1 }));
+
+            expect(container.scrollTop).to.equal(0);
             expect(elementA.scrollTop).to.equal(0);
             expect(elementB.scrollTop).to.equal(0);
 
@@ -48,6 +83,7 @@ describe(`Element`, () => {
         it(`should scroll until the specified row is on the top of the screen`, () => {
 
             let container = new Element();
+            container.style.overflow = `hidden`;
             container.style.width = 100;
             container.style.height = 100;
 
@@ -71,6 +107,7 @@ describe(`Element`, () => {
         it(`should scroll until the specified row is on the bottom of the screen`, () => {
 
             let container = new Element();
+            container.style.overflow = `hidden`;
             container.style.width = 100;
             container.style.height = 100;
 
@@ -94,6 +131,7 @@ describe(`Element`, () => {
         it(`should not scroll when the specified row is already in the viewport`, () => {
 
             let container = new Element();
+            container.style.overflow = `hidden`;
             container.style.width = 100;
             container.style.height = 100;
 
@@ -121,17 +159,19 @@ describe(`Element`, () => {
         it(`should scroll its parent node as required to bring the line into the viewport`, () => {
 
             let container = new Element();
+            container.style.overflow = `hidden`;
             container.style.width = 100;
             container.style.height = 100;
 
             let elementA = new Element();
+            elementA.style.overflow = `hidden`;
             elementA.style.width = 100;
             elementA.style.height = 200;
             elementA.appendTo(container);
 
             let elementB = new Element();
             elementB.style.width = 100;
-            elementB.style.height = 400;
+            elementB.style.height = 600;
             elementB.appendTo(elementA);
 
             container.triggerUpdates();
@@ -139,7 +179,7 @@ describe(`Element`, () => {
             elementB.scrollRowIntoView(400);
 
             expect(container.scrollTop).to.equal(100);
-            expect(elementA.scrollTop).to.equal(200);
+            expect(elementA.scrollTop).to.equal(201);
             expect(elementB.scrollTop).to.equal(0);
 
         });

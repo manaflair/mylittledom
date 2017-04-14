@@ -22,6 +22,13 @@ export class TermButton extends TermText {
 
             textDecoration: `underline`
 
+        }, `:decored:focus`, {
+
+            borderColor: `white`,
+            color: `white`,
+
+            textDecoration: `underline`
+
         }, `:decored:active`, {
 
             backgroundClip: `paddingBox`,

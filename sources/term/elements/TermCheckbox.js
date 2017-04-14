@@ -37,11 +37,13 @@ export class TermCheckbox extends TermElement {
 
         });
 
-        this.addShortcutListener(`enter`, () => {
+        this.addShortcutListener(`enter`, e => {
 
-            this.checked = !this.checked;
+            e.setDefault(() => {
+                this.checked = !this.checked;
+            });
 
-        });
+        }, { capture: true });
 
         this.setPropertyTrigger(`name`, name, {
 

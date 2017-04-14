@@ -19,7 +19,8 @@ export class TermScreen extends TermElement {
 
         this.styleManager.addRuleset(makeRuleset({
             position: `relative`,
-            width: 0, height: 0
+            width: 0, height: 0,
+            overflow: `hidden`
         }), StyleManager.RULESET_NATIVE);
 
         // We prevent this element from being set as child of another node
