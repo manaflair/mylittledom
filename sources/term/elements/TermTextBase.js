@@ -19,9 +19,82 @@ export class TermTextBase extends TermElement {
 
         }), StyleManager.RULESET_NATIVE);
 
-        this.textBuffer = textBuffer;
-        this.textLayout = textLayout;
         this.textLines = [ `` ];
+
+        this.setPropertyTrigger(`textBuffer`, textBuffer, {
+
+            trigger: value => {
+
+                this.clearTextLayoutCache();
+
+            }
+
+        });
+
+        this.setPropertyTrigger(`textLayout`, textLayout, {
+
+            trigger: value => {
+
+                if (value) {
+
+                    value.setCharacterGetter(offset => {
+
+                        if (!this.textBuffer)
+                            return 0;
+
+                        let position = this.textBuffer.positionForCharacterIndex(offset);
+
+                        if (position.column == this.textBuffer.lineLengthForRow(position.row))
+                            return this.textBuffer.lineEndingForRow(position.row);
+
+                        return this.textBuffer.lineForRow(position.row)[position.column];
+
+                    });
+
+                    value.setCharacterCountGetter(() => {
+
+                        if (!this.textBuffer)
+                            return 0;
+
+                        return this.textBuffer.getMaxCharacterIndex();
+
+                    });
+
+                    value.setSoftWrap(
+                        this.style.$.whiteSpace.doesWrap
+                    );
+
+                    value.setDemoteNewlines(
+                        this.style.$.whiteSpace.doesDemoteNewlines
+                    );
+
+                    value.setCollapseWhitespaces(
+                        this.style.$.whiteSpace.doesCollapse
+                    );
+
+                    value.setPreserveLeadingSpaces(
+                        !this.style.$.whiteSpace.doesCollapse
+                    );
+
+                    value.setPreserveTrailingSpaces(
+                        !this.style.$.whiteSpace.doesCollapse
+                    );
+
+                    value.setJustifyText(
+                        this.style.$.textAlign.isJustified
+                    );
+
+                    value.setAllowWordBreaks(
+                        this.style.$.overflowWrap.doesBreakWords
+                    );
+
+                }
+
+                this.clearTextLayoutCache();
+
+            }
+
+        });
 
         this.setPropertyTrigger(`readOnly`, readOnly, {
 
@@ -60,31 +133,6 @@ export class TermTextBase extends TermElement {
             }
 
         });
-
-        this.textLayout.setCharacterGetter(offset => {
-
-            let position = this.textBuffer.positionForCharacterIndex(offset);
-
-            if (position.column == this.textBuffer.lineLengthForRow(position.row))
-                return this.textBuffer.lineEndingForRow(position.row);
-
-            return this.textBuffer.lineForRow(position.row)[position.column];
-
-        });
-
-        this.textLayout.setCharacterCountGetter(() => {
-
-            return this.textBuffer.getMaxCharacterIndex();
-
-        });
-
-        this.textLayout.setSoftWrap(this.style.$.whiteSpace.doesWrap);
-        this.textLayout.setDemoteNewlines(this.style.$.whiteSpace.doesDemoteNewlines);
-        this.textLayout.setCollapseWhitespaces(this.style.$.whiteSpace.doesCollapse);
-        this.textLayout.setPreserveLeadingSpaces(!this.style.$.whiteSpace.doesCollapse);
-        this.textLayout.setPreserveTrailingSpaces(!this.style.$.whiteSpace.doesCollapse);
-        this.textLayout.setJustifyText(this.style.$.textAlign.isJustified);
-        this.textLayout.setAllowWordBreaks(this.style.$.overflowWrap.doesBreakWords);
 
         this.textLayout.reset().apply(this.textLines);
 
@@ -495,21 +543,28 @@ export class TermTextBase extends TermElement {
 
     }
 
-    bustTextLayoutCache() {
+    clearTextLayoutCache() {
 
-        this.textLayout.reset().apply(this.textLines);
+        if (!this.textLayout)
+            return;
 
+        this.textLayout.reset().apply(this.textLines = [ `` ]);
         this.queueDirtyRect(this.contentClipRect);
 
     }
 
     getPreferredSize(maxWidth) {
 
-        if (this.textLayout.setOptions({ columns: maxWidth }))
+        if (this.textLayout && this.textLayout.setOptions({ columns: maxWidth }))
             this.textLayout.reset().apply(this.textLines);
 
-        let width = this.textLayout.getColumnCount();
-        let height = this.textLayout.getRowCount();
+        let width = this.textLayout
+            ? this.textLayout.getColumnCount()
+            : 0;
+
+        let height = this.textLayout
+            ? this.textLayout.getRowCount()
+            : 0;
 
         return { width, height };
 
@@ -517,13 +572,17 @@ export class TermTextBase extends TermElement {
 
     getInternalContentWidth() {
 
-        return this.textLayout.getColumnCount();
+        return this.textLayout
+            ? this.textLayout.getColumnCount()
+            : 0;
 
     }
 
     getInternalContentHeight() {
 
-        return this.textLayout.getRowCount();
+        return this.textLayout
+            ? this.textLayout.getRowCount()
+            : 0;
 
     }
 
