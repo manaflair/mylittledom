@@ -20,10 +20,84 @@ export class TermTextBase extends TermElement {
         }), StyleManager.RULESET_NATIVE);
 
         this.textLines = [ `` ];
+        this.textBufferCallback = null;
 
         this.setPropertyTrigger(`textBuffer`, textBuffer, {
 
             trigger: value => {
+
+                if (this.textBufferCallback) {
+
+                    this.textBufferCallback.dispose();
+                    this.textBufferCallback = null;
+
+                }
+
+                if (value) {
+
+                    this.disposeTextBufferCallback = value.onDidChange(({ oldRange, oldText, newText }) => {
+
+                        if (!this.textLayout)
+                            return;
+
+                        let offset = this.textBuffer.characterIndexForPosition(oldRange.start);
+                        let start = this.textLayout.getPositionForCharacterIndex(offset);
+
+                        let oldColumnCount = this.textLayout.getColumnCount();
+                        let oldRowCount = this.textLayout.getRowCount();
+
+                        let oldEnd = this.textLayout.getPositionForCharacterIndex(offset + oldText.length);
+                        let patch = this.textLayout.update(offset, oldText.length, newText.length);
+                        let newEnd = this.textLayout.getPositionForCharacterIndex(offset + newText.length);
+
+                        let newColumnCount = this.textLayout.getColumnCount();
+                        let newRowCount = this.textLayout.getRowCount();
+
+                        patch.apply(this.textLines);
+
+                        if (newColumnCount !== oldColumnCount || newRowCount !== oldRowCount) {
+
+                            this.yogaNode.markDirty();
+
+                            this.setDirtyLayoutFlag();
+                            this.queueDirtyRect();
+
+                        } else if (oldEnd.y === newEnd.y) {
+
+                            let dirtyRect = this.contentWorldRect.clone();
+
+                          //dirtyRect.x += start.x - this.scrollRect.x; // We can't apply this optimization because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the *previous ones* are displayed
+                            dirtyRect.y += start.y - this.scrollRect.y;
+
+                            dirtyRect.height = 1;
+
+                            this.queueDirtyRect(dirtyRect);
+
+                        } else {
+
+                            let dirtyRect = this.contentWorldRect.clone();
+
+                            dirtyRect.y += start.y - this.scrollRect.y;
+
+                            dirtyRect.height = Math.max(oldEnd.y, newEnd.y) - start.y + 1;
+
+                            this.queueDirtyRect(dirtyRect);
+
+                        }
+
+                        if (oldText.length !== newText.length) {
+
+                            this.caretIndex = this.rootNode.activeElement === this ? this.textBuffer.getMaxCharacterIndex() : 0;
+                            this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
+                            this.caretMaxColumn = this.caret.x;
+
+                            this.dispatchEvent(new Event(`caret`));
+
+                        }
+
+                    });
+
+                }
 
                 this.clearTextLayoutCache();
 
@@ -140,65 +214,6 @@ export class TermTextBase extends TermElement {
 
             if (this.textLayout.setOptions({ columns: this.contentRect.width })) {
                 this.textLayout.reset().apply(this.textLines);
-            }
-
-        });
-
-        this.textBuffer.onDidChange(({ oldRange, oldText, newText }) => {
-
-            let offset = this.textBuffer.characterIndexForPosition(oldRange.start);
-            let start = this.textLayout.getPositionForCharacterIndex(offset);
-
-            let oldColumnCount = this.textLayout.getColumnCount();
-            let oldRowCount = this.textLayout.getRowCount();
-
-            let oldEnd = this.textLayout.getPositionForCharacterIndex(offset + oldText.length);
-            let patch = this.textLayout.update(offset, oldText.length, newText.length);
-            let newEnd = this.textLayout.getPositionForCharacterIndex(offset + newText.length);
-
-            let newColumnCount = this.textLayout.getColumnCount();
-            let newRowCount = this.textLayout.getRowCount();
-
-            patch.apply(this.textLines);
-
-            if (newColumnCount !== oldColumnCount || newRowCount !== oldRowCount) {
-
-                this.yogaNode.markDirty();
-
-                this.setDirtyLayoutFlag();
-                this.queueDirtyRect();
-
-            } else if (oldEnd.y === newEnd.y) {
-
-                let dirtyRect = this.contentWorldRect.clone();
-
-              //dirtyRect.x += start.x - this.scrollRect.x; // We can't apply this optimization because of syntax highlightning and non-left-aligned alignments, where adding a character might change the way the *previous ones* are displayed
-                dirtyRect.y += start.y - this.scrollRect.y;
-
-                dirtyRect.height = 1;
-
-                this.queueDirtyRect(dirtyRect);
-
-            } else {
-
-                let dirtyRect = this.contentWorldRect.clone();
-
-                dirtyRect.y += start.y - this.scrollRect.y;
-
-                dirtyRect.height = Math.max(oldEnd.y, newEnd.y) - start.y + 1;
-
-                this.queueDirtyRect(dirtyRect);
-
-            }
-
-            if (oldText.length !== newText.length) {
-
-                this.caretIndex = this.rootNode.activeElement === this ? this.textBuffer.getMaxCharacterIndex() : 0;
-                this.caret = new Point(this.textLayout.getPositionForCharacterIndex(this.caretIndex));
-                this.caretMaxColumn = this.caret.x;
-
-                this.dispatchEvent(new Event(`caret`));
-
             }
 
         });
