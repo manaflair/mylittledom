@@ -428,7 +428,7 @@ export class TermScreen extends TermElement {
 
             if (input.name === `wheel`) {
 
-                let event = new Event(`mousewheel`);
+                let event = new Event(`mousewheel`, { bubbles: true });
                 event.mouse = input;
 
                 event.worldCoordinates = worldCoordinates;

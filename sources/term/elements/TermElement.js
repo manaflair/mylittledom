@@ -36,9 +36,14 @@ export class TermElement extends Element {
 
         this.addEventListener(`mousewheel`, e => {
 
-            this.scrollTop += e.mouse.d * 2;
+            if (this.scrollHeight === this.offsetHeight)
+                return;
 
-        });
+            e.setDefault(() => {
+                this.scrollTop += e.mouse.d * 2;
+            });
+
+        }, { capture: true });
 
         this.addEventListener(`mouseenter`, e => {
 

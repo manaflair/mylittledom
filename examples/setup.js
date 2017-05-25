@@ -50,6 +50,7 @@ if (argv.console) {
     console.style.bottom = 0;
     console.style.width = 80;
     console.style.border = `strong`;
+    console.style.whiteSpace = `pre`;
     console.appendTo(global.screen);
 
     global.console.log = (... args) => {
@@ -60,6 +61,20 @@ if (argv.console) {
 }
 
 if (argv.debugShortcuts) {
+
+    global.screen.addShortcutListener(`C-a`, () => {
+        global.screen.traverse((node, depth) => {
+
+            console.log(`  `.repeat(depth), node.toString());
+
+            let rects = node.getElementRects();
+
+            for (let name of [ `elementRect`, `contentRect`, `scrollRect` ]) {
+                console.log(`  `.repeat(depth + 1), name, rects[name]);
+            }
+
+        }, { depth: 3 });
+    }, { capture: true });
 
     global.screen.addShortcutListener(`C-l`, () => {
         global.screen.queueDirtyRect();

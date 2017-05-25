@@ -290,6 +290,22 @@ export class Element extends Node {
 
     }
 
+    get innerWidth() {
+
+        this.triggerUpdates();
+
+        return this.contentRect.width;
+
+    }
+
+    get innerHeight() {
+
+        this.triggerUpdates();
+
+        return this.contentRect.height;
+
+    }
+
     getCaretCoordinates() {
 
         if (this.rootNode !== this) {

@@ -225,12 +225,15 @@ export class Node {
 
     }
 
-    traverse(fn, { depth = 0 } = {}) {
+    traverse(fn, { depth = Infinity, currentDepth = 0 } = {}) {
 
-        fn(this, depth);
+        if (currentDepth >= depth)
+            return;
+
+        fn(this, currentDepth);
 
         for (let child of this.childNodes) {
-            child.traverse(fn, { depth: depth + 1 });
+            child.traverse(fn, { depth, currentDepth: currentDepth + 1 });
         }
 
     }

@@ -564,7 +564,7 @@ export class TermTextBase extends TermElement {
             return;
 
         this.textLayout.reset().apply(this.textLines = [ `` ]);
-        this.queueDirtyRect(this.contentClipRect);
+        this.setDirtyLayoutFlag();
 
     }
 
