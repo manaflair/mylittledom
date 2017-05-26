@@ -14,7 +14,7 @@
   - Work in Node.js but also inside web browsers (through [XTerm.js](https://github.com/sourcelair/xterm.js/))
   - Automatic text layout à-la-CSS (text-align, overflow-wrap, white-space, ...)
   - Border support, padding support, positioning support, custom rendering support ...
-  - Native React renderer
+  - Ships with a fully-integrated React renderer
 
 ## Installation
 
