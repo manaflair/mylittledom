@@ -253,7 +253,7 @@ let TermRenderer = ReactFiberReconcilier(new class {
 
         // Note that `type` will always be a string (because React itself will handle the React components). You will probably want to make some kind of switch (or use a type->host map, maybe?) to convert this string into the right host component.
 
-        let propNames = Reflect.ownKeys(props).filter(prop => prop !== `ref`);
+        let propNames = Reflect.ownKeys(props).filter(prop => prop !== `ref` && prop !== `key`);
         let [ managed, unmanaged ] = partition(propNames, prop => MANAGED_PROPS.has(prop));
 
         let instance = createInstance(type, pick(props, unmanaged));
