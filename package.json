@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@manaflair/term-strings": "^0.9.1",
-    "@manaflair/text-layout": "^0.7.0",
+    "@manaflair/text-layout": "^0.7.1",
     "core-decorators": "^0.13.0",
     "first-mate": "^6.2.1",
     "immutable": "^3.8.1",
