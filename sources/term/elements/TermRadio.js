@@ -38,7 +38,7 @@ export class TermRadio extends TermElement {
 
         });
 
-        this.addEventListener(`click`, () => {
+        this.addEventListener(`click`, e => {
 
             e.setDefault(() => {
                 this.checked = true;
