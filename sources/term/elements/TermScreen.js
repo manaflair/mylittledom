@@ -377,8 +377,14 @@ export class TermScreen extends TermElement {
             let y = this.activeElement.contentWorldRect.y - this.activeElement.scrollRect.y + this.activeElement.caret.y;
 
             if (x >= this.activeElement.contentClipRect.x && x < this.activeElement.contentClipRect.x + this.activeElement.contentClipRect.width && y >= this.activeElement.contentClipRect.y && y < this.activeElement.contentClipRect.y + this.activeElement.contentClipRect.height) {
-                buffer += cursor.moveTo({ x, y });
-                buffer += cursor.normal;
+
+                let visibleElement = this.getElementAt(new Point({ x, y }));
+
+                if (visibleElement === this.activeElement) {
+                    buffer += cursor.moveTo({ x, y });
+                    buffer += cursor.normal;
+                }
+
             }
 
         }
