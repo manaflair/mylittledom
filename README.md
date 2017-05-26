@@ -26,6 +26,9 @@ $> npm install --save @manaflair/mylittledom
 
 ## Example (raw js)
 
+<details>
+<summary>Click to reveal the example</summary>
+
 ```js
 import { TermScreen, TermElement } from '@manaflair/mylittledom/term';
 
@@ -69,7 +72,12 @@ ball.appendTo(screen);
 })(+1, +1)
 ```
 
+</details>
+
 ## Example (React)
+
+<details>
+<summary>Click to reveal the example</summary>
 
 ```js
 import { render }     from '@manaflair/mylittledom/term/react';
@@ -80,6 +88,8 @@ screen.attachScreen();
 
 render(<div>Hello world!</div>, screen);
 ```
+
+</details>
 
 ---
 
