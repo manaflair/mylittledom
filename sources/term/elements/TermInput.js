@@ -7,7 +7,7 @@ import { TermTextBase }              from './TermTextBase';
 
 export class TermInput extends TermTextBase {
 
-    constructor({ value = ``, textBuffer = new TextBuffer(value), multiline = false, ... props } = {}) {
+    constructor({ value = ``, textBuffer = new TextBuffer(value), multiline = false, autoWidth = false, autoHeight = false, ... props } = {}) {
 
         super({ ... props, textBuffer });
 
@@ -75,6 +75,52 @@ export class TermInput extends TermTextBase {
             }
 
         });
+
+        this.setPropertyTrigger(`autoWidth`, autoWidth, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: () => {
+
+                this.setDirtyLayoutFlag();
+
+            }
+
+        });
+
+        this.setPropertyTrigger(`autoHeight`, autoHeight, {
+
+            validate: value => {
+
+                return isBoolean(value);
+
+            },
+
+            trigger: () => {
+
+                this.setDirtyLayoutFlag();
+
+            }
+
+        });
+
+    }
+
+    getPreferredSize(maxWidth) {
+
+        let { width, height } = super.getPreferredSize(maxWidth);
+
+        if (!this.autoWidth)
+            width = 0;
+
+        if (!this.autoHeight)
+            height = 0;
+
+        return { width, height };
 
     }
 
