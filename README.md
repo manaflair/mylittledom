@@ -167,33 +167,49 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - Forms are used to wrap various input elements.
 
-  - `new TermInput({ value, textBuffer, multiline })`
+  - `new TermInput({ value, textBuffer, multiline, autoWidth, autoHeight })`
 
-    - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `value` option.
+    - Generates a user-editable textbox.
+
+    - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `value` option (or an empty string if undefined).
 
     - The `value` property contains the actual value of the element. You can also access it directly from the `textBuffer` property. Setting this property will replace the text inside the buffer.
 
-    - You can instruct the TermInput to not add any particular style to the element by setting the `decored` option to `false`.
+    - Note that since the `TermInput` class inherits from `TermElement`, you can instruct the element to not add any particular style to the element by setting the `decored` option to `false`. Useful if you want to style it yourself without having to override the native styles.
 
     - When enabled, the `multiline` option will make <kbd>enter</kbd> insert newline characters inside the element content. When disabled, <kbd>enter</kbd> keystrokes will be forwarded to the nearest `TermForm` ancestor, or ignored if there's none to be found.
+
+    - When enabled, the `autoHeight` option will instruct the element to give its row count as height preference during the layout. It means that the element will try to be at least as big as its content, if allowed by the CSS rules. The `autoWidth` option does the same thing, but for the column count and the width. If these options are disabled (which is the default), the element size will completely ignore its content, just like in regular browsers.
 
     - A `change` event will be emitted when the text buffer gets updated.
 
   - `new TermLabel()`
 
-    - This component will forward any click directed to it directly to the nearest focusable child.
+    - This component will forward any click to its directly to the nearest focusable child.
+
+    - You will usually want to put a text node and some kind of input inside the label, so that clicking on the text node will automatically forward the click event to the input.
 
   - `new TermRadio({ checked })`
 
-    - Display a radio button. The status of the element (checked / unchecked) can be altered through the `checked` option. When a radio button becomes checked, all other radio buttons sharing the same name (excepting `null`) and *located inside the same form element* will be automatically unchecked.
+    - Generates a radio input.
+
+    - The status of the element (checked / unchecked) can be altered through the `checked` option.
+
+    - When a radio button becomes checked, all other radio buttons sharing the same name (excepting `null`) and *located inside the same form element* will be automatically unchecked.
+
+    - A `change` event will be emitted when the value changes because of a user action.
 
   - `new TermCheckbox({ checked })`
 
-    - Display a checkbox. The status of the element (checked / unchecked) can be altered through the `checked` option.
+    - Generates a checkbox input.
+
+    - The status of the element (checked / unchecked) can be altered through the `checked` option.
+
+    - A `change` event will be emitted when the value changes because of a user action.
 
   - `new TermButton({ textContent, textBuffer, submit })`
 
-    - Display a simple button.
+    - Generates a simple button, that you can click.
 
     - You can instruct the TermButton to not add any particular style to the element by setting the `decored` option to `false`.
 
