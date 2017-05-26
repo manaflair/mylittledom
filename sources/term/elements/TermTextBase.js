@@ -1,4 +1,4 @@
-import { TextLayout }                                                       from '@manaflair/text-layout/sources/entry-browser';
+import { TextLayout }                                                       from '@manaflair/text-layout';
 import { isBoolean }                                                        from 'lodash';
 import TextBuffer                                                           from 'text-buffer';
 
