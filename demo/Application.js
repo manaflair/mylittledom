@@ -48,6 +48,7 @@ export class Application extends React.PureComponent {
             import { TermText } from '@manaflair/mylittledom/term';
 
             let element = new TermText();
+            element.style.whiteSpace = \`preWrap\`;
             element.textContent = readme;
             element.appendTo(screen);
 

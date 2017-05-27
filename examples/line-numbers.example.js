@@ -6,7 +6,7 @@ container.style.position = `relative`;
 container.style.paddingLeft = 4;
 screen.appendChild(container);
 
-let input = new TermInput({ multiline: true });
+let input = new TermInput({ multiline: true, autoHeight: true });
 input.style.backgroundCharacter = ` `;
 input.style.backgroundColor = null;
 input.style.minHeight = 1;
