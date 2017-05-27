@@ -9,7 +9,8 @@ import { Editor }                 from './Editor';
 import { Terminal }               from './Terminal';
 import { makeAnimationFunctions } from './tools';
 
-let rawFiles = require.context("raw-loader!../examples/", true, /$/);
+let readme = require(`raw-loader!../README.md`).replace(/[^\x00-\x7f]/g, ``);
+let rawFiles = require.context(`raw-loader!../examples/`, true, /$/);
 
 let getPreset = require.context(`../examples/`, false, /^\.\/.*\.example\.js$/);
 let getPresetName = moduleName => moduleName.replace(/^.*\/|\.[^\/]*$/g, ``);
@@ -18,9 +19,9 @@ export class Application extends React.PureComponent {
 
     static exposedModules = new Map([
 
-        [ `@manaflair/mylittledom/core`,       require(`@manaflair/mylittledom/core`) ],
         [ `@manaflair/mylittledom/term/react`, require(`@manaflair/mylittledom/term/react`) ],
         [ `@manaflair/mylittledom/term`,       require(`@manaflair/mylittledom/term`) ],
+        [ `@manaflair/mylittledom`,            require(`@manaflair/mylittledom`) ],
 
         [ `core-decorators`,                   require(`core-decorators`) ],
         [ `faker`,                             require(`faker`) ],
@@ -47,7 +48,7 @@ export class Application extends React.PureComponent {
             import { TermText } from '@manaflair/mylittledom/term';
 
             let element = new TermText();
-            element.textContent = \`Hello world! :)\`;
+            element.textContent = readme;
             element.appendTo(screen);
 
         `.replace(/^ +| +$/gm, ``).replace(/^\n+/, ``).replace(/\n+$/, `\n`)
@@ -110,7 +111,9 @@ export class Application extends React.PureComponent {
                 setImmediate: raf.requestAnimationFrame,
                 cancelImmediate: raf.cancelAnimationFrame,
 
-                screen
+                screen,
+
+                readme
 
             }));
 
