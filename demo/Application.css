@@ -61,3 +61,27 @@
     background: #CC0000;
     color: #FFFFFF;
 }
+
+.Application-window, .Application-window .Window {
+    width: 100%;
+    height: 100%;
+}
+
+.Application-window .Window-content {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.Application-terminal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.Application-terminal {
+    width: 100%;
+    height: 100%;
+}

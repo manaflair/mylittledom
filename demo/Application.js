@@ -7,6 +7,7 @@ import * as Lodash                from 'lodash';
 
 import { Editor }                 from './Editor';
 import { Terminal }               from './Terminal';
+import { Window }                 from './Window';
 import { makeAnimationFunctions } from './tools';
 
 let readme = require(`raw-loader!../README.md`).replace(/[^\x00-\x7f]/g, ``);
@@ -167,8 +168,14 @@ export class Application extends React.PureComponent {
 
             <div className={`Application-right`}>
 
-                <div className={`Application-terminal`}>
-                    <Terminal ref={`terminal`} />
+                <div className={`Application-window`}>
+                    <Window>
+
+                        <div className={`Application-terminal`}>
+                            <Terminal ref={`terminal`} />
+                        </div>
+
+                    </Window>
                 </div>
 
             </div>

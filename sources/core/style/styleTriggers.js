@@ -82,9 +82,9 @@ export function forwardToTextLayout(optName, cb) {
         if (!node.textLayout)
             return;
 
-        node.textLayout.setOptions({
-            [optName]: cb(newValue)
-        });
+        if (node.textLayout.setOptions({ [optName]: cb(newValue) }) || true) {
+            node.textLayout.reset().apply(node.textLines = [ `` ]);
+        }
 
     };
 

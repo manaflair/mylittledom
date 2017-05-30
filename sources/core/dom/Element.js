@@ -899,7 +899,7 @@ export class Element extends Node {
 
             }
 
-            if (doesLayoutChange || doesScrollChange) {
+            if (this.flags & flags.ELEMENT_HAS_DIRTY_LAYOUT || doesLayoutChange || doesScrollChange) {
 
                 this.rootNode.queueDirtyRect(this.elementClipRect);
 

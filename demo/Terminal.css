@@ -4,5 +4,11 @@
 }
 
 .Terminal .terminal {
+    font-family: Menlo, Consolas, courier-new, courier, monospace;
+
     user-select: none;
+}
+
+.Terminal .xterm, .Terminal .xterm-viewport {
+    height: 100% !important;
 }
