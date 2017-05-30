@@ -119,28 +119,21 @@ For the same reasons than those exposed above, some features work a bit differen
 
 Because MyLittleDom uses [Yoga](https://facebook.github.io/yoga/) to layout its elements, it is subject to the same limitations:
 
-  - The only display currently supported are `display: flex` and `display: none` (using `null` instead of `none`).
-
-  - In order to emulate the `display: block` behaviour, the default value for `flex-direction` is `column`.
-
+  - The only display currently supported are `display: flex` and `display: none` (using `null` instead of `"none"`).
+  - In order to emulate the `display: block` behaviour, the default value for `flex-direction` is `"column"`.
   - Element layouts are computed as if they had been declared with `box-sizing: content-box`.
 
 Additionally, the MyLittleDom renderer deviates from the CSS standard on a few additional points:
 
   - Fixed positioning will be applied relative to the nearest positioned element instead of the window.
-
-  - Form elements must live inside form objects, and only live inside their top-most form. Two form checkboxes with similar names will not be linked together if they live under two different forms.
+  - Form inputs are strongly linked to their parent form components. For example, even if two radio component share a similar name, enabling one of them will not disable the other if they do not share the same form parent.
 
 #### Styling
 
   - Unlike actual CSS properties, MyLittleDom properties are correctly typed, and expect a literal `null` instead of `"none"`.
-
-  - In the same fashion, integer values are stored and returned as such in style properties, instead of being strings.
-
+  - In the same manner, integer values are stored and returned as such in style properties, instead of being strings.
   - Pixel units are replaced by raw numbers, but percent strings are kept as strings. No other unit is currently supported.
-
   - To prevent mistakes and facilitate onboarding, setting an invalid value will throw instead of being silently ignored.
-
   - For the same reason, setting an invalid style property will also throw an error.
 
 ### Supported CSS properties
@@ -151,8 +144,8 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
 ## User API
 
-  - `new TermElement({ decored })`
-
+  - **`new TermElement({ decored })`**
+ 
     - Each other term element is a subclass of `TermElement` (including `TermScreen`). As such, any TermElement prop can also be used on other elements (unless they strongly override it).
 
     - You can focus an element (if it actually supports being focused!) by using `element.focus()`, and blur it by using `element.blur()`.
@@ -161,23 +154,23 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - The `decored` option can be set to `false` in order to disable any particular style set for the element, except those strongly required for the element to behave as expected. For example, you can use this option to remove the default style used by TermInput elements and display them as plain boxes instead.
 
-  - `new TermScreen({ debugPaintRects })`
+  - **`new TermScreen({ debugPaintRects })`**
 
     - You will need to call `screen.attachScreen({ stdin, stdout })` before the screen actually prints anything (with `stdin` and `stdout` being Node.js streams). Use `screen.releaseScreen()` once you are done.
 
     - When `debugPaintRects` is on, the renderer will use random background colors to help you detect which parts of the screen have been redrawn. Check the section below for more information.
 
-  - `new TermText({ textContent, textBuffer, multiline })`
+  - **`new TermText({ textContent, textBuffer, multiline })`**
 
     - If you omit the `textBuffer` option when instanciating the element, a default one will be created and populated with the value of the `textContent` option.
 
     - The `textContent` property contains the actual text content of the element. You can also access it directly from the `textBuffer` property.
 
-  - `new TermForm()`
+  - **`new TermForm()`**
 
     - Forms are used to wrap various input elements.
 
-  - `new TermInput({ value, textBuffer, multiline, autoWidth, autoHeight })`
+  - **`new TermInput({ value, textBuffer, multiline, autoWidth, autoHeight })`**
 
     - Generates a user-editable textbox.
 
@@ -193,13 +186,13 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - A `change` event will be emitted when the text buffer gets updated.
 
-  - `new TermLabel()`
+  - **`new TermLabel()`**
 
     - This component will forward any click to its directly to the nearest focusable child.
 
     - You will usually want to put a text node and some kind of input inside the label, so that clicking on the text node will automatically forward the click event to the input.
 
-  - `new TermRadio({ checked })`
+  - **`new TermRadio({ checked })`**
 
     - Generates a radio input.
 
@@ -209,7 +202,7 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - A `change` event will be emitted when the value changes because of a user action.
 
-  - `new TermCheckbox({ checked })`
+  - **`new TermCheckbox({ checked })`**
 
     - Generates a checkbox input.
 
@@ -217,7 +210,7 @@ An up-to-date list of supported CSS properties and supported values for each pro
 
     - A `change` event will be emitted when the value changes because of a user action.
 
-  - `new TermButton({ textContent, textBuffer, submit })`
+  - **`new TermButton({ textContent, textBuffer, submit })`**
 
     - Generates a simple button, that you can click.
 
