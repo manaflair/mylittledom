@@ -26,7 +26,7 @@
 $> npm install --save @manaflair/mylittledom
 ```
 
-## Example (raw js)
+## Example (Vanilla)
 
 <details>
 <summary>Click to reveal the example</summary>
