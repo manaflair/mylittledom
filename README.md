@@ -6,6 +6,8 @@
 
 [Check out our other OSS projects!](https://manaflair.github.io) • [Try out the MyLittleDom playground!](https://manaflair.github.io/mylittledom/demo/)
 
+![](https://camo.githubusercontent.com/e297e9376f2d97869f51e40618670ca8dafe08a9/687474703a2f2f692e696d6775722e636f6d2f36583537774d6a2e676966)
+
 ## Features
 
   - DOM-like API (`element.appendChild()`, `element.removeChild()`, `element.parentNode`, `element.childNodes`, ...)
