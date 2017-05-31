@@ -124,7 +124,7 @@ export let styleProperties = {
     flex: {
         parsers: [ list([ number, optional(number), optional([ length, length.rel, length.autoNaN ]) ]), list([ optional(number), optional(number), [ length, length.rel, length.autoNaN ] ]), new Map([ [ null, [ 0, 0, `auto` ] ] ]) ],
         getter: (style) => [ style.flexGrow, style.flexShrink, style.flexBasis ],
-        setter: (style, [ flexGrow = 1, flexShrink = 1, flexBasis = 0 ]) => Object.assign(style, { flexGrow, flexShrink, flexBasis })
+        setter: (style, [ flexGrow = 1, flexShrink = 1, flexBasis = 0 ]) => Object.assign(style, { flexGrow, flexShrink, flexBasis }, console.log(flexGrow, flexShrink, flexBasis))
     },
 
     flexGrow: {

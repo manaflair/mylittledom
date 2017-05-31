@@ -150,7 +150,7 @@ length.rel = function (rawValue) {
 
 length.autoNaN = function (rawValue) {
 
-    if (rawValue !== `auto` && rawValue !== StyleLength.fakeAuto)
+    if (rawValue !== `auto` && rawValue !== StyleLength.autoNaN)
         return undefined;
 
     return StyleLength.autoNaN;
