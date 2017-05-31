@@ -1,7 +1,7 @@
 {
   "name": "@manaflair/mylittledom",
   "private": true,
-  "version": "0.6.3",
+  "version": "0.6.4",
   "license": "MIT",
   "scripts": {
     "docs": "npm run build:demo",
