@@ -107,6 +107,12 @@ export class Application extends React.PureComponent {
                 require: name => Application.exposedModules.get(name),
                 readFileSync: path => rawFiles(path),
 
+                setTimeout: raf.setTimeout,
+                clearTimeout: raf.clearTimeout,
+
+                setInterval: raf.setInterval,
+                clearInterval: raf.clearInterval,
+
                 requestAnimationFrame: raf.requestAnimationFrame,
                 cancelAnimationFrame: raf.cancelAnimationFrame,
 

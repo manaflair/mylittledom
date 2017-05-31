@@ -5,41 +5,29 @@ export function makeAnimationFunctions() {
 
     let scheduleTask = task => {
 
-        if (!task)
-            return;
-
-        task.descriptor = window.requestAnimationFrame((... args) => {
-
-            tasks.delete(task.id);
-
-            return task.fn.apply(null, args);
-
-        });
+        task.descriptor = task.start.call(window, ... task.args);
 
     };
 
     let cancelTask = task => {
 
-        if (!task)
-            return;
-
-        if (task.descriptor !== null)
-            window.cancelAnimationFrame(task.descriptor);
-
-        tasks.delete(task.id);
+        task.stop.call(window, task.descriptor);
 
     };
 
-    let requestAnimationFrame = fn => {
+    let createTask = (start, stop, ... args) => {
 
         if (!tasks)
             return index;
 
-        let task = { id: index++, fn, descriptor: null };
+        let id = index++;
+        let descriptor = null;
+
+        let task = { id, descriptor, start, stop, args };
         tasks.set(task.id, task);
 
         if (!queue) {
-            scheduleTask(task);
+            scheduleTask(task, scheduler);
         } else {
             queue.push(task.id);
         }
@@ -48,13 +36,53 @@ export function makeAnimationFunctions() {
 
     };
 
-    let cancelAnimationFrame = id => {
+    let dropTask = (stop, id) => {
 
         if (!tasks)
             return;
 
         let task = tasks.get(id);
+
+        if (task.stop !== stop)
+            return;
+
         cancelTask(task);
+
+    };
+
+    let requestAnimationFrame = (fn) => {
+
+        return createTask(window.requestAnimationFrame, window.cancelAnimationFrame, fn);
+
+    };
+
+    let cancelAnimationFrame = (id) => {
+
+        return dropTask(window.cancelAnimationFrame, id);
+
+    };
+
+    let setTimeout = (fn, delay) => {
+
+        return createTask(window.setTimeout, window.clearTimeout, fn, delay);
+
+    };
+
+    let clearTimeout = (id) => {
+
+        return dropTask(window.clearTimeout, id);
+
+    };
+
+    let setInterval = (fn, delay) => {
+
+        return createTask(window.setInterval, window.clearInterval, fn, delay);
+
+    };
+
+    let clearInterval = (id) => {
+
+        return dropTask(window.clearInterval, id);
 
     };
 
@@ -76,6 +104,20 @@ export function makeAnimationFunctions() {
 
     };
 
-    return { requestAnimationFrame, cancelAnimationFrame, start, stop };
+    return {
+
+        requestAnimationFrame,
+        cancelAnimationFrame,
+
+        setTimeout,
+        clearTimeout,
+
+        setInterval,
+        clearInterval,
+
+        start,
+        stop
+
+    };
 
 }
